@@ -58,7 +58,8 @@ def register_team(db: Session, team_data: schemas.TeamCreate):
     db_team = models.Team(
         name=team_data.name,
         tournament_id=team_data.tournament_id,
-        captain_email=team_data.captain_email
+        captain_email=team_data.captain_email,
+        captain_name=team_data.captain_name
     )
     db.add(db_team)
     db.commit()

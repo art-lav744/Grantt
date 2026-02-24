@@ -33,9 +33,31 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 def create_tournament(tournament: schemas.TournamentCreate, db: Session = Depends(get_db)):
     return crud.create_tournament(db=db, tournament=tournament)
 
+#Зміна статусу турніра
+@app.patch("/tournaments/{tournament_id}/status", tags=["Admin"])
+def update_status(tournament_id: int, status: str, db: Session = Depends(get_db)):
+    return crud.update_tournament_status(db, tournament_id, status)
+
 @app.post("/teams/", response_model=schemas.TeamOut, tags=["Teams"])
 def register_new_team(team: schemas.TeamCreate, db: Session = Depends(get_db)):
     return crud.register_team(db=db, team_data=team)
+
+#найти усі турніри користувача
+@app.get("/members/{email}/tournaments")
+def get_my_tournaments(email: str, db: Session = Depends(get_db)):
+    members = db.query(models.TeamMember).filter(models.TeamMember.email == email).all()
+    result = []
+    for m in members:
+        team = db.query(models.Team).filter(models.Team.id == m.team_id).first()
+        tournament = db.query(models.Tournament).filter(models.Tournament.id == team.tournament_id).first()
+        result.append({
+            "team_id": team.id,
+            "team_name": team.name,
+            "tournament_id": tournament.id,
+            "tournament_title": tournament.title,
+            "tournament_status": tournament.status
+        })
+    return result
 
 @app.get("/")
 def home():

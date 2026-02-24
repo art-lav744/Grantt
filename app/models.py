@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Enum, ForeignKey, DateTime
 from .database import Base
 from sqlalchemy.orm import relationship
 
@@ -23,4 +23,23 @@ class Tournament(Base):
     description = Column(String)
     status = Column(String, default="open")
     creator_id = Column(Integer, ForeignKey("users.id"))
+    reg_start = Column(DateTime)
+    reg_end = Column(DateTime)
     creator = relationship("User", back_populates="tournaments")
+
+class Team(Base):
+    __tablename__ = "teams"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    tournament_id = Column(Integer, ForeignKey("tournaments.id"))
+    captain_email = Column(String)
+    captain_name = Column(String)
+    members = relationship("TeamMember", back_populates="team")
+
+class TeamMember(Base):
+    __tablename__ = "team_members"
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String)
+    email = Column(String)
+    team_id = Column(Integer, ForeignKey("teams.id"))
+    team = relationship("Team", back_populates="members")
