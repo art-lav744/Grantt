@@ -15,6 +15,7 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(String, default=UserRole.TEAM)
     tournaments = relationship("Tournament", back_populates="creator")
+    nickname = Column(String, unique=True, index=True)
 
 class Tournament(Base):
     __tablename__ = "tournaments"
