@@ -7,7 +7,9 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    nickname: str
     role: Optional[str] = "team"
+
 
 class TournamentShort(BaseModel):
     id: int

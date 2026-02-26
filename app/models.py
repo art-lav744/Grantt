@@ -16,6 +16,7 @@ class User(Base):
     role = Column(String, default=UserRole.TEAM)
     profile_image_path = Column(String, nullable=True)  # User profile photo
     tournaments = relationship("Tournament", back_populates="creator")
+    nickname = Column(String, unique=True, index=True)
 
 class Tournament(Base):
     __tablename__ = "tournaments"
