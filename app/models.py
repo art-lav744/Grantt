@@ -14,6 +14,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     role = Column(String, default=UserRole.TEAM)
+    profile_image_path = Column(String, nullable=True)  # User profile photo
     tournaments = relationship("Tournament", back_populates="creator")
 
 class Tournament(Base):
@@ -25,6 +26,7 @@ class Tournament(Base):
     creator_id = Column(Integer, ForeignKey("users.id"))
     reg_start = Column(DateTime)
     reg_end = Column(DateTime)
+    cover_image_path = Column(String, nullable=True)  # Tournament cover/banner image
     creator = relationship("User", back_populates="tournaments")
 
 class Team(Base):
@@ -34,6 +36,7 @@ class Team(Base):
     tournament_id = Column(Integer, ForeignKey("tournaments.id"))
     captain_email = Column(String)
     captain_name = Column(String)
+    image_path = Column(String, nullable=True)  # Path to uploaded team image
     members = relationship("TeamMember", back_populates="team")
 
 class TeamMember(Base):

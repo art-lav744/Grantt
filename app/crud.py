@@ -118,6 +118,36 @@ def distribute_submissions_to_jury(db: Session, round_id: int):
     db.commit()
     return {"status": "Роботи розподілено між журі"}
 
+def update_team_image(db: Session, team_id: int, image_path: str):
+    """Saves the image path for a team after the file has been uploaded."""
+    team = db.query(models.Team).filter(models.Team.id == team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    team.image_path = image_path
+    db.commit()
+    db.refresh(team)
+    return team
+
+def update_user_profile_image(db: Session, user_id: int, image_path: str):
+    """Saves the profile photo path for a user."""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.profile_image_path = image_path
+    db.commit()
+    db.refresh(user)
+    return user
+
+def update_tournament_image(db: Session, tournament_id: int, image_path: str):
+    """Saves the cover/banner image path for a tournament."""
+    tournament = db.query(models.Tournament).filter(models.Tournament.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    tournament.cover_image_path = image_path
+    db.commit()
+    db.refresh(tournament)
+    return tournament
+
 def get_leaderboard(db: Session, tournament_id: int):
 
     results = db.query(

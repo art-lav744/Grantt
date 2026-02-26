@@ -1,12 +1,17 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from . import models, schemas, crud, database
+from .utils import save_team_image, save_profile_image, save_tournament_image
 from typing import List
 
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Tournament Platform API")
+
+# Serve uploaded images as static files at /static/team_images/<filename>
+app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -74,6 +79,36 @@ def submit_work(sub: schemas.SubmissionCreate, db: Session = Depends(get_db)):
 @app.post("/rounds/{round_id}/distribute", tags=["Admin"])
 def distribute_works(round_id: int, db: Session = Depends(get_db)):
     return crud.distribute_submissions_to_jury(db, round_id)
+
+@app.post("/teams/{team_id}/image", response_model=schemas.TeamOut, tags=["Teams"])
+async def upload_team_image(
+    team_id: int,
+    file: UploadFile = File(..., description="Team logo/avatar. JPEG, PNG, GIF or WEBP, max 5 MB."),
+    db: Session = Depends(get_db)
+):
+    """Upload or replace a team's logo/avatar. Accessible at /static/team_images/<filename>."""
+    image_path = await save_team_image(file)
+    return crud.update_team_image(db, team_id=team_id, image_path=image_path)
+
+@app.post("/users/{user_id}/image", response_model=schemas.UserOut, tags=["User Profile"])
+async def upload_profile_image(
+    user_id: int,
+    file: UploadFile = File(..., description="User profile photo. JPEG, PNG, GIF or WEBP, max 5 MB."),
+    db: Session = Depends(get_db)
+):
+    """Upload or replace a user's profile photo. Accessible at /static/profile_images/<filename>."""
+    image_path = await save_profile_image(file)
+    return crud.update_user_profile_image(db, user_id=user_id, image_path=image_path)
+
+@app.post("/tournaments/{tournament_id}/image", response_model=schemas.TournamentOut, tags=["Admin"])
+async def upload_tournament_image(
+    tournament_id: int,
+    file: UploadFile = File(..., description="Tournament cover/banner. JPEG, PNG, GIF or WEBP, max 5 MB."),
+    db: Session = Depends(get_db)
+):
+    """Upload or replace a tournament's cover/banner image. Accessible at /static/tournament_images/<filename>."""
+    image_path = await save_tournament_image(file)
+    return crud.update_tournament_image(db, tournament_id=tournament_id, image_path=image_path)
 
 @app.get("/tournaments/{tournament_id}/leaderboard", response_model=List[schemas.LeaderboardEntry], tags=["Public"])
 def read_leaderboard(tournament_id: int, db: Session = Depends(get_db)):
