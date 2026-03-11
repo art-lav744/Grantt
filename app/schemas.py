@@ -1,6 +1,12 @@
+from pydantic import BaseModel, field_validator # Додай field_validator
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+import re # Додай re для регулярних виразів
+
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_REQUIRE_NUMBER = True
+PASSWORD_REQUIRE_SPECIAL = True
 
 class UserBase(BaseModel):
     email: str
@@ -9,6 +15,20 @@ class UserCreate(UserBase):
     password: str
     nickname: str
     role: Optional[str] = "team"
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_complexity(cls, v: str) -> str:
+        if len(v) < PASSWORD_MIN_LENGTH:
+            raise ValueError(f"Пароль має бути не менше {PASSWORD_MIN_LENGTH} символів")
+        
+        if PASSWORD_REQUIRE_NUMBER and not any(char.isdigit() for char in v):
+            raise ValueError("Пароль має містити хоча б одну цифру")
+            
+        if PASSWORD_REQUIRE_SPECIAL and not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
+            raise ValueError("Пароль має містити хоча б один спеціальний символ")
+            
+        return v
 
 
 class TournamentShort(BaseModel):

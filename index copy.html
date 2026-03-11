@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registration - Tournament 2026</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #2c3e50; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #34495e; padding: 2rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); width: 350px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2ecc71; }
+        #status { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; font-size: 0.9em; }
+        .error { background: #e74c3c; display: block !important; }
+        .success { background: #2ecc71; display: block !important; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Створити аккаунт</h2>
+    <form id="regForm">
+        <input type="text" id="nickname" placeholder="Нікнейм" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Пароль (мін. 8 симв. + цифра)" required>
+        <button type="submit">Зареєструватися</button>
+    </form>
+    <div id="status"></div>
+</div>
+
+<script>
+    const form = document.getElementById('regForm');
+    const status = document.getElementById('status');
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        status.className = '';
+        status.innerText = 'Відправка...';
+
+        const data = {
+            nickname: document.getElementById('nickname').value,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            role: "team"
+        };
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/users/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                status.className = 'success';
+                status.innerText = 'Успіх! Користувача додано в базу.';
+                form.reset();
+            } else {
+                status.className = 'error';
+                // Витягуємо повідомлення про помилку від Pydantic або сервера
+                let errorMsg = result.detail;
+                if (Array.isArray(errorMsg)) errorMsg = errorMsg[0].msg;
+                status.innerText = 'Помилка: ' + errorMsg;
+            }
+        } catch (err) {
+            status.className = 'error';
+            status.innerText = 'Сервер недоступний';
+        }
+    };
+</script>
+
+</body>
+</html>
