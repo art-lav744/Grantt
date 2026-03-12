@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Tournament 2026 — Головна</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; text-align: center; padding: 50px; }
+        .container { background: #16213e; padding: 40px; border-radius: 20px; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .btn { display: block; width: 280px; padding: 15px; margin: 15px auto; border-radius: 10px; border: none; cursor: pointer; text-decoration: none; font-weight: bold; font-size: 18px; transition: 0.3s; }
+        .btn-login { background: #4ecca3; color: #1a1a2e; }
+        .btn-reg { background: #e94560; color: white; }
+        .btn-team { background: #0f3460; color: white; border: 1px solid #4ecca3; }
+        .user-info { margin-bottom: 20px; font-size: 1.2em; color: #4ecca3; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏆 Tournament 2026</h1>
+    <div id="status-area">
+        <div class="user-info" id="greeting">Ви не увійшли в систему</div>
+        
+        <div id="guest-links">
+            <a href="login.html" class="btn btn-login">Увійти</a>
+            <a href="register_user.html" class="btn btn-reg">Створити акаунт</a>
+        </div>
+
+        <div id="user-links" class="hidden">
+            <a href="register_team.html" class="btn btn-team">Зареєструвати команду</a>
+            <div id="admin-section" class="hidden">
+                <hr>
+                <a href="/docs" class="btn btn-reg">Панель керування (API)</a>
+            </div>
+            <button onclick="logout()" class="btn" style="background: #333;">Вийти</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Логіка перевірки входу
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    const nickname = localStorage.getItem('nickname');
+
+    if (token) {
+        document.getElementById('guest-links').classList.add('hidden');
+        document.getElementById('user-links').classList.remove('hidden');
+        document.getElementById('greeting').innerText = `Привіт, ${nickname}! 🎖️`;
+
+        if (role === 'admin') {
+            document.getElementById('admin-section').classList.remove('hidden');
+        }
+    }
+
+    function logout() {
+        localStorage.clear();
+        window.location.reload();
+    }
+</script>
+
+</body>
+</html>

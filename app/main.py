@@ -35,6 +35,30 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Nickname already taken")
     return crud.create_user(db=db, user=user)
 
+@app.post("/login")  # Тепер цей шлях збігається з твоїм HTML
+def login_user(data: dict, db: Session = Depends(get_db)):
+    email = data.get("email")
+    password = data.get("password")
+    
+    # Шукаємо користувача
+    user = db.query(models.User).filter(models.User.email == email).first()
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Користувача не знайдено")
+    
+    # Перевіряємо пароль (використовуємо функцію з твого utils)
+    from .utils import verify_password # Переконайся, що функція там є
+    if not verify_password(password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Невірний пароль")
+    
+    # Повертаємо дані, які чекає index.html та login.html
+    return {
+        "access_token": "secret-token-2026", # Тимчасово, поки не підключиш JWT
+        "role": user.role,
+        "nickname": user.nickname,
+        "user_id": user.id
+    }
+
 @app.post("/tournaments/", response_model=schemas.TournamentOut, tags=["Admin"])
 def create_tournament(tournament: schemas.TournamentCreate, db: Session = Depends(get_db)):
     return crud.create_tournament(db=db, tournament=tournament)
