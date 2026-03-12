@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Реєстрація команди - Tournament 2026</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; display: flex; justify-content: center; padding: 40px; }
+        .form-container { background: #16213e; padding: 30px; border-radius: 15px; width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { text-align: center; color: #4ecca3; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #0f3460; background: #0f3460; color: white; box-sizing: border-box; }
+        .member-row { border-left: 3px solid #4ecca3; padding-left: 10px; margin-bottom: 15px; background: #1a1a2e; padding: 10px; border-radius: 4px; }
+        button { width: 100%; padding: 12px; margin-top: 10px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-add { background: #4ecca3; color: #1a1a2e; }
+        .btn-submit { background: #e94560; color: white; font-size: 1.1em; }
+        #status { margin-top: 20px; padding: 10px; border-radius: 6px; display: none; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <h2>Реєстрація Команди</h2>
+    <form id="teamForm">
+        <input type="number" id="tournament_id" placeholder="ID Турніру (напр. 1)" required>
+        <input type="text" id="team_name" placeholder="Назва команди" required>
+        
+        <hr>
+        <h4>Капітан</h4>
+        <input type="text" id="cap_name" placeholder="Ім'я капітана" required>
+        <input type="email" id="cap_email" placeholder="Email капітана" required>
+        
+        <hr>
+        <h4>Учасники (макс. 4 додатково)</h4>
+        <div id="members_list"></div>
+        <button type="button" class="btn-add" onclick="addMember()">+ Додати учасника</button>
+        
+        <button type="submit" class="btn-submit">Зареєструвати команду</button>
+    </form>
+    <div id="status"></div>
+</div>
+
+<script>
+    let memberCount = 0;
+    const maxMembers = 4; // Разом з капітаном буде 5
+
+    function addMember() {
+        if (memberCount >= maxMembers) {
+            alert("Максимум 5 людей у команді (включаючи капітана)");
+            return;
+        }
+        memberCount++;
+        const div = document.createElement('div');
+        div.className = 'member-row';
+        div.innerHTML = `
+            <input type="text" class="m-name" placeholder="ПІБ учасника ${memberCount}" required>
+            <input type="email" class="m-email" placeholder="Email учасника ${memberCount}" required>
+        `;
+        document.getElementById('members_list').appendChild(div);
+    }
+
+    document.getElementById('teamForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const status = document.getElementById('status');
+        status.style.display = 'block';
+        status.style.background = '#0f3460';
+        status.innerText = 'Відправка даних...';
+
+        const members = [];
+        document.querySelectorAll('.member-row').forEach(row => {
+            members.push({
+                full_name: row.querySelector('.m-name').value,
+                email: row.querySelector('.m-email').value
+            });
+        });
+
+        const payload = {
+            tournament_id: parseInt(document.getElementById('tournament_id').value),
+            name: document.getElementById('team_name').value,
+            captain_name: document.getElementById('cap_name').value,
+            captain_email: document.getElementById('cap_email').value,
+            members: members
+        };
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/teams/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                status.style.background = '#4ecca3';
+                status.style.color = '#1a1a2e';
+                status.innerText = 'Команду успішно зареєстровано!';
+            } else {
+                status.style.background = '#e94560';
+                status.innerText = 'Помилка: ' + (result.detail || 'Невідома помилка');
+            }
+        } catch (err) {
+            status.innerText = 'Сервер бекенду не відповідає';
+        }
+    };
+</script>
+
+</body>
+</html>

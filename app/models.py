@@ -20,13 +20,14 @@ class User(Base):
 
 class Tournament(Base):
     __tablename__ = "tournaments"
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True) # primary_key гарантує унікальність
     title = Column(String, index=True)
     description = Column(String)
     status = Column(String, default="open")
     creator_id = Column(Integer, ForeignKey("users.id"))
     reg_start = Column(DateTime)
     reg_end = Column(DateTime)
+    max_teams = Column(Integer, default=16)  # ДОДАЙ ЦЕЙ РЯДОК
     cover_image_path = Column(String, nullable=True)  # Tournament cover/banner image
     creator = relationship("User", back_populates="tournaments")
 

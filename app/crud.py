@@ -46,18 +46,57 @@ def get_user_tournaments(db: Session, user_id: int):
     return db.query(models.Tournament).filter(models.Tournament.creator_id == user_id).all()
 
 def register_team(db: Session, team_data: schemas.TeamCreate):
-
+    # 1. Шукаємо турнір
     tournament = db.query(models.Tournament).filter(models.Tournament.id == team_data.tournament_id).first()
     
-    if not tournament or tournament.status != "registration":
-        raise HTTPException(status_code=400, detail="Реєстрація на цей турнір закрита або ще не почалася")
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Турнір не знайдено")
 
+    # 2. Перевірка статусу та часового вікна
+    if tournament.status != "registration":
+        raise HTTPException(status_code=400, detail="Реєстрація на цей турнір закрита або ще не почалася")
 
     now = datetime.utcnow()
     if not (tournament.reg_start <= now <= tournament.reg_end):
         raise HTTPException(status_code=400, detail="Ви поза межами реєстраційного вікна")
 
+    # 3. ПЕРЕВІРКА: Максимальна кількість команд у турнірі
+    current_teams_count = db.query(models.Team).filter(models.Team.tournament_id == team_data.tournament_id).count()
+    if tournament.max_teams and current_teams_count >= tournament.max_teams:
+        raise HTTPException(status_code=400, detail=f"Усі місця на турнір зайняті (макс. {tournament.max_teams})")
 
+    # 4. ПЕРЕВІРКА: Максимальна кількість людей у команді
+    # Наприклад, ліміт 5 (можна винести в константу або поле турніру)
+    MAX_MEMBERS = 5
+    if len(team_data.members) > MAX_MEMBERS:
+        raise HTTPException(status_code=400, detail=f"Максимальна кількість учасників — {MAX_MEMBERS}")
+
+    # 5. ПЕРЕВІРКА: Унікальність імейлів (капітан + учасники)
+    # Збираємо всі email в один список
+    all_emails = [team_data.captain_email] + [m.email for m in team_data.members]
+    
+    # Перевірка на дублікати всередині самої форми
+    if len(all_emails) != len(set(all_emails)):
+        raise HTTPException(status_code=400, detail="Один і той самий email вказано кілька разів")
+
+    # Перевірка, чи ці імейли вже зареєстровані В ЦЬОМУ турнірі
+    for email in all_emails:
+        # Шукаємо серед капітанів інших команд
+        exists_as_captain = db.query(models.Team).filter(
+            models.Team.tournament_id == team_data.tournament_id,
+            models.Team.captain_email == email
+        ).first()
+        
+        # Шукаємо серед учасників інших команд
+        exists_as_member = db.query(models.TeamMember).join(models.Team).filter(
+            models.Team.tournament_id == team_data.tournament_id,
+            models.TeamMember.email == email
+        ).first()
+
+        if exists_as_captain or exists_as_member:
+            raise HTTPException(status_code=400, detail=f"Учасник з email {email} вже зареєстрований у цьому турнірі")
+
+    # Якщо всі перевірки пройшли успішно — створюємо команду
     db_team = models.Team(
         name=team_data.name,
         tournament_id=team_data.tournament_id,
