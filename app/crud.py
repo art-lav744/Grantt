@@ -102,7 +102,7 @@ def get_leaderboard(db: Session, tournament_id: int):
      .filter(models.Team.tournament_id == tournament_id)\
      .group_by(models.Team.id)\
      .all()
-
+# Формуємо список для лідерборду з обчисленням загального балу та округленням до 2 знаків після коми
     leaderboard = []
     for res in results:
         total = (res.tech_avg + res.func_avg) / 2 

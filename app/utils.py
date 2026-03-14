@@ -33,12 +33,12 @@ def create_access_token(user_id: int, role: str) -> str:
         "sub": str(user_id),
         "role": role,
         "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    }
+    }# Шифруємо та повертаємо JWT токен з корисним навантаженням (user_id, role, exp) та секретним ключем
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 def decode_access_token(token: str) -> dict:
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])# Декодуємо та перевіряємо JWT токен, повертаючи корисне навантаження (payload) або викликаючи помилку при невірному токені
     except Exception:
         raise HTTPException(status_code=401, detail="Unvalid token")
 
@@ -77,7 +77,7 @@ def _process_image(contents: bytes, target_size: int = 400) -> bytes:
 async def _save_image(file: UploadFile, subfolder: str, process: bool = True) -> str:
     if file.content_type not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"Invalid file type '{file.content_type}'.")
-
+    # Перевірка на порожній файл та розмір файлу
     contents = await file.read()
     size_mb = len(contents) / (1024 * 1024)
     if len(contents) == 0:
@@ -88,6 +88,7 @@ async def _save_image(file: UploadFile, subfolder: str, process: bool = True) ->
     if process:
         contents = _process_image(contents)
     else:
+        # Додаткова перевірка на пошкодження файлу, якщо не обробляємо його (наприклад, для фото турніру)
         try:
             Image.open(io.BytesIO(contents)).verify()
         except Exception:

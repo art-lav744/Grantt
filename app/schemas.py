@@ -64,7 +64,7 @@ class TournamentOut(BaseModel):
     max_teams: Optional[int] = None
     cover_image_path: Optional[str] = None # URL до зображення турніру
     teams_count: Optional[int] = None
-    
+    # Додаткові атрибути для головної сторінки турнірів
     class Config:
         from_attributes = True
 

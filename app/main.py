@@ -26,6 +26,7 @@ app.add_middleware(
 
 # ── DB ───────────────────────────────────────────────────────────
 
+# Функція для отримання сесії бази даних, яка буде використовуватися в залежностях FastAPI для автоматичного відкриття та закриття сесії при кожному запиті
 def get_db():
     db = database.SessionLocal()
     try:
@@ -35,15 +36,19 @@ def get_db():
 
 # ── Auth ─────────────────────────────────────────────────────────
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+# Використовуємо OAuth2PasswordBearer для отримання JWT токена
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+# Функція для отримання поточного користувача на основі JWT токена
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     payload = decode_access_token(token)
+    # Шукаємо користувача в базі даних за ID, який зберігається в токені (payload["sub"])
     user = db.query(models.User).filter(models.User.id == int(payload["sub"])).first()
     if not user:
         raise HTTPException(status_code=401, detail="Користувача не знайдено.")
     return user
 
+# Декоратори для перевірки ролей користувача
 def require_admin(current_user = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Тільки для адміністраторів.")
