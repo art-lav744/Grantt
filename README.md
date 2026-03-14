@@ -5,25 +5,37 @@
 ## Структура проєкту
 
 ```
-tournament_app/          ← Python пакет (бекенд)
-  __init__.py
-  database.py            ← SQLAlchemy / SQLite
-  models.py              ← Таблиці БД
-  schemas.py             ← Pydantic-схеми
-  crud.py                ← Бізнес-логіка
-  utils.py               ← Хешування, JWT, завантаження файлів
-  main.py                ← FastAPI роути
-
-requirements.txt         ← Залежності Python
-
-dashboard_admin.html     ← Адмін-панель (Турніри, Раунди, Журі, Лідерборд)
-dashboard_team.html      ← Кабінет команди (Реєстрація, Здача роботи, Таймер)
-dashboard_jury.html      ← Кабінет журі (Оцінювання з повзунками)
-
-register.html            ← Публічна форма реєстрації акаунту
-register_team.html       ← Публічна форма реєстрації команди
-create_tournament.html   ← Форма створення турніру
-upload_*.html            ← Форми завантаження зображень
+Tournament_2026/
+├── app/                        ← Python пакет (бекенд)
+│   ├── __init__.py
+│   ├── database.py             ← SQLAlchemy / SQLite
+│   ├── models.py               ← Таблиці БД
+│   ├── schemas.py              ← Pydantic-схеми
+│   ├── crud.py                 ← Бізнес-логіка
+│   ├── utils.py                ← Хешування, JWT, обробка зображень
+│   └── main.py                 ← FastAPI роути
+│
+├── frontend/                   ← HTML інтерфейси
+│   ├── dashboard_admin.html     ← Адмін-панель (Турніри, Раунди, Журі, Лідерборд)
+│   ├── dashboard_team.html      ← Кабінет команди (Реєстрація, Здача роботи, Таймер)
+│   ├── dashboard_jury.html      ← Кабінет журі (Оцінювання з повзунками)
+│   │
+│   ├── register.html            ← Публічна форма реєстрації акаунту
+│   ├── register_team.html       ← Публічна форма реєстрації команди
+│   ├── create_tournament.html   ← Форма створення турніру
+│   └── upload_*.html            ← Форми завантаження зображень
+│
+├── scripts/                    ← Утилітні скрипти
+│   ├── create_admin.py         ← Створення адміністратора
+│   └── seed_data.py            ← Тестові дані (турнір)
+│
+├── uploads/                    ← Завантажені зображення
+│   ├── team_images/
+│   ├── profile_images/
+│   └── tournament_images/
+│
+├── requirements.txt            ← Залежності Python
+└── tournament.db               ← SQLite база даних
 ```
 
 ## Запуск бекенду
@@ -38,7 +50,7 @@ pip install -r requirements.txt
 
 ```bash
 # Якщо запускаєте з батьківської папки:
-uvicorn tournament_app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### 3. Перегляд API документації
@@ -49,12 +61,18 @@ http://localhost:8000/docs
 
 ## Ролі користувачів
 
-| Роль | Опис |
-|------|------|
-| `admin` | Повний доступ: турніри, раунди, журі, розподіл |
-| `organizer` | Управління турнірами та раундами |
-| `jury` | Оцінювання призначених робіт |
-| `team` | Реєстрація команди, здача робіт |
+| Дія |  `admin` | `organizer` | `jury` | `team` |
+|-----|-------|-----------|------|------|
+| Створити турнір | ✅ | ❌ | ❌ | ❌ |
+| Змінити статус турніру | ✅ | ✅ | ❌ | ❌ |
+| Редагувати турнір | ✅ | ✅ | ❌ | ❌ |
+| Створити раунд | ✅ | ✅ | ❌ | ❌ |
+| Розподілити журі | ✅ | ✅ | ❌ | ❌ |
+| Зареєструвати команду | ❌ | ❌ | ❌ | ✅ |
+| Подати роботу | ❌ | ❌ | ❌ | ✅ |
+| Виставити оцінку | ❌ | ❌ | ✅ | ❌ |
+| Переглянути лідерборд | ✅ | ✅ | ✅ | ✅ |
+| Переглянути профіль | ✅ | ✅ | ✅ | ✅ |
 
 ## Типовий сценарій
 
@@ -83,28 +101,34 @@ http://localhost:8000/docs
 
 ## API Endpoints (ключові)
 
+## API Endpoints
 ```
-POST   /auth/register         — Реєстрація
-POST   /auth/login            — Вхід, отримання JWT
-GET    /auth/me               — Поточний користувач
+# ── Auth ─────────────────────────────────────────────────────────
+POST   /registet                — Реєстрація          [public] +
+POST   /login                 — Вхід, отримання JWT [public] +
 
-GET    /tournaments/          — Список (фільтр: ?status=running)
-POST   /tournaments/          — Створити [admin/organizer]
-PATCH  /tournaments/{id}/status — Змінити статус
-GET    /tournaments/{id}/leaderboard — Таблиця лідерів
+# ── Tournaments ──────────────────────────────────────────────────
+GET    /tournaments/          — Список турнірів        [public] +
+POST   /tournaments/          — Створити турнір        [admin] +
+PATCH  /tournaments/{id}/status — Змінити статус       [admin/organizer] +
+GET    /tournaments/{id}/leaderboard — Таблиця лідерів [public] +
 
-POST   /rounds/               — Створити раунд [admin/organizer]
-PATCH  /rounds/{id}/status    — Змінити статус раунду
-POST   /rounds/{id}/distribute — Розподілити по журі [admin]
+# ── Rounds ───────────────────────────────────────────────────────
+POST   /rounds/               — Створити раунд        [admin/organizer] +
+PATCH  /rounds/{id}/status    — Змінити статус раунду [admin/organizer] -
+POST   /rounds/{id}/distribute — Розподілити по журі  [admin/organizer] +
 
-POST   /teams/                — Зареєструвати команду
-GET    /tournaments/{id}/teams — Команди турніру
+# ── Teams ────────────────────────────────────────────────────────
+POST   /teams/                — Зареєструвати команду [auth] +
+GET    /tournaments/{id}/teams — Команди турніру      [public] -
 
-POST   /submissions/          — Здати роботу (з оновленням)
-GET    /rounds/{id}/submissions — Список сабмітів [admin]
+# ── Submissions ──────────────────────────────────────────────────
+POST   /submissions/          — Здати роботу      [auth] +
+GET    /rounds/{id}/submissions — Список сабмітів [admin/organizer] -
 
-GET    /evaluations/my        — Мої оцінки [jury]
-PUT    /evaluations/{id}      — Виставити оцінку [jury]
+# ── Evaluations ──────────────────────────────────────────────────
+GET    /evaluations/my        — Мої оцінки       [jury] - 
+PUT    /evaluations/{id}      — Виставити оцінку [jury] -
 ```
 
 ## Формула підрахунку балів

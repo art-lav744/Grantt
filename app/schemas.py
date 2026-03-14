@@ -41,7 +41,7 @@ class TournamentShort(BaseModel):
 class UserOut(UserBase):
     id: int
     role: str
-    profile_image_path: Optional[str] = None  # Profile photo URL/path
+    profile_image_path: Optional[str] = None  # URL до зображення профілю
     tournaments: list[TournamentShort] = []
 
     class Config:
@@ -56,9 +56,15 @@ class TournamentCreate(BaseModel):
 class TournamentOut(BaseModel):
     id: int
     title: str
+    description: Optional[str] = None
     status: str
-    creator_id: Optional[int] = None  # Тимчасовий фікс
-    cover_image_path: Optional[str] = None  # Tournament cover/banner image
+    creator_id: Optional[int] = None # тимчасовий фікс
+    reg_start: Optional[datetime] = None
+    reg_end: Optional[datetime] = None
+    max_teams: Optional[int] = None
+    cover_image_path: Optional[str] = None # URL до зображення турніру
+    teams_count: Optional[int] = None
+    
     class Config:
         from_attributes = True
 
@@ -103,7 +109,7 @@ class TeamOut(BaseModel):
     tournament_id: int
     captain_email: str
     captain_name: str
-    image_path: Optional[str] = None  # URL/path to team image
+    image_path: Optional[str] = None  # URL/path до зображення команди
 
     class Config:
         from_attributes = True

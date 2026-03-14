@@ -43,7 +43,7 @@
         };
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/users/', {
+            const response = await fetch('http://127.0.0.1:8000/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -52,9 +52,9 @@
             const result = await response.json();
 
             if (response.ok) {
-                status.className = 'success';
-                status.innerText = 'Успіх! Користувача додано в базу.';
-                form.reset();
+                status.innerText = 'Успіх! Переходимо до входу...';
+                setTimeout(() => window.location.href = 'login.html', 1000);
+                    
             } else {
                 status.className = 'error';
                 // Витягуємо повідомлення про помилку від Pydantic або сервера

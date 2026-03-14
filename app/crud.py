@@ -1,9 +1,12 @@
 import random
 from sqlalchemy.orm import Session
-from . import models, schemas
-from datetime import datetime
-from fastapi import HTTPException
 from sqlalchemy import func
+from fastapi import HTTPException
+from datetime import datetime
+from . import models, schemas
+from .utils import hash_password
+
+# ── User ────────────────────────────────────────────────────────
 
 def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
@@ -14,13 +17,26 @@ def get_user_by_nickname(db: Session, nickname: str):
 def create_user(db: Session, user: schemas.UserCreate):
     db_user = models.User(
         email=user.email,
-        hashed_password=user.password,
-        role=user.role
+        hashed_password=hash_password(user.password),  # Хешуємо пароль перед збереженням
+        role=user.role,
+        nickname=user.nickname
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def update_user_profile_image(db: Session, user_id: int, image_path: str):
+    """Saves the profile photo path for a user."""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.profile_image_path = image_path
+    db.commit()
+    db.refresh(user)
+    return user
+
+# ── Tournaments ─────────────────────────────────────────────────
 
 def create_tournament(db: Session, tournament: schemas.TournamentCreate):
     db_tournament = models.Tournament(
@@ -42,8 +58,65 @@ def update_tournament_status(db: Session, tournament_id: int, status: str):
         db.commit()
     return db_tournament
 
+def get_tournaments(db: Session, status: str = None):
+    query = db.query(models.Tournament)
+    if status:
+        query = query.filter(models.Tournament.status == status)
+    tournaments = query.all()
+    
+    result = []
+    for t in tournaments:
+        teams_count = db.query(models.Team).filter(models.Team.tournament_id == t.id).count()
+        result.append({
+            "id": t.id,
+            "title": t.title,
+            "status": t.status,
+            "creator_id": t.creator_id,
+            "cover_image_path": t.cover_image_path,
+            "max_teams": t.max_teams,
+            "teams_count": teams_count
+        })
+    return result
+
 def get_user_tournaments(db: Session, user_id: int):
     return db.query(models.Tournament).filter(models.Tournament.creator_id == user_id).all()
+
+def update_tournament_image(db: Session, tournament_id: int, image_path: str):
+    """Saves the cover/banner image path for a tournament."""
+    tournament = db.query(models.Tournament).filter(models.Tournament.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(status_code=404, detail="Tournament not found")
+    tournament.cover_image_path = image_path
+    db.commit()
+    db.refresh(tournament)
+    return tournament
+
+def get_leaderboard(db: Session, tournament_id: int):
+    results = db.query(
+        models.Team.name,
+        func.avg(models.Evaluation.tech_score).label("tech_avg"),
+        func.avg(models.Evaluation.func_score).label("func_avg"),
+        func.count(models.Submission.id).label("subs_count")
+    ).join(models.Submission, models.Team.id == models.Submission.team_id)\
+     .join(models.Evaluation, models.Submission.id == models.Evaluation.submission_id)\
+     .filter(models.Team.tournament_id == tournament_id)\
+     .group_by(models.Team.id)\
+     .all()
+
+    leaderboard = []
+    for res in results:
+        total = (res.tech_avg + res.func_avg) / 2 
+        leaderboard.append({
+            "team_name": res.name,
+            "tech_avg": round(res.tech_avg, 2),
+            "func_avg": round(res.func_avg, 2),
+            "total_score": round(total, 2),
+            "submissions_count": res.subs_count
+        })
+    
+    return sorted(leaderboard, key=lambda x: x["total_score"], reverse=True)
+
+# ── Team ────────────────────────────────────────────────────────
 
 def register_team(db: Session, team_data: schemas.TeamCreate):
     # 1. Шукаємо турнір
@@ -119,8 +192,19 @@ def register_team(db: Session, team_data: schemas.TeamCreate):
     db.commit()
     return db_team
 
-def create_submission(db: Session, sub_data: schemas.SubmissionCreate):
+def update_team_image(db: Session, team_id: int, image_path: str):
+    """Saves the image path for a team after the file has been uploaded."""
+    team = db.query(models.Team).filter(models.Team.id == team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+    team.image_path = image_path
+    db.commit()
+    db.refresh(team)
+    return team
 
+# ── Rounds ──────────────────────────────────────────────────────
+
+def create_submission(db: Session, sub_data: schemas.SubmissionCreate):
     round_obj = db.query(models.Round).filter(models.Round.id == sub_data.round_id).first()
     
     if not round_obj or round_obj.end_time < datetime.utcnow():
@@ -159,59 +243,3 @@ def distribute_submissions_to_jury(db: Session, round_id: int):
             db.add(eval_record)
     db.commit()
     return {"status": "Роботи розподілено між журі"}
-
-def update_team_image(db: Session, team_id: int, image_path: str):
-    """Saves the image path for a team after the file has been uploaded."""
-    team = db.query(models.Team).filter(models.Team.id == team_id).first()
-    if not team:
-        raise HTTPException(status_code=404, detail="Team not found")
-    team.image_path = image_path
-    db.commit()
-    db.refresh(team)
-    return team
-
-def update_user_profile_image(db: Session, user_id: int, image_path: str):
-    """Saves the profile photo path for a user."""
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    user.profile_image_path = image_path
-    db.commit()
-    db.refresh(user)
-    return user
-
-def update_tournament_image(db: Session, tournament_id: int, image_path: str):
-    """Saves the cover/banner image path for a tournament."""
-    tournament = db.query(models.Tournament).filter(models.Tournament.id == tournament_id).first()
-    if not tournament:
-        raise HTTPException(status_code=404, detail="Tournament not found")
-    tournament.cover_image_path = image_path
-    db.commit()
-    db.refresh(tournament)
-    return tournament
-
-def get_leaderboard(db: Session, tournament_id: int):
-
-    results = db.query(
-        models.Team.name,
-        func.avg(models.Evaluation.tech_score).label("tech_avg"),
-        func.avg(models.Evaluation.func_score).label("func_avg"),
-        func.count(models.Submission.id).label("subs_count")
-    ).join(models.Submission, models.Team.id == models.Submission.team_id)\
-     .join(models.Evaluation, models.Submission.id == models.Evaluation.submission_id)\
-     .filter(models.Team.tournament_id == tournament_id)\
-     .group_by(models.Team.id)\
-     .all()
-
-    leaderboard = []
-    for res in results:
-        total = (res.tech_avg + res.func_avg) / 2 
-        leaderboard.append({
-            "team_name": res.name,
-            "tech_avg": round(res.tech_avg, 2),
-            "func_avg": round(res.func_avg, 2),
-            "total_score": round(total, 2),
-            "submissions_count": res.subs_count
-        })
-    
-    return sorted(leaderboard, key=lambda x: x["total_score"], reverse=True)

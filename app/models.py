@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
     ORGANIZER = "organizer"
+    JURY = "jury"
     TEAM = "team"
 
 class User(Base):
