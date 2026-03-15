@@ -36,7 +36,7 @@ class UserCreate(UserBase):
     @classmethod
     def validate_email(cls, v: str):
         if contains_cyrillic(v):
-            raise ValueError("Елкткронна адреса не повинна містити КИРИЛИЦЮ.")
+            raise ValueError("Елкткронна адреса не повинна містити КИРИЛИЦІ.")
         else:
             try:
                 email_validator.validate_email(v)
