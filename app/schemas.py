@@ -1,8 +1,10 @@
-from pydantic import BaseModel, field_validator # Додай field_validator
+from pydantic import BaseModel, field_validator
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-import re # Додай re для регулярних виразів
+from utils import contains_cyrillic
+import re
+import email_validator
 
 PASSWORD_MIN_LENGTH = 8
 PASSWORD_REQUIRE_NUMBER = True
@@ -28,6 +30,19 @@ class UserCreate(UserBase):
         if PASSWORD_REQUIRE_SPECIAL and not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
             raise ValueError("Пароль має містити хоча б один спеціальний символ")
             
+        return v
+
+    @field_validator("super().email")
+    @classmethod
+    def validate_email(cls, v: str):
+        if contains_cyrillic(v):
+            raise ValueError("Елкткронна адреса не повинна містити КИРИЛИЦЮ.")
+        else:
+            try:
+                email_validator.validate_email(v)
+            except:
+                raise ValueError("Введено некоректний формат електронної адреси.")
+
         return v
 
 

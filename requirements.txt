@@ -6,3 +6,4 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.12
 pydantic[email]==2.9.2
 pillow==11.1.0
+email-validator==2.3.0

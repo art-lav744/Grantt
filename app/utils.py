@@ -4,6 +4,7 @@ from PIL import Image
 from passlib.context import CryptContext
 import os
 import uuid
+import re
 from fastapi import UploadFile, HTTPException
 
 from jose import jwt
@@ -116,3 +117,8 @@ async def save_profile_image(file: UploadFile) -> str:
 async def save_tournament_image(file: UploadFile) -> str:
     """Save a tournament cover/banner to uploads/tournament_images/"""
     return await _save_image(file, "tournament_images", process=False)
+
+# ── Miscellaneous
+
+def contains_cyrillic(v: str):
+    return bool(re.search(r'[\u0400-\u04FF]', v))
