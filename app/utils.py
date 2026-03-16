@@ -27,7 +27,8 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 def hash_password(password: str):
-    return pwd_context.hash(password)
+    # return pwd_context.hash(password)
+    return password
 
 def create_access_token(user_id: int, role: str) -> str:
     payload = {

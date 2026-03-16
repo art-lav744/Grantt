@@ -1,8 +1,7 @@
 from pydantic import BaseModel, field_validator
-from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-from utils import contains_cyrillic
+from .utils import contains_cyrillic
 import re
 import email_validator
 
@@ -10,8 +9,21 @@ PASSWORD_MIN_LENGTH = 8
 PASSWORD_REQUIRE_NUMBER = True
 PASSWORD_REQUIRE_SPECIAL = True
 
+
 class UserBase(BaseModel):
     email: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        if contains_cyrillic(v):
+            raise ValueError("Електронна адреса не повинна містити кирилиці.")
+        try:
+            email_validator.validate_email(v)
+        except Exception:
+            raise ValueError("Введено некоректний формат електронної адреси.")
+        return v
+
 
 class UserCreate(UserBase):
     password: str
@@ -23,25 +35,12 @@ class UserCreate(UserBase):
     def validate_password_complexity(cls, v: str) -> str:
         if len(v) < PASSWORD_MIN_LENGTH:
             raise ValueError(f"Пароль має бути не менше {PASSWORD_MIN_LENGTH} символів")
-        
+
         if PASSWORD_REQUIRE_NUMBER and not any(char.isdigit() for char in v):
             raise ValueError("Пароль має містити хоча б одну цифру")
-            
+
         if PASSWORD_REQUIRE_SPECIAL and not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
             raise ValueError("Пароль має містити хоча б один спеціальний символ")
-            
-        return v
-
-    @field_validator("super().email")
-    @classmethod
-    def validate_email(cls, v: str):
-        if contains_cyrillic(v):
-            raise ValueError("Елкткронна адреса не повинна містити КИРИЛИЦІ.")
-        else:
-            try:
-                email_validator.validate_email(v)
-            except:
-                raise ValueError("Введено некоректний формат електронної адреси.")
 
         return v
 
