@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Головна{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Ласкаво просимо до Tournament 2026</h1>
+    <p>Система для керування турнірами, командами, раундами та подачами.</p>
+    <a class="btn" href="{% url 'tournament_list' %}">Переглянути турніри</a>
+</div>
+{% endblock %}

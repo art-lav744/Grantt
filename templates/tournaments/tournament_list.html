@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Турніри{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Список турнірів</h1>
+    {% if tournaments %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Назва</th>
+                    <th>Початок реєстрації</th>
+                    <th>Кінець реєстрації</th>
+                    <th>Статус</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tournament in tournaments %}
+                <tr>
+                    <td>{{ tournament.title }}</td>
+                    <td>{{ tournament.reg_start|default:"—" }}</td>
+                    <td>{{ tournament.reg_end|default:"—" }}</td>
+                    <td>{{ tournament.status }}</td>
+                    <td><a class="btn" href="{% url 'tournament_detail' tournament.id %}">Детальніше</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Турнірів поки немає.</p>
+    {% endif %}
+</div>
+{% endblock %}
