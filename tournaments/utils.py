@@ -9,47 +9,6 @@ from django.core.files.base import ContentFile
 from PIL import Image
 from rest_framework import exceptions
 
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404
-from .models import Tournament, Team, TeamMember, Round, Submission
-
-def home(request):
-    return render(request, "home.html")
-
-def tournament_list(request):
-    tournaments = Tournament.objects.all()
-    return render(request, "tournaments/tournament_list.html", {
-        "tournaments": tournaments
-    })
-
-def tournament_detail(request, pk):
-    tournament = get_object_or_404(Tournament, pk=pk)
-    teams = Team.objects.filter(tournament=tournament)
-    rounds = Round.objects.filter(tournament=tournament)
-    return render(request, "tournaments/tournament_detail.html", {
-        "tournament": tournament,
-        "teams": teams,
-        "rounds": rounds,
-    })
-
-@login_required
-def dashboard(request):
-    teams = Team.objects.filter(owner=request.user)
-    return render(request, "tournaments/dashboard.html", {
-        "teams": teams
-    })
-
-@login_required
-def team_detail(request, pk):
-    team = get_object_or_404(Team, pk=pk)
-    members = TeamMember.objects.filter(team=team)
-    submissions = Submission.objects.filter(team=team)
-    return render(request, "tournaments/team_detail.html", {
-        "team": team,
-        "members": members,
-        "submissions": submissions,
-    })
-
 ALLOWED_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
 MAX_FILE_SIZE_MB = 5
 PASSWORD_MIN_LENGTH = 8
