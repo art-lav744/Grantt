@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Подати роботу{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 700px; margin: 0 auto;">
+    <h2>Подати роботу для команди {{ team.name }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button class="btn" type="submit">Надіслати</button>
+    </form>
+</div>
+{% endblock %}

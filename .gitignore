@@ -1,4 +1,23 @@
-venv/
-*.db
+# Python
 __pycache__/
-.idea/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Django
+*.sqlite3
+media/
+staticfiles/
+
+# Environment
+.env
+venv/
+.venv/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
