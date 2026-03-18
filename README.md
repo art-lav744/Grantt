@@ -20,7 +20,15 @@ Tournament_2026/
 │   ├── utils.py                ← JWT, обробка зображень, валідація пароля
 │   ├── admin.py                ← Реєстрація моделей у Django Admin
 │   ├── urls.py                 ← HTML-роути
-│   └── api_urls.py             ← API-роути (/api/…)
+│   ├── api_urls.py             ← API-роути (/api/…)
+│   ├── tests/
+│   │   ├── __init__.py
+│   │   ├── test_login.py       ← Тести логіну
+│   │   └── test_register.py    ← Тести реєстрації
+│   └── management/
+│       └── commands/
+│           ├── create_admin.py ← Створення адміністратора
+│           └── seed_data.py    ← Тестові дані
 │
 ├── templates/                  ← HTML-шаблони
 │   ├── base.html               ← Базовий шаблон (навігація, стилі)
@@ -37,6 +45,7 @@ Tournament_2026/
 │   ├── team_images/
 │   └── tournament_images/
 │
+├── .env                        ← Змінні середовища (не комітити)
 ├── requirements.txt            ← Залежності Python
 └── db.sqlite3                  ← SQLite база даних
 ```
@@ -107,44 +116,44 @@ http://localhost:8000/admin/
 2. Після розподілу: **GET /api/users/me/evaluations/** → переглянути призначені роботи
 
 ## API Endpoints
-
-# ── Auth ─────────────────────────────────────────────────────────────────────
+```
+── Auth ──
 POST   /api/auth/register/                  — Реєстрація акаунту         [public]  +
 POST   /api/auth/login/                     — Вхід, отримання JWT        [public]  +
 
-# ── Users ────────────────────────────────────────────────────────────────────
+── Users ──
 POST   /api/users/me/profile-image/         — Завантажити фото профілю   [auth]  +
 GET    /api/users/me/teams/                 — Мої команди                [auth]  +
 GET    /api/users/me/evaluations/           — Мої оцінки                 [jury]  +
 
-# ── Tournaments ───────────────────────────────────────────────────────────────
+── Tournaments ──
 GET    /api/tournaments/                    — Список турнірів             [public]  +
 POST   /api/tournaments/                    — Створити турнір             [admin/organizer]  +
 PATCH  /api/tournaments/{id}/status/        — Змінити статус              [admin/organizer]  +
 GET    /api/tournaments/{id}/leaderboard/   — Таблиця лідерів            [public]  +
 
-# ── Teams ─────────────────────────────────────────────────────────────────────
+── Teams ──
 POST   /api/teams/                          — Зареєструвати команду       [auth]  +
 GET    /api/members/{email}/tournaments/    — Турніри учасника            [auth]  +
 
-# ── Rounds ────────────────────────────────────────────────────────────────────
+── Rounds ──
 POST   /api/rounds/                         — Створити раунд              [admin/organizer]  +
 PATCH  /api/rounds/{id}/status/             — Змінити статус раунду       [admin/organizer]  -
 POST   /api/rounds/{id}/distribute/         — Розподілити по журі         [admin/organizer]  +
 
-# ── Submissions ───────────────────────────────────────────────────────────────
+── Submissions ──
 POST   /api/submissions/                    — Подати роботу               [auth]  +
 GET    /api/rounds/{id}/submissions/        — Список сабмітів             [admin/organizer]  -
 
-# ── Evaluations ───────────────────────────────────────────────────────────────
+── Evaluations ──
 GET    /api/evaluations/my/                 — Мої оцінки                  [jury]  -
 PUT    /api/evaluations/{id}/               — Виставити оцінку            [jury]  -
 
-# ── Images ────────────────────────────────────────────────────────────────────
+── Images ──
 POST   /api/users/me/profile-image/         — Фото профілю користувача   [auth]  +
 POST   /api/teams/{id}/image/               — Фото команди                [auth]  +
 POST   /api/tournaments/{id}/image/         — Обкладинка турніру          [admin/organizer]  +
-
+```
 ## Формула підрахунку балів
 
 ```
