@@ -3,13 +3,18 @@ import random
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.tokens import default_token_generator
 from django.db.models import Avg, Count
 from django.shortcuts import get_object_or_404, redirect, render
+from django.core.mail import send_mail
+from django.conf import settings
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
 
 from .forms import RegisterForm, SubmissionForm
 from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
@@ -33,6 +38,21 @@ def home(request):
     tournaments = Tournament.objects.all().order_by('-created_at')[:5]
     return render(request, 'home.html', {'tournaments': tournaments})
 
+def verify_email(request, uidb64, token):
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (User.DoesNotExist, ValueError):
+        user = None
+
+    if user and default_token_generator.check_token(user, token):
+        user.is_verified = True
+        user.save()
+        messages.success(request, 'Email підтверджено!')
+        return redirect('login')
+    else:
+        messages.error(request, 'Посилання недійсне або застаріле.')
+        return redirect('home')
 
 def register_view(request):
     if request.user.is_authenticated:
@@ -42,9 +62,19 @@ def register_view(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
-            messages.success(request, 'Реєстрація успішна.')
-            return redirect('dashboard')
+            
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            link = request.build_absolute_uri(f'/verify/{uid}/{token}/')
+
+            send_mail(
+                subject='Підтвердіть вашу реєстрацію',
+                message=f'Вітаємо, {user.nickname}!\n\nДля підтвердження email перейдіть за посиланням:\n{link}\n\nПосилання дійсне 24 години.',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+            )
+            messages.success(request, 'На вашу пошту надіслано листа з підтвердженням.')
+            return redirect('login')
     else:
         form = RegisterForm()
 

@@ -104,7 +104,10 @@
         <div>
             {% if user.is_authenticated %}
                 <span style="margin-right: 12px;">{{ user.email }}</span>
-                <a href="{% url 'logout' %}">Вийти</a>
+                <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="background:none; border:none; color:white; cursor:pointer; font-size:inherit;">Вийти</button>
+                </form>
             {% else %}
                 <a href="{% url 'login' %}">Увійти</a>
                 <a href="{% url 'register' %}">Реєстрація</a>
