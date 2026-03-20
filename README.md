@@ -22,13 +22,11 @@ In this Django rewrite, those models were inferred and implemented from the exis
 ## Setup
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
 pip install -r requirements.txt
-python manage.py makemigrations tournaments
-python manage.py migrate
-python manage.py create_admin
-python manage.py runserver
+py -3.14 manage.py makemigrations tournaments
+py -3.14 manage.py migrate
+py -3.14 manage.py create_admin
+py -3.14 manage.py runserver
 ```
 
 ## Main endpoints
