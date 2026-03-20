@@ -1,10 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.conf import settings
 from django.core.exceptions import ValidationError
 
 from .models import User, Submission, UserRole
 
-from email_validator import EmailNotValidError, validate_email
 
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(label="Email")
@@ -20,20 +20,14 @@ class RegisterForm(UserCreationForm):
         fields = ("email", "nickname", "role", "password1", "password2")
 
     def clean_email(self):
-        raw_email = self.cleaned_data["email"].strip().lower()
+        email = self.cleaned_data["email"].strip().lower()
 
-        try:
-            validated = validate_email(
-                raw_email,
-                check_deliverability=True,
-            )
-            email = validated.normalized
-        except EmailNotValidError as exc:
-            raise ValidationError(str(exc))
+        domain = email.split("@")[-1]
+        if domain not in settings.ALLOWED_EMAIL_DOMAINS:
+            raise ValidationError("Дозволені лише email на: gmail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, ukr.net")
 
         if User.objects.filter(email__iexact=email).exists():
             raise ValidationError("Користувач з таким email вже існує.")
-
         return email
 
     def clean_nickname(self):

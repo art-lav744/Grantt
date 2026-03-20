@@ -1,4 +1,5 @@
 from collections import Counter
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.validators import validate_email as django_validate_email
 from django.db import transaction
@@ -39,8 +40,20 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate_email(self, value):
         if contains_cyrillic(value):
             raise serializers.ValidationError('Електронна адреса не повинна містити кирилиці.')
+
+        value = value.strip().lower()
         django_validate_email(value)
-        return value.lower()
+
+        domain = value.split('@')[-1]
+        if domain not in settings.ALLOWED_EMAIL_DOMAINS:
+            raise serializers.ValidationError(
+                'Дозволені лише email на: gmail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, ukr.net'
+            )
+
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError('Користувач з таким email вже існує.')
+
+        return value
 
     def validate_password(self, value):
         return validate_password_complexity(value)

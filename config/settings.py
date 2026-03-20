@@ -90,3 +90,13 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'home'
+
+ALLOWED_EMAIL_DOMAINS = [
+    'gmail.com',
+    'outlook.com',
+    'hotmail.com',
+    'live.com',
+    'yahoo.com',
+    'icloud.com',
+    'ukr.net',
+]
