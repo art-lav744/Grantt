@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.conf import settings
 from django.core.exceptions import ValidationError
 
 from .models import User, Submission, UserRole
@@ -20,7 +21,12 @@ class RegisterForm(UserCreationForm):
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
-        if User.objects.filter(email=email).exists():
+
+        domain = email.split("@")[-1]
+        if domain not in settings.ALLOWED_EMAIL_DOMAINS:
+            raise ValidationError("Дозволені лише email на: gmail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, ukr.net")
+
+        if User.objects.filter(email__iexact=email).exists():
             raise ValidationError("Користувач з таким email вже існує.")
         return email
 
