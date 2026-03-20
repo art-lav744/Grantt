@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 
 from .models import User, Submission, UserRole
 
+import dns.resolver
 
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(label="Email")
@@ -20,8 +21,16 @@ class RegisterForm(UserCreationForm):
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
+
         if User.objects.filter(email=email).exists():
             raise ValidationError("Користувач з таким email вже існує.")
+
+        try:
+            domain = email.split("@")[1]
+            dns.resolver.resolve(domain, "MX")
+        except Exception:
+            raise ValidationError("Email домен не існує або не приймає пошту")
+
         return email
 
     def clean_nickname(self):
