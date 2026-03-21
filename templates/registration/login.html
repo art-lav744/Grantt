@@ -3,12 +3,45 @@
 {% block title %}Вхід{% endblock %}
 
 {% block content %}
+<style>
+    .password-wrapper { position: relative; display: block; }
+    .password-wrapper input { width: 100%; padding-right: 40px; box-sizing: border-box; }
+    .toggle-password { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; }
+</style>
+
 <div class="card" style="max-width: 500px; margin: 0 auto;">
     <h2>Вхід</h2>
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
+        {% for field in form %}
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>{{ field.label }}</label>
+                {% if field.name == "password" or "password" in field.name %}
+                    <div class="password-wrapper">
+                        {{ field }}
+                        <span class="toggle-password" onclick="toggleVisibility('{{ field.id_for_label }}')">👁️</span>
+                    </div>
+                {% else %}
+                    {{ field }}
+                {% endif %}
+                {{ field.errors }}
+            </div>
+        {% endfor %}
         <button class="btn" type="submit">Увійти</button>
     </form>
 </div>
+
+<script>
+function toggleVisibility(id) {
+    const input = document.getElementById(id);
+    const icon = input.nextElementSibling;
+    if (input.type === "password") {
+        input.type = "text";
+        icon.textContent = "🔒";
+    } else {
+        input.type = "password";
+        icon.textContent = "👁️";
+    }
+}
+</script>
 {% endblock %}

@@ -7,8 +7,36 @@
     <h2>Реєстрація</h2>
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
+        {% for field in form %}
+            <div style="position: relative; margin-bottom: 15px;">
+                <label>{{ field.label }}</label>
+                {{ field }}
+                
+                {% if "password" in field.name %}
+                    <span class="toggle-password" onclick="togglePass('{{ field.id_for_label }}')" 
+                          style="position: absolute; right: 10px; top: 30px; cursor: pointer;">
+                        👁️
+                    </span>
+                {% endif %}
+
+                {% if field.help_text %}
+                    <small style="display: block; color: gray;">{{ field.help_text }}</small>
+                {% endif %}
+                {{ field.errors }}
+            </div>
+        {% endfor %}
         <button class="btn" type="submit">Зареєструватися</button>
     </form>
+
+    <script>
+    function togglePass(id) {
+        const input = document.getElementById(id);
+        if (input.type === "password") {
+            input.type = "text";
+        } else {
+            input.type = "password";
+        }
+    }
+    </script>
 </div>
 {% endblock %}
