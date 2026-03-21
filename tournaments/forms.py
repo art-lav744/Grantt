@@ -1,3 +1,4 @@
+import re
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.conf import settings
@@ -19,6 +20,12 @@ class RegisterForm(UserCreationForm):
         model = User
         fields = ("email", "nickname", "role", "password1", "password2")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['password1'].help_text = (
+            "Мінімум 8 символів: велика та мала літери, цифра і спецсимвол (!@#$%^&*)."
+        )
+
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
 
@@ -35,6 +42,22 @@ class RegisterForm(UserCreationForm):
         if User.objects.filter(nickname__iexact=nickname).exists():
             raise ValidationError("Користувач з таким нікнеймом вже існує.")
         return nickname
+    
+    def clean_password1(self):
+        password = self.cleaned_data.get("password1")
+        
+        if len(password) < 8:
+            raise ValidationError("Пароль має містити щонайменше 8 символів.")
+        if not re.search(r'[A-Z]', password):
+            raise ValidationError("Пароль має містити хоча б одну велику літеру.")
+        if not re.search(r'[a-z]', password):
+            raise ValidationError("Пароль має містити хоча б одну малу літеру.")
+        if not re.search(r'[0-9]', password):
+            raise ValidationError("Пароль має містити хоча б одну цифру.")
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            raise ValidationError("Пароль має містити хоча б один спеціальний символ.")
+            
+        return password
 
     def save(self, commit=True):
         user = super().save(commit=False)
