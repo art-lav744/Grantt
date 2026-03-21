@@ -2,12 +2,13 @@ import random
 
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count
 from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -33,6 +34,10 @@ def home(request):
     tournaments = Tournament.objects.all().order_by('-created_at')[:5]
     return render(request, 'home.html', {'tournaments': tournaments})
 
+def logout_view(request):
+    django_logout(request)
+    messages.success(request, 'Ви успішно вийшли з акаунта.')
+    return redirect('home')
 
 def register_view(request):
     if request.user.is_authenticated:
@@ -148,6 +153,14 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # Якщо використовується SimpleJWT з blacklist, тут можна додати логіку анулювання.
+        # Для базового JWT достатньо просто повернути успішну відповідь.
+        return Response({"message": "Successfully logged out"}, status=status.HTTP_200_OK)
 
 
 class UserProfileImageUploadView(APIView):
