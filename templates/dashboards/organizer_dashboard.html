@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Панель Організатора</h2>
+<div class="card">
+    <h3>Створити обліковий запис для персоналу</h3>
+    <form method="post" action="{% url 'create_staff' %}">
+        {% csrf_token %}
+        <input type="email" name="email" placeholder="Email" required>
+        <select name="role">
+            <option value="admin">Адміністратор</option>
+            <option value="jury">Журі</option>
+        </select>
+        <button type="submit" class="btn">Зареєструвати</button>
+    </form>
+</div>
+{% endblock %}

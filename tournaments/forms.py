@@ -4,16 +4,19 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.conf import settings
 from django.core.exceptions import ValidationError
 
-from .models import User, Submission, UserRole
+from .models import User, Submission, UserRole, TeamMember, Team, Tournament
 
 
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(label="Email")
     nickname = forms.CharField(label="Нікнейм", max_length=150)
     role = forms.ChoiceField(
-        label="Роль",
-        choices=UserRole.choices,
-        initial=UserRole.TEAM,
+        label="Хто ви?",
+        choices=[
+            (UserRole.CAPTAIN, 'Капітан команди (створює команду)'),
+            (UserRole.PLAYER, 'Учасник (доєднується до команди)')
+        ],
+        initial=UserRole.PLAYER,
     )
 
     class Meta:
@@ -98,3 +101,25 @@ class SubmissionForm(forms.ModelForm):
             self.fields["round"].queryset = self.fields["round"].queryset.filter(
                 tournament=team.tournament
             ).order_by("start_time", "id")
+
+class TeamMemberForm(forms.ModelForm):
+    class Meta:
+        model = TeamMember
+        fields = ['full_name', 'email']
+        labels = {
+            'full_name': 'ПІБ учасника',
+            'email': 'Email учасника',
+        }
+
+class TournamentForm(forms.ModelForm): 
+    class Meta:
+        model = Tournament
+        fields = ['title', 'description', 'reg_start', 'reg_end', 'max_teams', 'cover_image']
+        widgets = {
+            'reg_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'reg_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Назва турніру'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'max_teams': forms.NumberInput(attrs={'class': 'form-control'}),
+            'cover_image': forms.FileInput(attrs={'class': 'form-control'}),
+        }

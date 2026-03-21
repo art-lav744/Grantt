@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Кабінет Журі{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Роботи на перевірку</h2>
+    <p>Ви увійшли як: <strong>{{ request.user.nickname }}</strong></p>
+
+    <div class="evaluations-list">
+        {% for eval in my_evaluations %}
+            <div class="card" style="border-left: 5px solid #007bff; margin-bottom: 15px; padding: 15px;">
+                <h4>Команда: {{ eval.submission.team.name }}</h4>
+                <p><strong>Раунд:</strong> {{ eval.submission.round.name }}</p>
+                <p><strong>Опис:</strong> {{ eval.submission.description|truncatewords:20 }}</p>
+                
+                <div style="margin-top: 10px;">
+                    <a href="{{ eval.submission.github_link }}" target="_blank" class="btn small">GitHub</a>
+                    <a href="{% url 'evaluation_detail' eval.id %}" class="btn">Оцінити роботу</a>
+                </div>
+            </div>
+        {% empty %}
+            <div class="alert shadow">
+                <p>Наразі у вас немає призначених робіт для оцінювання.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

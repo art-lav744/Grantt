@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Створення нового турніру</h2>
+    <form method="post" enctype="multipart/form-data" class="mt-4" style="max-width: 600px;">
+        {% csrf_token %}
+        
+        {% for field in form %}
+            <div class="mb-3">
+                <label class="form-label">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <div class="text-danger small">{{ field.errors }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-primary">Зберегти турнір</button>
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Скасувати</a>
+    </form>
+</div>
+{% endblock %}

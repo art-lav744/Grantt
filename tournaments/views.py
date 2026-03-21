@@ -1,5 +1,7 @@
 import random
-
+import string
+import secrets
+from django.contrib.auth.hashers import make_password
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth import logout as django_logout
@@ -15,6 +17,7 @@ from rest_framework.views import APIView
 from .forms import RegisterForm, SubmissionForm
 from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
 from .permissions import IsAdmin, IsAuthenticatedJWT, IsJury, IsOrganizerOrAdmin
+from .forms import TournamentForm
 from .serializers import (
     EvaluationOutSerializer,
     LoginSerializer,
@@ -79,19 +82,61 @@ def tournament_detail(request, pk):
 
 @login_required
 def dashboard(request):
-    teams = Team.objects.filter(captain=request.user).select_related('tournament').order_by('name')
-    submissions = Submission.objects.filter(team__captain=request.user).select_related('team', 'round').order_by('-created_at')
+    user = request.user
+    context = {
+        'role': user.role,
+        'nickname': user.nickname,
+    }
 
-    return render(
-        request,
-        'tournaments/dashboard.html',
-        {
-            'teams': teams,
-            'submissions': submissions,
-        },
-    )
+    # 1. АДМІНІСТРАТОР
+    if user.role == UserRole.ADMIN:
+        context['total_users'] = User.objects.count()
+        context['tournaments'] = Tournament.objects.all().annotate(teams_count=Count('teams'))
+        return render(request, 'dashboards/admin_dashboard.html', context)
 
+    # 2. ОРГАНІЗАТОР
+    elif user.role == UserRole.ORGANIZER:
+        context['my_tournaments'] = Tournament.objects.filter(creator=user).annotate(teams_count=Count('teams'))
+        return render(request, 'dashboards/organizer_dashboard.html', context)
 
+    # 3. ЖУРІ
+    elif user.role == UserRole.JURY:
+        context['my_evaluations'] = Evaluation.objects.filter(jury=user).select_related('submission__team', 'submission__round')
+        return render(request, 'dashboards/jury_dashboard.html', context)
+
+    # 4. КАПІТАН (Ваш поточний блок)
+    elif user.role == UserRole.CAPTAIN:
+        # Шукаємо команду, де поточний юзер є капітаном
+        team = Team.objects.filter(captain=user).select_related('tournament').first()
+        
+        if team:
+            context.update({
+                'team': team,
+                'members': team.members.all(),
+                'submissions': Submission.objects.filter(team=team).select_related('round').order_by('-created_at'),
+                'form': SubmissionForm(team=team)
+            })
+            return render(request, 'dashboards/team_dashboard.html', context)
+        else:
+            # Якщо команди немає, замість редіректу покажемо пустий кабінет з пропозицією створити
+            context['team'] = None
+            return render(request, 'dashboards/team_dashboard.html', context)
+
+    # 5. УЧАСНИК (PLAYER)
+    else:
+        member_record = TeamMember.objects.filter(email=user.email).select_related('team__tournament').first()
+        if member_record:
+            team = member_record.team
+            context.update({
+                'team': team,
+                'members': team.members.all(),
+                'submissions': Submission.objects.filter(team=team).select_related('round').order_by('-created_at'),
+            })
+        else:
+            context['team'] = None
+            
+        return render(request, 'dashboards/member_dashboard.html', context)
+    
 @login_required
 def team_detail(request, pk):
     team = get_object_or_404(Team.objects.select_related('captain', 'tournament'), pk=pk)
@@ -135,6 +180,62 @@ def submission_create(request, team_id):
 
     return render(request, 'tournaments/submission_form.html', {'form': form, 'team': team})
 
+@login_required
+def create_staff(request):
+    if request.user.role not in ['organizer', 'admin']: # Перевірка ролі
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        role = request.POST.get('role')
+        
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Користувач з таким email вже існує.')
+        else:
+            # Надійний спосіб згенерувати випадковий пароль
+            alphabet = string.ascii_letters + string.digits
+            temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
+            
+            # Створення користувача
+            new_user = User.objects.create(
+                email=email,
+                role=role,
+                nickname=email.split('@')[0],
+                password=make_password(temp_password)
+            )
+            
+            # Виводимо пароль у повідомленні (тільки для розробки!)
+            messages.success(request, f'Користувача створено. Тимчасовий пароль: {temp_password}')
+            
+    return redirect('dashboard')
+
+@login_required
+def add_member(request, team_id):
+    team = get_object_some_method_to_get_team(id=team_id) # Або просто завантажте команду
+    # Тимчасова заглушка, щоб код просто запрацював:
+    return redirect('team_detail', team_id=team_id)
+
+@login_required
+def tournament_create(request):
+    # Перевірка ролі (використовуємо ваші константи з models)
+    if request.user.role not in [UserRole.ADMIN, UserRole.ORGANIZER, 'admin', 'organizer']:
+        messages.error(request, 'Доступ заборонено.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = TournamentForm(request.POST, request.FILES)
+        if form.is_valid():
+            tournament = form.save(commit=False)
+            tournament.creator = request.user
+            # Якщо у вашій моделі TournamentStatus має значення DRAFT або OPEN:
+            tournament.status = TournamentStatus.REGISTRATION_OPEN 
+            tournament.save()
+            messages.success(request, f'Турнір "{tournament.title}" створено!')
+            return redirect('tournament_detail', pk=tournament.pk)
+    else:
+        form = TournamentForm()
+
+    return render(request, 'tournaments/tournament_form.html', {'form': form})
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]

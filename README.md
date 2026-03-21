@@ -26,6 +26,7 @@ pip install -r requirements.txt
 py -3.14 manage.py makemigrations tournaments
 py -3.14 manage.py migrate
 py -3.14 manage.py create_admin
+py -3.14 manage.py setup_admin
 py -3.14 manage.py runserver
 ```
 

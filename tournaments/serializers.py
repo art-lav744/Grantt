@@ -31,7 +31,7 @@ class UserOutSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    role = serializers.ChoiceField(choices=UserRole.choices, default=UserRole.TEAM)
+    role = serializers.ChoiceField(choices=UserRole.choices, default=UserRole.PLAYER) # Виправлено
 
     class Meta:
         model = User
