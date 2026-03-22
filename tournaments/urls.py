@@ -19,4 +19,8 @@ urlpatterns = [
     
     path('teams/<int:team_id>/add-member/', views.add_member, name='add_member'),
     path('tournament/create/', views.tournament_create, name='tournament_create'),
+
+    path('rounds/<int:round_id>/status/', views.RoundStatusUpdateView.as_view(), name='api_round_status'),
+    path('rounds/create/', views.RoundCreateView.as_view(), name='round_create'),
+    path('rounds/<int:pk>/edit/', views.RoundUpdateView.as_view(), name='round_edit'),
 ]
