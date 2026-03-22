@@ -1,7 +1,6 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.utils import timezone
 
 
 class UserRole(models.TextChoices):
@@ -9,7 +8,7 @@ class UserRole(models.TextChoices):
     ORGANIZER = 'organizer', 'Організатор'
     JURY = 'jury', 'Журі'
     CAPTAIN = 'captain', 'Капітан'
-    PLAYER = 'player', 'Учасник' # Тепер можна реєструватися як звичайний учасник
+    PLAYER = 'player', 'Учасник'
 
 
 class UserManager(BaseUserManager):
@@ -27,13 +26,14 @@ class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
-        extra_fields.setdefault('role', UserRole.TEAM)
+        extra_fields.setdefault('role', UserRole.PLAYER)
         return self._create_user(email, password, **extra_fields)
 
     def create_superuser(self, email, password, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('role', UserRole.ADMIN)
+        extra_fields.setdefault('is_verified', True)
         if extra_fields.get('is_staff') is not True:
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
@@ -73,7 +73,7 @@ class Tournament(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=TournamentStatus.choices, default=TournamentStatus.DRAFT)
-    creator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tournaments')
+    creator = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='tournaments')
     reg_start = models.DateTimeField(null=True, blank=True)
     reg_end = models.DateTimeField(null=True, blank=True)
     max_teams = models.PositiveIntegerField(default=16)

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Додати учасника{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 640px; margin: 0 auto;">
+    <h1 style="margin-top: 0;">Додати учасника</h1>
+    <p><strong>Команда:</strong> {{ team.name }}</p>
+    <p><strong>Турнір:</strong> {{ team.tournament.title }}</p>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button class="btn" type="submit">Зберегти</button>
+            <a class="btn btn-secondary" href="{% url 'team_detail' team.id %}">Назад до команди</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -11,7 +11,8 @@ class Command(BaseCommand):
                 email=email,
                 password='Admin123!', # Потім зміните через "очко"
                 nickname='TechCup Organizer',
-                role=UserRole.ORGANIZER
+                role=UserRole.ORGANIZER,
+                is_verified=True
             )
             self.stdout.write(self.style.SUCCESS(f'Організатор {email} створений'))
         else:

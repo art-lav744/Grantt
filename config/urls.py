@@ -10,8 +10,14 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('tournaments.urls')),
     path('api/', include('tournaments.api_urls')),
-    path('login/', auth_views.LoginView.as_view(template_name='registration/login.html', authentication_form=LoginForm), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
+    path(
+        'login/',
+        auth_views.LoginView.as_view(
+            template_name='registration/login.html',
+            authentication_form=LoginForm,
+        ),
+        name='login',
+    ),
 ]
 
 if settings.DEBUG:

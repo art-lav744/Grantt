@@ -19,10 +19,9 @@ from rest_framework.views import APIView
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 
-from .forms import RegisterForm, SubmissionForm
+from .forms import RegisterForm, SubmissionForm, TeamMemberForm, TournamentForm
 from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
 from .permissions import IsAdmin, IsAuthenticatedJWT, IsJury, IsOrganizerOrAdmin
-from .forms import TournamentForm
 from .serializers import (
     EvaluationOutSerializer,
     LoginSerializer,
@@ -258,8 +257,7 @@ def tournament_create(request):
         if form.is_valid():
             tournament = form.save(commit=False)
             tournament.creator = request.user
-            # Якщо у вашій моделі TournamentStatus має значення DRAFT або OPEN:
-            tournament.status = TournamentStatus.REGISTRATION_OPEN 
+            tournament.status = TournamentStatus.REGISTRATION 
             tournament.save()
             messages.success(request, f'Турнір "{tournament.title}" створено!')
             return redirect('tournament_detail', pk=tournament.pk)
