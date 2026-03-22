@@ -12,7 +12,7 @@ class Command(BaseCommand):
             email='organizer@example.com',
             defaults={'nickname': 'organizer', 'role': UserRole.ORGANIZER},
         )
-        if not organizer.has_password():
+        if not organizer.password:
             organizer.set_password('Organizer123!')
             organizer.save(update_fields=['password'])
         Tournament.objects.get_or_create(

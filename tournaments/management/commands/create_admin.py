@@ -11,5 +11,5 @@ class Command(BaseCommand):
         if User.objects.filter(email=email).exists():
             self.stdout.write(self.style.WARNING('Admin already exists'))
             return
-        User.objects.create_superuser(email=email, password=password, nickname='admin', role=UserRole.ADMIN)
+        User.objects.create_superuser(email=email, password=password, nickname='admin', role=UserRole.ADMIN, is_verified=True)
         self.stdout.write(self.style.SUCCESS(f'Created admin: {email} / {password}'))

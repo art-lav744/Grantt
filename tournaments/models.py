@@ -50,6 +50,7 @@ class User(AbstractUser):
     nickname = models.CharField(max_length=150, unique=True)
     role = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.PLAYER)
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
+    is_verified = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['nickname']
