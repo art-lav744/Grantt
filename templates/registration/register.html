@@ -3,12 +3,75 @@
 {% block title %}Реєстрація{% endblock %}
 
 {% block content %}
+<style>
+    .password-wrapper {
+        position: relative;
+        display: block;
+    }
+    .password-wrapper input {
+        width: 100%;
+        padding-right: 40px; /* Місце для іконки */
+        box-sizing: border-box;
+    }
+    .toggle-password {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        z-index: 10;
+        user-select: none;
+    }
+</style>
+
 <div class="card" style="max-width: 600px; margin: 0 auto;">
     <h2>Реєстрація</h2>
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button class="btn" type="submit">Зареєструватися</button>
+        
+        {% for field in form %}
+            <div class="form-group" style="position: relative; margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: bold; margin-bottom: 5px;">{{ field.label }}</label>
+                
+                {% if "password" in field.name %}
+                    <div style="position: relative;">
+                        {{ field }}
+                        <span class="toggle-password" onclick="togglePass('{{ field.id_for_label }}')" 
+                            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.2rem;">
+                            👁️
+                        </span>
+                    </div>
+                {% else %}
+                    {{ field }}
+                {% endif %}
+
+                {% if field.help_text %}
+                    <small style="display: block; color: #666; margin-top: 5px;">{{ field.help_text }}</small>
+                {% endif %}
+                
+                {% for error in field.errors %}
+                    <div style="color: red; font-size: 0.85rem; margin-top: 5px;">{{ error }}</div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        
+        <button class="btn" type="submit" style="width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Зареєструватися
+        </button>
     </form>
 </div>
+
+<script>
+function togglePass(fieldId) {
+    const input = document.getElementById(fieldId);
+    const icon = event.target;
+    if (input.type === "password") {
+        input.type = "text";
+        icon.textContent = "🔒";
+    } else {
+        input.type = "password";
+        icon.textContent = "👁️";
+    }
+}
+</script>
 {% endblock %}

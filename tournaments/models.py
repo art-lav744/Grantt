@@ -5,10 +5,11 @@ from django.utils import timezone
 
 
 class UserRole(models.TextChoices):
-    ADMIN = 'admin', 'Admin'
-    ORGANIZER = 'organizer', 'Organizer'
-    JURY = 'jury', 'Jury'
-    TEAM = 'team', 'Team'
+    ADMIN = 'admin', 'Адміністратор'
+    ORGANIZER = 'organizer', 'Організатор'
+    JURY = 'jury', 'Журі'
+    CAPTAIN = 'captain', 'Капітан'
+    PLAYER = 'player', 'Учасник' # Тепер можна реєструватися як звичайний учасник
 
 
 class UserManager(BaseUserManager):
@@ -47,7 +48,7 @@ class User(AbstractUser):
 
     email = models.EmailField(unique=True)
     nickname = models.CharField(max_length=150, unique=True)
-    role = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.TEAM)
+    role = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.PLAYER)
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
     is_verified = models.BooleanField(default=False)
 
