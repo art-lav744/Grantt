@@ -110,13 +110,23 @@ class TeamMember(models.Model):
 
 
 class Round(models.Model):
+    class RoundStatus(models.TextChoices):
+        DRAFT = 'draft', 'Чернетка'
+        ACTIVE = 'active', 'Активний'
+        FINISHED = 'finished', 'Завершений'
+
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='rounds')
     title = models.CharField(max_length=255)
     description = models.TextField()
     requirements = models.TextField()
+    evaluation_criteria = models.TextField(blank=True, null=True)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    status = models.CharField(max_length=20, default='Draft')
+    status = models.CharField(
+        max_length=20,
+        choices=RoundStatus.choices,
+        default=RoundStatus.DRAFT
+    )
 
     def __str__(self):
         return f'{self.tournament.title}: {self.title}'
