@@ -43,25 +43,30 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ('email', 'password', 'nickname', 'role')
 
     def validate_email(self, value):
+        # Cyrillic Excluding
         if contains_cyrillic(value):
             raise serializers.ValidationError('Електронна адреса не повинна містити кирилиці.')
-
+        
         value = value.strip().lower()
+        # Django Validation
         django_validate_email(value)
 
+        # Check - Email Domain
         domain = value.split('@')[-1]
         if domain not in settings.ALLOWED_EMAIL_DOMAINS:
             raise serializers.ValidationError(
                 'Дозволені лише email на: gmail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, ukr.net'
             )
 
+        # Check - Every email must be unique
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError('Користувач з таким email вже існує.')
 
+        # Super Check
         try:
-            validate_email(value, check_deliverability=False)
-        except EmailNotValidError as exc:
-            raise serializers.ValidationError('Електронна адреса недійсна.') from exc
+            validate_email(value, check_deliverability=True)
+        except EmailNotValidError:
+            raise serializers.ValidationError('Електронна адреса недійсна.')
 
         return value
 
@@ -214,7 +219,7 @@ class TeamCreateSerializer(serializers.Serializer):
 class RoundCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Round
-        fields = ('id', 'title', 'description', 'requirements', 'evaluation_criteria', 'start_time', 'end_time', 'tournament')
+        fields = ('id', 'title', 'description', 'requirements', 'start_time', 'end_time', 'tournament')
 
     def validate(self, attrs):
         if attrs['end_time'] <= attrs['start_time']:

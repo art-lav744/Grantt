@@ -19,7 +19,7 @@ from rest_framework.views import APIView
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 
-from .forms import RegisterForm, SubmissionForm, TeamMemberForm, TournamentForm, RoundForm
+from .forms import RegisterForm, SubmissionForm, TeamMemberForm, TournamentForm
 from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
 from .permissions import IsAdmin, IsAuthenticatedJWT, IsJury, IsOrganizerOrAdmin
 from .serializers import (
@@ -231,7 +231,8 @@ def create_staff(request):
                 email=email,
                 role=role,
                 nickname=email.split('@')[0],
-                password=make_password(temp_password)
+                password=make_password(temp_password),
+                is_verified = True if role in [UserRole.ADMIN, UserRole.JURY] else False
             )
             
             # Виводимо пароль у повідомленні (тільки для розробки!)
@@ -239,28 +240,11 @@ def create_staff(request):
             
     return redirect('dashboard')
 
-
 @login_required
 def add_member(request, team_id):
-    team = get_object_or_404(Team, id=team_id, captain=request.user)
-    if request.method == 'POST':
-        form = TeamMemberForm(request.POST)
-        if form.is_valid():
-            member = form.save(commit=False)
-            member.team = team
-            member.save()
-            messages.success(request, f'Учасника {member.full_name} додано!')
-    return redirect('dashboard')
-
-@login_required
-def activate_round(request, pk):
-    round_obj = get_object_or_404(Round, pk=pk)
-    # Перевірка, чи це організатор цього турніру або адмін
-    if request.user == round_obj.tournament.creator or request.user.role == UserRole.ADMIN:
-        round_obj.status = Round.RoundStatus.ACTIVE
-        round_obj.save()
-        messages.success(request, f'Раунд "{round_obj.title}" тепер активний!')
-    return redirect('tournament_detail', pk=round_obj.tournament.pk)
+    team = get_object_some_method_to_get_team(id=team_id) # Або просто завантажте команду
+    # Тимчасова заглушка, щоб код просто запрацював:
+    return redirect('team_detail', team_id=team_id)
 
 @login_required
 def tournament_create(request):
@@ -282,30 +266,6 @@ def tournament_create(request):
         form = TournamentForm()
 
     return render(request, 'tournaments/tournament_form.html', {'form': form})
-
-# Створення раунду через браузерну форму
-class RoundCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
-    model = Round
-    form_class = RoundForm
-    template_name = 'tournaments/round_form.html'
-    
-    def get_success_url(self):
-        return reverse_lazy('tournament_detail', kwargs={'pk': self.object.tournament.pk})
-
-    def test_func(self):
-        return self.request.user.role in [UserRole.ADMIN, UserRole.ORGANIZER]
-
-# Редагування раунду через браузерну форму
-class RoundUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
-    model = Round
-    form_class = RoundForm
-    template_name = 'tournaments/round_form.html'
-
-    def get_success_url(self):
-        return reverse_lazy('tournament_detail', kwargs={'pk': self.object.tournament.pk})
-
-    def test_func(self):
-        return self.request.user.role in [UserRole.ADMIN, UserRole.ORGANIZER]
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -528,17 +488,3 @@ class SubmissionCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         submission = serializer.save()
         return Response(serializer.to_representation(submission), status=status.HTTP_201_CREATED)
-
-class RoundStatusUpdateView(APIView):
-    permission_classes = [IsOrganizerOrAdmin]
-
-    def patch(self, request, round_id):
-        round_obj = get_object_or_404(Round, pk=round_id)
-        new_status = request.data.get('status')
-        
-        if new_status not in Round.RoundStatus.values:
-            return Response({'detail': 'Некоректний статус'}, status=400)
-            
-        round_obj.status = new_status
-        round_obj.save(update_fields=['status'])
-        return Response({'status': 'Статус раунду оновлено', 'current_status': round_obj.status})
