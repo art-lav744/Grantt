@@ -7,6 +7,8 @@ from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from rest_framework import serializers
 
+from email_validator import validate_email, EmailNotValidError
+
 from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
 from .utils import contains_cyrillic, create_access_token, validate_password_complexity
 
@@ -43,6 +45,10 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         value = value.strip().lower()
         django_validate_email(value)
+        try:
+            validate_email(value, check_deliverability=True)
+        except EmailNotValidError:
+            raise serializers.ValidationError('Ця електронна адреса недійсна.')
 
         domain = value.split('@')[-1]
         if domain not in settings.ALLOWED_EMAIL_DOMAINS:
