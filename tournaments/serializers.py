@@ -7,6 +7,8 @@ from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from rest_framework import serializers
 
+from email_validator import validate_email, EmailNotValidError
+
 from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
 from .utils import contains_cyrillic, create_access_token, validate_password_complexity
 
@@ -38,20 +40,30 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ('email', 'password', 'nickname', 'role')
 
     def validate_email(self, value):
+        # Cyrillic Excluding
         if contains_cyrillic(value):
             raise serializers.ValidationError('Електронна адреса не повинна містити кирилиці.')
-
+        
         value = value.strip().lower()
+        # Django Validation
         django_validate_email(value)
 
+        # Check - Email Domain
         domain = value.split('@')[-1]
         if domain not in settings.ALLOWED_EMAIL_DOMAINS:
             raise serializers.ValidationError(
                 'Дозволені лише email на: gmail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, ukr.net'
             )
 
+        # Check - Every email must be unique
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError('Користувач з таким email вже існує.')
+
+        # Super Check
+        try:
+            validate_email(value, check_deliverability=True)
+        except EmailNotValidError:
+            raise serializers.ValidationError('Електронна адреса недійсна.')
 
         return value
 
