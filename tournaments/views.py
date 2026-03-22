@@ -231,8 +231,7 @@ def create_staff(request):
                 email=email,
                 role=role,
                 nickname=email.split('@')[0],
-                password=make_password(temp_password),
-                is_verified = True if role in [UserRole.ADMIN, UserRole.JURY] else False
+                password=make_password(temp_password)
             )
             
             # Виводимо пароль у повідомленні (тільки для розробки!)
