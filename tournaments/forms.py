@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.exceptions import ValidationError
 
-from .models import Submission, TeamMember, Tournament, User, UserRole
+from .models import Submission, TeamMember, Tournament, User, UserRole, Round
 
 
 TEAM_ROLE_ALIAS = 'team'
@@ -143,4 +143,32 @@ class TournamentForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'max_teams': forms.NumberInput(attrs={'class': 'form-control'}),
             'cover_image': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+class RoundForm(forms.ModelForm):
+    class Meta:
+        model = Round
+        fields = [
+            'tournament', 'title', 'description', 'requirements', 
+            'evaluation_criteria', 'start_time', 'end_time', 'status'
+        ]
+        labels = {
+            'tournament': 'Турнір',
+            'title': 'Назва раунду',
+            'description': 'Опис завдання',
+            'requirements': 'Вимоги',
+            'evaluation_criteria': 'Критерії оцінювання',
+            'start_time': 'Час початку',
+            'end_time': 'Дедлайн',
+            'status': 'Статус',
+        }
+        widgets = {
+            'tournament': forms.Select(attrs={'class': 'form-control'}),
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'requirements': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'evaluation_criteria': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'start_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'end_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
         }
