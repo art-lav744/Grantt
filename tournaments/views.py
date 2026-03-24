@@ -1,7 +1,6 @@
 import random
 import string
 import secrets
-from django.contrib.auth.hashers import make_password
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth import logout as django_logout
@@ -316,32 +315,47 @@ def submission_create(request, team_id):
 
 @login_required
 def create_staff(request):
-    if request.user.role not in ['organizer', 'admin']: # Перевірка ролі
+    if request.user.role not in [UserRole.ORGANIZER, UserRole.ADMIN]:
+        messages.error(request, 'Доступ заборонено.')
         return redirect('dashboard')
 
     if request.method == 'POST':
-        email = request.POST.get('email')
-        role = request.POST.get('role')
-        
-        if User.objects.filter(email=email).exists():
+        email = (request.POST.get('email') or '').strip().lower()
+        role = (request.POST.get('role') or '').strip()
+        allowed_roles = {UserRole.ADMIN, UserRole.JURY}
+
+        if role not in allowed_roles:
+            messages.error(request, 'Некоректна роль.')
+            return redirect('dashboard')
+
+        if not email:
+            messages.error(request, 'Вкажіть email.')
+            return redirect('dashboard')
+
+        if User.objects.filter(email__iexact=email).exists():
             messages.error(request, 'Користувач з таким email вже існує.')
-        else:
-            # Надійний спосіб згенерувати випадковий пароль
-            alphabet = string.ascii_letters + string.digits
-            temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
-            
-            # Створення користувача
-            new_user = User.objects.create(
-                email=email,
-                role=role,
-                nickname=email.split('@')[0],
-                password=make_password(temp_password),
-                is_verified = True if role in [UserRole.ADMIN, UserRole.JURY] else False
-            )
-            
-            # Виводимо пароль у повідомленні (тільки для розробки!)
-            messages.success(request, f'Користувача створено. Тимчасовий пароль: {temp_password}')
-            
+            return redirect('dashboard')
+
+        alphabet = string.ascii_letters + string.digits
+        temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+        base_nickname = email.split('@')[0][:140] or 'user'
+        nickname = base_nickname
+        suffix = 1
+        while User.objects.filter(nickname__iexact=nickname).exists():
+            suffix += 1
+            nickname = f'{base_nickname[:140-len(str(suffix))-1]}-{suffix}'
+
+        new_user = User.objects.create_user(
+            email=email,
+            password=temp_password,
+            nickname=nickname,
+            role=role,
+            is_verified=True,
+            is_staff=(role == UserRole.ADMIN),
+        )
+
+        messages.success(request, f'Користувача {new_user.email} створено. Тимчасовий пароль: {temp_password}')
+
     return redirect('dashboard')
 
 # tournaments/views.py

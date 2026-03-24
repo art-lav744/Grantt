@@ -1,16 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Панель Організатора</h2>
-<div class="card">
-    <h3>Створити обліковий запис для персоналу</h3>
-    <form method="post" action="{% url 'create_staff' %}">
-        {% csrf_token %}
-        <input type="email" name="email" placeholder="Email" required>
-        <select name="role">
-            <option value="admin">Адміністратор</option>
-            <option value="jury">Журі</option>
-        </select>
-        <button type="submit" class="btn">Зареєструвати</button>
-    </form>
+<div class="container">
+    <h2>Панель Організатора</h2>
+
+    <div class="card" style="padding: 20px; margin-bottom: 20px;">
+        <h3>Створити обліковий запис для персоналу</h3>
+        <form method="post" action="{% url 'create_staff' %}">
+            {% csrf_token %}
+            <input type="email" name="email" placeholder="Email" required>
+            <select name="role" required>
+                <option value="jury">Журі</option>
+                <option value="admin">Адміністратор</option>
+            </select>
+            <button type="submit" class="btn">Зареєструвати</button>
+        </form>
+    </div>
+
+    <div class="card" style="padding: 20px;">
+        <h3>Мої турніри</h3>
+        {% if my_tournaments %}
+            <table class="table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left;">Назва</th>
+                        <th style="text-align:left;">Команд</th>
+                        <th style="text-align:left;">Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tournament in my_tournaments %}
+                    <tr>
+                        <td>{{ tournament.title }}</td>
+                        <td>{{ tournament.teams_count }}</td>
+                        <td>{{ tournament.status }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>У вас ще немає створених турнірів.</p>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}

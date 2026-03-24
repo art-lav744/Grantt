@@ -23,6 +23,7 @@
         <thead>
             <tr style="background: #eee; text-align: left;">
                 <th style="padding: 10px;">Назва</th>
+                <th>Статус</th>
                 <th>Команд</th>
                 <th>Дії</th>
             </tr>
@@ -31,13 +32,14 @@
             {% for tournament in tournaments %}
             <tr style="border-bottom: 1px solid #ddd;">
                 <td style="padding: 10px;">{{ tournament.title }}</td>
+                <td>{{ tournament.status }}</td>
                 <td>{{ tournament.teams_count }}</td>
                 <td>
                     <a href="{% url 'tournament_edit' tournament.id %}" class="btn small">⚙️ Налаштувати</a>
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="3">Турнірів ще не створено.</td></tr>
+            <tr><td colspan="4">Турнірів ще не створено.</td></tr>
             {% endfor %}
         </tbody>
     </table>

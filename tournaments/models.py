@@ -74,33 +74,46 @@ class TournamentStatus(models.TextChoices):
 class Tournament(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
-    
+    status = models.CharField(
+        max_length=20,
+        choices=TournamentStatus.choices,
+        default=TournamentStatus.DRAFT,
+    )
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='tournaments',
+        null=True,
+        blank=True,
+    )
+
     # Період реєстрації
     reg_start = models.DateTimeField()
     reg_end = models.DateTimeField()
-    
+
     # Період проведення (саме тоді команди здають роботи)
-    start_time = models.DateTimeField() 
+    start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    
+
     max_teams = models.PositiveIntegerField(default=10)
     cover_image = models.ImageField(upload_to='tournaments/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # Автоматичний статус (можна зробити через property)
     @property
-    def get_status(self):
+    def computed_status(self):
         now = timezone.now()
         if now < self.reg_start:
             return "Coming Soon"
-        elif self.reg_start <= now <= self.reg_end:
+        if self.reg_start <= now <= self.reg_end:
             return "Registration Open"
-        elif self.start_time <= now <= self.end_time:
+        if self.start_time <= now <= self.end_time:
             return "Running"
-        elif now > self.end_time:
+        if now > self.end_time:
             return "Finished"
-        else:
-            return "Break"
+        return "Break"
+
+    def __str__(self):
+        return self.title
 
 
 class Team(models.Model):
