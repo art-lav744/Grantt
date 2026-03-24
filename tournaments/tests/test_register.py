@@ -2,7 +2,7 @@ from django.core import mail
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from tournaments.models import User
+from tournaments.models import User, UserRole
 
 
 @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
@@ -12,7 +12,6 @@ class RegisterTest(TestCase):
         response = self.client.post(reverse('register'), {
             'email': 'newuser@gmail.com',
             'nickname': 'newuser',
-            'role': 'captain',
             'password1': 'Test1234!',
             'password2': 'Test1234!',
         })
@@ -20,12 +19,12 @@ class RegisterTest(TestCase):
         self.assertTrue(User.objects.filter(email='newuser@gmail.com').exists())
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ['newuser@gmail.com'])
+        self.assertEqual(User.objects.get(email='newuser@gmail.com').role, UserRole.PARTICIPANT)
 
     def test_register_invalid_domain(self):
         response = self.client.post(reverse('register'), {
             'email': 'newuser@test.com',
             'nickname': 'newuser',
-            'role': 'captain',
             'password1': 'Test1234!',
             'password2': 'Test1234!',
         })
@@ -46,7 +45,6 @@ class RegisterTest(TestCase):
         response = self.client.post(reverse('register'), {
             'email': 'second@gmail.com',
             'nickname': 'takenname',
-            'role': 'captain',
             'password1': 'Test1234!',
             'password2': 'Test1234!',
         })
@@ -66,7 +64,6 @@ class RegisterTest(TestCase):
         response = self.client.post(reverse('register'), {
             'email': 'existing@gmail.com',
             'nickname': 'newuser',
-            'role': 'captain',
             'password1': 'Test1234!',
             'password2': 'Test1234!',
         })
@@ -80,7 +77,6 @@ class RegisterTest(TestCase):
         response = self.client.post(reverse('register'), {
             'email': 'newuser@gmail.com',
             'nickname': 'newuser',
-            'role': 'captain',
             'password1': 'Test1234!',
             'password2': 'Wrong1234!',
         })

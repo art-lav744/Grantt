@@ -35,7 +35,7 @@ class UserOutSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    role = serializers.CharField(default=UserRole.PLAYER)
+    role = serializers.CharField(required=False, default=UserRole.PARTICIPANT)
 
     class Meta:
         model = User
@@ -70,8 +70,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_role(self, value):
-        if value not in UserRole.values:
-            raise serializers.ValidationError('Некоректна роль.')
+        if value in (None, ''):
+            return UserRole.PARTICIPANT
+        if value != UserRole.PARTICIPANT:
+            raise serializers.ValidationError('Самостійно обрати роль при реєстрації не можна.')
         return value
 
     def validate_password(self, value):
@@ -79,6 +81,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password')
+        validated_data['role'] = UserRole.PARTICIPANT
         return User.objects.create_user(password=password, **validated_data)
 
 

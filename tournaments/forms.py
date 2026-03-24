@@ -11,18 +11,10 @@ from .models import Submission, TeamMember, Tournament, User, UserRole
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(label='Email')
     nickname = forms.CharField(label='Нікнейм', max_length=150)
-    role = forms.ChoiceField(
-        label='Хто ви?',
-        choices=[
-            (UserRole.CAPTAIN, 'Капітан команди (створює команду)'),
-            (UserRole.PLAYER, 'Учасник (доєднується до команди)'),
-        ],
-        initial=UserRole.PLAYER,
-    )
 
     class Meta:
         model = User
-        fields = ('email', 'nickname', 'role', 'password1', 'password2')
+        fields = ('email', 'nickname', 'password1', 'password2')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -69,7 +61,7 @@ class RegisterForm(UserCreationForm):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
         user.nickname = self.cleaned_data['nickname']
-        user.role = self.cleaned_data['role']
+        user.role = UserRole.PARTICIPANT
         if commit:
             user.save()
         return user

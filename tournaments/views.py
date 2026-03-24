@@ -80,7 +80,7 @@ def verify_email(request, uidb64, token):
     else:
         messages.error(request, 'Посилання недійсне або застаріле.')
         return redirect('home')
-      
+
 def logout_view(request):
     django_logout(request)
     messages.success(request, 'Ви успішно вийшли з акаунта.')
@@ -143,7 +143,7 @@ def user_management(request):
         users = User.objects.all()
     elif request.user.role == UserRole.ADMIN:
         # Адмін бачить тільки "простих смертних"
-        users = User.objects.filter(role__in=[UserRole.CAPTAIN, UserRole.PLAYER])
+        users = User.objects.filter(role=UserRole.PARTICIPANT)
     else:
         return redirect('home')
     
@@ -173,8 +173,8 @@ def dashboard(request):
         context['my_evaluations'] = Evaluation.objects.filter(jury=user).select_related('submission__team', 'submission__round')
         return render(request, 'dashboards/jury_dashboard.html', context)
 
-    # 4. КАПІТАН (Ваш поточний блок)
-    elif user.role == UserRole.CAPTAIN:
+    # 4. УЧАСНИК
+    elif user.role == UserRole.PARTICIPANT:
         # Шукаємо команду, де поточний юзер є капітаном
         team = Team.objects.filter(captain=user).select_related('tournament').first()
         
@@ -191,20 +191,9 @@ def dashboard(request):
             context['team'] = None
             return render(request, 'dashboards/team_dashboard.html', context)
 
-    # 5. УЧАСНИК (PLAYER)
     else:
-        member_record = TeamMember.objects.filter(email=user.email).select_related('team__tournament').first()
-        if member_record:
-            team = member_record.team
-            context.update({
-                'team': team,
-                'members': team.members.all(),
-                'submissions': Submission.objects.filter(team=team).select_related('round').order_by('-created_at'),
-            })
-        else:
-            context['team'] = None
-            
-        return render(request, 'dashboards/member_dashboard.html', context)
+        messages.error(request, 'Невідома роль користувача.')
+        return redirect('home')
     
 @login_required
 def team_detail(request, pk):
@@ -258,8 +247,8 @@ def register_for_tournament(request, tournament_id):
     now = timezone.now()
 
     # ДЕТАЛЬ 1: Перевірка ролі
-    if user.role != UserRole.CAPTAIN:
-        messages.error(request, "Тільки Капітани можуть реєструвати команди.")
+    if user.role != UserRole.PARTICIPANT:
+        messages.error(request, "Тільки зареєстровані учасники можуть реєструвати команди.")
         return redirect('index')
 
     # ДЕТАЛЬ 2: Перевірка дедлайну реєстрації
