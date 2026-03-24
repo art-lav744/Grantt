@@ -8,9 +8,6 @@ from django.core.exceptions import ValidationError
 from .models import Submission, TeamMember, Tournament, User, UserRole
 
 
-TEAM_ROLE_ALIAS = 'team'
-
-
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(label='Email')
     nickname = forms.CharField(label='Нікнейм', max_length=150)
@@ -19,7 +16,6 @@ class RegisterForm(UserCreationForm):
         choices=[
             (UserRole.CAPTAIN, 'Капітан команди (створює команду)'),
             (UserRole.PLAYER, 'Учасник (доєднується до команди)'),
-            (TEAM_ROLE_ALIAS, 'Капітан команди (сумісність зі старою формою)'),
         ],
         initial=UserRole.PLAYER,
     )
@@ -53,12 +49,6 @@ class RegisterForm(UserCreationForm):
         if User.objects.filter(nickname__iexact=nickname).exists():
             raise ValidationError('Користувач з таким нікнеймом вже існує.')
         return nickname
-
-    def clean_role(self):
-        role = self.cleaned_data['role']
-        if role == TEAM_ROLE_ALIAS:
-            return UserRole.CAPTAIN
-        return role
 
     def clean_password1(self):
         password = self.cleaned_data.get('password1')
