@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.conf import settings
+from django.utils import timezone
 
 
 class UserRole(models.TextChoices):
@@ -71,42 +73,85 @@ class TournamentStatus(models.TextChoices):
 
 class Tournament(models.Model):
     title = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
-    status = models.CharField(max_length=20, choices=TournamentStatus.choices, default=TournamentStatus.DRAFT)
-    creator = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='tournaments')
-    reg_start = models.DateTimeField(null=True, blank=True)
-    reg_end = models.DateTimeField(null=True, blank=True)
-    max_teams = models.PositiveIntegerField(default=16)
-    cover_image = models.ImageField(upload_to='tournament_images/', null=True, blank=True)
+    description = models.TextField()
+    
+    # Період реєстрації
+    reg_start = models.DateTimeField()
+    reg_end = models.DateTimeField()
+    
+    # Період проведення (саме тоді команди здають роботи)
+    start_time = models.DateTimeField() 
+    end_time = models.DateTimeField()
+    
+    max_teams = models.PositiveIntegerField(default=10)
+    cover_image = models.ImageField(upload_to='tournaments/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return self.title
+    # Автоматичний статус (можна зробити через property)
+    @property
+    def get_status(self):
+        now = timezone.now()
+        if now < self.reg_start:
+            return "Coming Soon"
+        elif self.reg_start <= now <= self.reg_end:
+            return "Registration Open"
+        elif self.start_time <= now <= self.end_time:
+            return "Running"
+        elif now > self.end_time:
+            return "Finished"
+        else:
+            return "Break"
 
 
 class Team(models.Model):
-    name = models.CharField(max_length=255)
-    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='teams')
-    captain = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='captained_teams')
-    captain_email = models.EmailField()
-    captain_name = models.CharField(max_length=255)
-    image = models.ImageField(upload_to='team_images/', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = [('tournament', 'name')]
+    name = models.CharField(max_length=100, unique=True)
+    tournament = models.ForeignKey(
+        Tournament, 
+        on_delete=models.CASCADE, 
+        related_name='teams'
+    )
+    captain = models.OneToOneField(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='managed_team'
+    )
+    
+    # Використовуємо проміжну модель TeamMember
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, 
+        through='TeamMember', 
+        related_name='teams_membership'
+    )
 
     def __str__(self):
         return self.name
 
 
 class TeamMember(models.Model):
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='members')
+    team = models.ForeignKey(
+        'Team', 
+        on_delete=models.CASCADE, 
+        related_name='memberships'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='team_participations'
+    )
+    # Вимоги ТЗ: ПІБ та Email учасника [cite: 13]
     full_name = models.CharField(max_length=255)
     email = models.EmailField()
+    
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # Валідація: Email унікальні в межах однієї команди [cite: 13]
+        unique_together = ('team', 'email')
 
     def __str__(self):
-        return f'{self.full_name} <{self.email}>'
+        return f'{self.full_name} ({self.email})'
 
 
 class Round(models.Model):

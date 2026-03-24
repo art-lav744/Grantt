@@ -135,12 +135,29 @@ class TeamMemberForm(forms.ModelForm):
 class TournamentForm(forms.ModelForm):
     class Meta:
         model = Tournament
-        fields = ['title', 'description', 'reg_start', 'reg_end', 'max_teams', 'cover_image']
+        fields = ['title', 'description', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'cover_image']
         widgets = {
-            'reg_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
-            'reg_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Назва турніру'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'max_teams': forms.NumberInput(attrs={'class': 'form-control'}),
-            'cover_image': forms.FileInput(attrs={'class': 'form-control'}),
+            'reg_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
+            'reg_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
+            'start_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
+            'end_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Примусове форматування для коректного відображення при редагуванні
+        date_fields = ['reg_start', 'reg_end', 'start_time', 'end_time']
+        for field in date_fields:
+            if self.instance and getattr(self.instance, field):
+                self.initial[field] = getattr(self.instance, field).strftime('%Y-%m-%dT%H:%M')
+
+    def clean(self):
+        cd = super().clean()
+        # Логічна перевірка ланцюжка дат
+        if cd.get('reg_end') <= cd.get('reg_start'):
+            self.add_error('reg_end', "Реєстрація не може закінчитися раніше початку")
+        if cd.get('start_time') < cd.get('reg_start'):
+            self.add_error('start_time', "Турнір не може початися раніше реєстрації")
+        if cd.get('end_time') <= cd.get('start_time'):
+            self.add_error('end_time', "Турнір не може закінчитися раніше свого початку")
+        return cd

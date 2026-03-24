@@ -1,23 +1,27 @@
-{% extends 'base.html' %}
-
+{% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
-    <h2>Створення нового турніру</h2>
-    <form method="post" enctype="multipart/form-data" class="mt-4" style="max-width: 600px;">
-        {% csrf_token %}
+<div class="container" style="max-width: 700px; margin: 40px auto;">
+    <div class="card" style="padding: 30px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+        <h2 style="border-bottom: 2px solid #007bff; padding-bottom: 15px; margin-bottom: 25px;">
+            {% if tournament %}⚙️ Налаштування турніру{% else %}➕ Новий турнір{% endif %}
+        </h2>
         
-        {% for field in form %}
-            <div class="mb-3">
-                <label class="form-label">{{ field.label }}</label>
-                {{ field }}
-                {% if field.errors %}
-                    <div class="text-danger small">{{ field.errors }}</div>
-                {% endif %}
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% for field in form %}
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small style="color: #666;">{{ field.help_text }}</small>{% endif %}
+                </div>
+            {% endfor %}
+            
+            <div style="display: flex; gap: 15px; margin-top: 30px;">
+                <button type="submit" class="btn" style="flex: 2; background: #28a745;">Зберегти</button>
+                <a href="{% url 'dashboard' %}" class="btn" style="flex: 1; background: #6c757d; text-align: center;">Назад</a>
             </div>
-        {% endfor %}
-
-        <button type="submit" class="btn btn-primary">Зберегти турнір</button>
-        <a href="{% url 'dashboard' %}" class="btn btn-secondary">Скасувати</a>
-    </form>
+        </form>
+    </div>
 </div>
 {% endblock %}

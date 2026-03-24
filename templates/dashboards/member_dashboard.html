@@ -1,65 +1,18 @@
-{% extends "base.html" %}
-
-{% block title %}Особистий кабінет учасника{% endblock %}
-
-{% block content %}
-<div class="container" style="max-width: 1100px; margin: 0 auto; padding: 20px;">
-    <div style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); padding: 30px; border-radius: 12px; color: white; margin-bottom: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-        <h2 style="margin: 0; font-size: 2em;">Вітаємо, {{ request.user.nickname }}!</h2>
-        <p style="opacity: 0.9; margin-top: 10px;">Статус: Учасник команди {% if team %}<strong>{{ team.name }}</strong>{% else %}Без команди{% endif %}</p>
-    </div>
-
-    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 25px;">
-        
-        <aside>
-            <div class="card" style="padding: 20px; border-radius: 10px; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05); background: #fff;">
-                <h3 style="margin-top: 0; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px;">👥 Моя команда</h3>
-                {% if team %}
-                    <p style="color: #007bff; font-weight: bold; font-size: 1.1em;">{{ team.name }}</p>
-                    <ul style="list-style: none; padding: 0; margin-top: 15px;">
-                        <li style="padding: 10px; background: #f8f9fa; border-radius: 6px; margin-bottom: 8px;">
-                            <strong>{{ team.captain.nickname }}</strong> <small>(Капітан)</small>
-                        </li>
-                        {% for member in members %}
-                            <li style="padding: 10px; border-bottom: 1px solid #eee;">{{ member.full_name }}</li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <div style="text-align: center; padding: 20px; color: #888;">
-                        <p>Ви ще не додані до команди.</p>
-                        <small>Ваш Email для запрошення: {{ request.user.email }}</small>
-                    </div>
-                {% endif %}
+{% if user.role == 'player' %}
+    {% if user.team_participations.exists %}
+        <h2>Ваші команди:</h2>
+        {% for membership in user.team_participations.all %}
+            <div class="card">
+                <h3>{{ membership.team.name }}</h3>
+                <p>Ваша роль: {{ membership.role_in_team|default:"Учасник" }}</p>
+                <a href="{% url 'team_detail' membership.team.id %}" class="btn">Перейти до турніру</a>
             </div>
-        </aside>
-
-        <main>
-            <div class="card" style="padding: 20px; border-radius: 10px; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05); background: #fff;">
-                <h3 style="margin-top: 0; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px;">📂 Історія поданих робіт</h3>
-                
-                {% if submissions %}
-                    {% for sub in submissions %}
-                        <div style="padding: 15px; border: 1px solid #f0f0f0; border-radius: 8px; margin-bottom: 15px; background: #fafafa; transition: transform 0.2s;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <strong style="font-size: 1.1em;">{{ sub.round.title }}</strong>
-                                <span style="background: #e9ecef; padding: 4px 10px; border-radius: 20px; font-size: 0.8em; color: #495057;">{{ sub.created_at|date:"d.m.Y" }}</span>
-                            </div>
-                            <p style="margin: 10px 0; font-size: 0.9em; color: #666;">{{ sub.description|truncatewords:15 }}</p>
-                            <div style="display: flex; gap: 15px;">
-                                <a href="{{ sub.github_link }}" target="_blank" style="color: #0366d6; text-decoration: none; font-weight: 500;">🔗 GitHub</a>
-                                {% if sub.video_link %}
-                                    <a href="{{ sub.video_link }}" target="_blank" style="color: #d73a49; text-decoration: none; font-weight: 500;">🎥 Відео</a>
-                                {% endif %}
-                            </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div style="text-align: center; padding: 50px; color: #bbb;">
-                        <p>Ваша команда ще не подавала робіт.</p>
-                    </div>
-                {% endif %}
-            </div>
-        </main>
-    </div>
-</div>
-{% endblock %}
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            👋 Привіт, {{ user.nickname }}! Ви ще не в команді. 
+            Попросіть свого капітана додати вас за email: <strong>{{ user.email }}</strong> 
+            або <a href="{% url 'tournament_list' %}">оберіть турнір</a>, щоб створити свою.
+        </div>
+    {% endif %}
+{% endif %}
