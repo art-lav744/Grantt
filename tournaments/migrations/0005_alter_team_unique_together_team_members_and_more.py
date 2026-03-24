@@ -36,8 +36,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='team',
             name='captain',
-            field=models.OneToOneField(default=django.utils.timezone.now, on_delete=django.db.models.deletion.CASCADE, related_name='managed_team', to=settings.AUTH_USER_MODEL),
-            preserve_default=False,
+            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='managed_team', to=settings.AUTH_USER_MODEL),
         ),
         migrations.AlterField(
             model_name='team',

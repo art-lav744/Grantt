@@ -113,7 +113,9 @@ class Team(models.Model):
     captain = models.OneToOneField(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
-        related_name='managed_team'
+        related_name='managed_team',
+        null=True,
+        blank=True,
     )
     
     # Використовуємо проміжну модель TeamMember
