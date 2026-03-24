@@ -8,14 +8,14 @@ class LoginTest(TestCase):
     def setUp(self):
         # створюємо верифікованого користувача якого використовуємо в тестах
         self.user_verified = User.objects.create_user(
-            email='verified@test.com',
+            email='verified@gmail.com',
             password='Test1234!',
             nickname='verified',
             is_verified=True,
         )
         # створюємо користувача без підтвердження email
         self.user_unverified = User.objects.create_user(
-            email='unverified@test.com',
+            email='unverified@gmail.com',
             password='Test1234!',
             nickname='unverified',
             is_verified=False,
@@ -25,7 +25,7 @@ class LoginTest(TestCase):
         # верифікований користувач з правильним паролем
         # має успішно залогінитись і перенаправитись на dashboard
         response = self.client.post(reverse('login'), {
-            'username': 'verified@test.com',
+            'username': 'verified@gmail.com',
             'password': 'Test1234!',
         })
         self.assertRedirects(response, reverse('dashboard'))
@@ -34,7 +34,7 @@ class LoginTest(TestCase):
         # неверифікований користувач не повинен мати змогу залогінитись
         # сторінка має повернутись з помилкою
         response = self.client.post(reverse('login'), {
-            'username': 'unverified@test.com',
+            'username': 'unverified@gmail.com',
             'password': 'Test1234!',
         })
         self.assertEqual(response.status_code, 200)
@@ -44,7 +44,7 @@ class LoginTest(TestCase):
         # користувач з неправильним паролем не повинен залогінитись
         # сторінка має залишитись на формі логіну
         response = self.client.post(reverse('login'), {
-            'username': 'verified@test.com',
+            'username': 'verified@gmail.com',
             'password': 'wrongpassword',
         })
         self.assertEqual(response.status_code, 200)

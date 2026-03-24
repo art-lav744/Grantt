@@ -13,7 +13,6 @@ from email_validator import EmailNotValidError, validate_email
 from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
 from .utils import contains_cyrillic, create_access_token, validate_password_complexity
 
-TEAM_ROLE_ALIAS = 'team'
 
 
 class TournamentShortSerializer(serializers.ModelSerializer):
@@ -71,8 +70,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_role(self, value):
-        if value == TEAM_ROLE_ALIAS:
-            return UserRole.CAPTAIN
         if value not in UserRole.values:
             raise serializers.ValidationError('Некоректна роль.')
         return value
