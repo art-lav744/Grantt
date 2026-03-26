@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Реєстрація команди на {{ tournament.title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="team_name">Назва вашої команди</label>
+                            <input type="text" name="team_name" id="team_name" class="form-control" placeholder="Введіть круту назву..." required>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-block mt-4">Створити та продовжити</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

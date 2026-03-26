@@ -1,11 +1,43 @@
-{% extends "base.html" %}
-
-{% block title %}Головна{% endblock %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="card">
-    <h1>Ласкаво просимо до Tournament 2026</h1>
-    <p>Система для керування турнірами, командами, раундами та подачами.</p>
-    <a class="btn" href="{% url 'tournament_list' %}">Переглянути турніри</a>
+<div class="container mt-5">
+    <h1 class="text-center mb-5">🏆 Платформа IT-Турнірів</h1>
+
+    <h3 class="text-success">🟢 Реєстрація відкрита</h3>
+    <div class="row mb-5">
+        {% for t in reg_open %}
+        <div class="col-md-4">
+            <div class="card shadow-sm h-100">
+                {% if t.cover_image %}
+                <img src="{{ t.cover_image.url }}" class="card-img-top" alt="{{ t.title }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ t.title }}</h5>
+                    <p class="card-text text-muted">{{ t.description|truncatewords:20 }}</p>
+                    <p><strong>Кінець реєстрації:</strong> {{ t.reg_end|date:"d.m.Y H:i" }}</p>
+                    <a href="{% url 'register_tournament' t.id %}" class="btn btn-success w-100">Брати участь</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted ml-3">Зараз немає турнірів з відкритою реєстрацією.</p>
+        {% endfor %}
+    </div>
+
+    <h3 class="text-primary">🔥 Турніри тривають</h3>
+    <div class="row mb-5">
+        {% for t in running %}
+        <div class="col-md-4">
+            <div class="card border-primary h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ t.title }} <span class="badge badge-primary">LIVE</span></h5>
+                    <p><strong>Завершення:</strong> {{ t.end_time|date:"d.m.Y H:i" }}</p>
+                    <a href="{% url 'tournament_detail' t.id %}" class="btn btn-outline-primary w-100">Дивитись хід</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}

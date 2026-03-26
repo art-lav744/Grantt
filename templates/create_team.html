@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 50px auto;">
+    <div class="card" style="padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+        <h2 style="margin-top: 0; color: #333;">🛡️ Реєстрація команди</h2>
+        <p style="color: #666;">Турнір: <strong>{{ tournament.title }}</strong></p>
+        <hr>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 10px;">Назва вашої команди:</label>
+                <input type="text" name="name" class="form-control" placeholder="Наприклад: CyberDragons" required>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <small style="color: #666;">
+                    ℹ️ Ви стаєте <strong>Капітаном</strong>. Після створення ви зможете запросити інших учасників за їхнім Email.
+                </small>
+            </div>
+
+            <button type="submit" class="btn" style="width: 100%; padding: 12px; background: #28a745; border: none; font-weight: bold;">
+                Підтвердити реєстрацію
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

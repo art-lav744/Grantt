@@ -26,7 +26,7 @@
                 {% for team in teams %}
                 <tr>
                     <td>{{ team.name }}</td>
-                    <td>{{ team.captain.email|default:team.captain_email }}</td>
+                    <td>{{ team.captain.email }}</td>
                     <td><a class="btn" href="{% url 'team_detail' team.id %}">Переглянути</a></td>
                 </tr>
                 {% endfor %}

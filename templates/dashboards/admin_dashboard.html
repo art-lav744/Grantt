@@ -9,7 +9,7 @@
         <div class="card" style="flex: 1; padding: 15px; background: #f0f8ff;">
             <h3>Турніри</h3>
             <p style="font-size: 24px;">{{ tournaments|length }}</p>
-            <a href="/admin/tournaments/tournament/add/" class="btn">➕ Новий турнір</a>
+            <a href="{% url 'tournament_create' %}" class="btn">➕ Новий турнір</a>
         </div>
         <div class="card" style="flex: 1; padding: 15px; background: #f0fff0;">
             <h3>Користувачі</h3>
@@ -23,6 +23,7 @@
         <thead>
             <tr style="background: #eee; text-align: left;">
                 <th style="padding: 10px;">Назва</th>
+                <th>Статус</th>
                 <th>Команд</th>
                 <th>Дії</th>
             </tr>
@@ -30,14 +31,15 @@
         <tbody>
             {% for tournament in tournaments %}
             <tr style="border-bottom: 1px solid #ddd;">
-                <td style="padding: 10px;">{{ tournament.name }}</td>
+                <td style="padding: 10px;">{{ tournament.title }}</td>
+                <td>{{ tournament.status }}</td>
                 <td>{{ tournament.teams_count }}</td>
                 <td>
-                    <a href="{% url 'tournament_detail' tournament.id %}">⚙️ Налаштувати</a>
+                    <a href="{% url 'tournament_edit' tournament.id %}" class="btn small">⚙️ Налаштувати</a>
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="3">Турнірів ще не створено.</td></tr>
+            <tr><td colspan="4">Турнірів ще не створено.</td></tr>
             {% endfor %}
         </tbody>
     </table>

@@ -21,12 +21,18 @@ def contains_cyrillic(value: str) -> bool:
 
 
 def validate_password_complexity(value: str) -> str:
+    error_list = []
+
     if len(value) < PASSWORD_MIN_LENGTH:
-        raise exceptions.ValidationError(f'Пароль має бути не менше {PASSWORD_MIN_LENGTH} символів')
+        error_list.append(f'Пароль має бути не менше {PASSWORD_MIN_LENGTH} символів')
     if PASSWORD_REQUIRE_NUMBER and not any(ch.isdigit() for ch in value):
-        raise exceptions.ValidationError('Пароль має містити хоча б одну цифру')
+        error_list.append('Пароль має містити хоча б одну цифру')
     if PASSWORD_REQUIRE_SPECIAL and not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):
-        raise exceptions.ValidationError('Пароль має містити хоча б один спеціальний символ')
+        error_list.append('Пароль має містити хоча б один спеціальний символ')
+
+    if error_list:
+        raise error_list
+    
     return value
 
 

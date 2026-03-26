@@ -1,7 +1,6 @@
 import random
 import string
 import secrets
-from django.contrib.auth.hashers import make_password
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth import logout as django_logout
@@ -18,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
+from django.utils import timezone
 
 from .forms import RegisterForm, SubmissionForm, TeamMemberForm, TournamentForm
 from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
@@ -38,8 +38,32 @@ from .utils import process_square_image, validate_raw_image
 
 
 def home(request):
-    tournaments = Tournament.objects.all().order_by('-created_at')[:5]
-    return render(request, 'home.html', {'tournaments': tournaments})
+    now = timezone.now()
+    
+    # Фільтруємо турніри згідно з моделлю
+    context = {
+        'reg_open': Tournament.objects.filter(reg_start__lte=now, reg_end__gte=now),
+        'running': Tournament.objects.filter(start_time__lte=now, end_time__gte=now),
+        'finished': Tournament.objects.filter(end_time__lt=now),
+        'upcoming': Tournament.objects.filter(reg_start__gt=now),
+    }
+    return render(request, 'home.html', context)
+
+def index(request):
+    now = timezone.now()
+    
+    # Використовуємо фільтри для різних категорій
+    reg_open = Tournament.objects.filter(reg_start__lte=now, reg_end__gte=now)
+    running = Tournament.objects.filter(start_time__lte=now, end_time__gte=now)
+    finished = Tournament.objects.filter(end_time__lt=now)
+    
+    context = {
+        'reg_open': reg_open,
+        'running': running,
+        'finished': finished,
+        'now': now
+    }
+    return render(request, 'index.html', context)
 
 def verify_email(request, uidb64, token):
     try:
@@ -56,7 +80,7 @@ def verify_email(request, uidb64, token):
     else:
         messages.error(request, 'Посилання недійсне або застаріле.')
         return redirect('home')
-      
+
 def logout_view(request):
     django_logout(request)
     messages.success(request, 'Ви успішно вийшли з акаунта.')
@@ -94,21 +118,45 @@ def tournament_list(request):
     return render(request, 'tournaments/tournament_list.html', {'tournaments': tournaments})
 
 
-def tournament_detail(request, pk):
-    tournament = get_object_or_404(Tournament, pk=pk)
-    teams = Team.objects.filter(tournament=tournament).select_related('captain').order_by('name')
-    rounds = Round.objects.filter(tournament=tournament).order_by('start_time', 'id')
+def tournament_detail(request, tournament_id):
+    # Використовуємо id=tournament_id, як передано в аргументах
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    # Оптимізуємо запит до команд, щоб не було проблем з капітанами
+    teams = tournament.teams.all().select_related('captain')
+    rounds = tournament.rounds.all()
+    
+    user_team = None
+    if request.user.is_authenticated:
+        # Перевіряємо, чи є юзер капітаном
+        user_team = Team.objects.filter(tournament=tournament, captain=request.user).first()
+        
+        # Якщо не капітан, перевіряємо, чи є він учасником через модель TeamMember
+        if not user_team:
+            user_team = Team.objects.filter(
+                tournament=tournament, 
+                members__user=request.user # звертаємось через related_name або модель TeamMember
+            ).first()
 
-    return render(
-        request,
-        'tournaments/tournament_detail.html',
-        {
-            'tournament': tournament,
-            'teams': teams,
-            'rounds': rounds,
-        },
-    )
+    return render(request, 'tournaments/tournament_detail.html', { 
+        'tournament': tournament,
+        'teams': teams,
+        'rounds': rounds,
+        'user_team': user_team,
+    })
 
+# У views.py для сторінки керування користувачами
+def user_management(request):
+    if request.user.role == UserRole.ORGANIZER:
+        # Організатор бачить усіх
+        users = User.objects.all()
+    elif request.user.role == UserRole.ADMIN:
+        # Адмін бачить тільки "простих смертних"
+        users = User.objects.filter(role=UserRole.PARTICIPANT)
+    else:
+        return redirect('home')
+    
+    return render(request, 'management/users.html', {'users': users})
 
 @login_required
 def dashboard(request):
@@ -134,8 +182,8 @@ def dashboard(request):
         context['my_evaluations'] = Evaluation.objects.filter(jury=user).select_related('submission__team', 'submission__round')
         return render(request, 'dashboards/jury_dashboard.html', context)
 
-    # 4. КАПІТАН (Ваш поточний блок)
-    elif user.role == UserRole.CAPTAIN:
+    # 4. УЧАСНИК
+    elif user.role == UserRole.PARTICIPANT:
         # Шукаємо команду, де поточний юзер є капітаном
         team = Team.objects.filter(captain=user).select_related('tournament').first()
         
@@ -152,20 +200,9 @@ def dashboard(request):
             context['team'] = None
             return render(request, 'dashboards/team_dashboard.html', context)
 
-    # 5. УЧАСНИК (PLAYER)
     else:
-        member_record = TeamMember.objects.filter(email=user.email).select_related('team__tournament').first()
-        if member_record:
-            team = member_record.team
-            context.update({
-                'team': team,
-                'members': team.members.all(),
-                'submissions': Submission.objects.filter(team=team).select_related('round').order_by('-created_at'),
-            })
-        else:
-            context['team'] = None
-            
-        return render(request, 'dashboards/member_dashboard.html', context)
+        messages.error(request, 'Невідома роль користувача.')
+        return redirect('home')
     
 @login_required
 def team_detail(request, pk):
@@ -188,6 +225,70 @@ def team_detail(request, pk):
         },
     )
 
+@login_required
+def create_team(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    # Перевірка, чи не створив він уже команду (подвійний захист)
+    if Team.objects.filter(captain=request.user).exists():
+        messages.warning(request, "У вас вже є створена команда.")
+        return redirect('home')
+
+    if request.method == 'POST':
+        team_name = request.POST.get('team_name')
+        if team_name:
+            # Створюємо команду
+            new_team = Team.objects.create(
+                name=team_name,
+                captain=request.user,
+                tournament=tournament
+            )
+            messages.success(request, f"Команду '{team_name}' успішно створено!")
+            # Після створення йдемо додавати учасників (те, що ми писали раніше)
+            return redirect('team_dashboard') 
+    
+    return render(request, 'tournaments/create_team.html', {'tournament': tournament})
+
+@login_required
+def register_for_tournament(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    user = request.user
+    now = timezone.now()
+
+    # ДЕТАЛЬ 1: Перевірка ролі
+    if user.role != UserRole.PARTICIPANT:
+        messages.error(request, "Тільки зареєстровані учасники можуть реєструвати команди.")
+        return redirect('index')
+
+    # ДЕТАЛЬ 2: Перевірка дедлайну реєстрації
+    if now > tournament.reg_end:
+        messages.error(request, "Реєстрація на цей турнір уже закрита.")
+        return redirect('index')
+
+    # ДЕТАЛЬ 3: Чи вже є у капітана команда?
+    if Team.objects.filter(captain=user).exists():
+        # Якщо команда вже є, просто прив'язуємо її до цього турніру (якщо вона ще не там)
+        team = Team.objects.get(captain=user)
+        if team.tournament == tournament:
+            messages.info(request, "Ви вже зареєстровані на цей турнір.")
+        else:
+            # Можна додати логіку перереєстрації або видати помилку
+            messages.warning(request, "У вас уже є команда в іншому турнірі.")
+        return redirect('team_dashboard')
+
+    # Якщо все ок — відправляємо на створення команди
+    return redirect('create_team', tournament_id=tournament.id)
+
+@login_required
+def team_dashboard(request):
+    # Шукаємо команду, де поточний юзер є капітаном
+    team = Team.objects.filter(captain=request.user).first()
+    
+    if not team:
+        messages.info(request, "Ви ще не створили команду.")
+        return redirect('home')
+        
+    return render(request, 'tournaments/team_dashboard.html', {'team': team})
 
 @login_required
 def submission_create(request, team_id):
@@ -212,60 +313,157 @@ def submission_create(request, team_id):
 
 @login_required
 def create_staff(request):
-    if request.user.role not in ['organizer', 'admin']: # Перевірка ролі
-        return redirect('dashboard')
-
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        role = request.POST.get('role')
-        
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'Користувач з таким email вже існує.')
-        else:
-            # Надійний спосіб згенерувати випадковий пароль
-            alphabet = string.ascii_letters + string.digits
-            temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
-            
-            # Створення користувача
-            new_user = User.objects.create(
-                email=email,
-                role=role,
-                nickname=email.split('@')[0],
-                password=make_password(temp_password),
-                is_verified = True if role in [UserRole.ADMIN, UserRole.JURY] else False
-            )
-            
-            # Виводимо пароль у повідомленні (тільки для розробки!)
-            messages.success(request, f'Користувача створено. Тимчасовий пароль: {temp_password}')
-            
-    return redirect('dashboard')
-
-@login_required
-def add_member(request, team_id):
-    team = get_object_some_method_to_get_team(id=team_id) # Або просто завантажте команду
-    # Тимчасова заглушка, щоб код просто запрацював:
-    return redirect('team_detail', team_id=team_id)
-
-@login_required
-def tournament_create(request):
-    # Перевірка ролі (використовуємо ваші константи з models)
-    if request.user.role not in [UserRole.ADMIN, UserRole.ORGANIZER, 'admin', 'organizer']:
+    if request.user.role not in [UserRole.ORGANIZER, UserRole.ADMIN]:
         messages.error(request, 'Доступ заборонено.')
         return redirect('dashboard')
 
+    if request.method == 'POST':
+        email = (request.POST.get('email') or '').strip().lower()
+        role = (request.POST.get('role') or '').strip()
+        allowed_roles = {UserRole.ADMIN, UserRole.JURY}
+
+        if role not in allowed_roles:
+            messages.error(request, 'Некоректна роль.')
+            return redirect('dashboard')
+
+        if not email:
+            messages.error(request, 'Вкажіть email.')
+            return redirect('dashboard')
+
+        if User.objects.filter(email__iexact=email).exists():
+            messages.error(request, 'Користувач з таким email вже існує.')
+            return redirect('dashboard')
+
+        alphabet = string.ascii_letters + string.digits
+        temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+        base_nickname = email.split('@')[0][:140] or 'user'
+        nickname = base_nickname
+        suffix = 1
+        while User.objects.filter(nickname__iexact=nickname).exists():
+            suffix += 1
+            nickname = f'{base_nickname[:140-len(str(suffix))-1]}-{suffix}'
+
+        new_user = User.objects.create_user(
+            email=email,
+            password=temp_password,
+            nickname=nickname,
+            role=role,
+            is_verified=True,
+            is_staff=(role == UserRole.ADMIN),
+        )
+
+        messages.success(request, f'Користувача {new_user.email} створено. Тимчасовий пароль: {temp_password}')
+
+    return redirect('dashboard')
+
+# tournaments/views.py
+
+@login_required
+def tournament_dashboard(request):
+    # Шукаємо команду, де користувач є капітаном
+    managed_team = Team.objects.filter(captain=request.user).first()
+    # Шукаємо команду, де користувач є звичайним учасником
+    joined_team = Team.objects.filter(members=request.user).first()
+    
+    # Отримуємо список доступних турнірів для запису
+    available_tournaments = Tournament.objects.all().order_by('-created_at')
+
+    context = {
+        'managed_team': managed_team,
+        'joined_team': joined_team,
+        'available_tournaments': available_tournaments,
+    }
+    return render(request, 'tournaments/dashboard.html', context)
+
+def tournament_detail(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    # Перевіряємо, чи користувач уже в команді на цей турнір
+    user_team = Team.objects.filter(tournament=tournament, members=request.user).first() or \
+                Team.objects.filter(tournament=tournament, captain=request.user).first()
+    
+    return render(request, 'tournaments/tournament_detail.html', {
+        'tournament': tournament,
+        'user_team': user_team
+    })
+
+@login_required
+def add_team_member(request, team_id):
+    team = get_object_or_404(Team, id=team_id)
+    
+    if team.captain != request.user:
+        messages.error(request, "Тільки капітан може додавати учасників.")
+        return redirect('team_detail', pk=team_id)
+
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        
+        # 1. Перевіряємо, чи існує користувач з таким email в системі
+        user_to_add = User.objects.filter(email__iexact=email).first()
+        
+        if not user_to_add:
+            messages.error(request, f"Користувача з email {email} не знайдено. Він має спочатку зареєструватися на платформі.")
+            return redirect('team_detail', pk=team_id)
+
+        # 2. Перевіряємо, чи він уже не в цій команді
+        if TeamMember.objects.filter(team=team, user=user_to_add).exists():
+            messages.warning(request, "Цей учасник вже є у вашій команді.")
+            return redirect('team_detail', pk=team_id)
+
+        # 3. Додаємо учасника
+        TeamMember.objects.create(
+            team=team,
+            user=user_to_add,
+            email=user_to_add.email,
+            full_name=user_to_add.full_name # ПІБ підтягується автоматично з профілю
+        )
+        
+        messages.success(request, f"Учасника {user_to_add.full_name} додано!")
+        return redirect('team_detail', pk=team_id)
+
+    return render(request, 'tournaments/add_member.html', {'team': team})
+
+@login_required
+def tournament_create(request):
+    if request.user.role != UserRole.ADMIN:
+        messages.error(request, "Доступ заборонено")
+        return redirect('home')
+    
     if request.method == 'POST':
         form = TournamentForm(request.POST, request.FILES)
         if form.is_valid():
             tournament = form.save(commit=False)
             tournament.creator = request.user
-            tournament.status = TournamentStatus.REGISTRATION 
             tournament.save()
-            messages.success(request, f'Турнір "{tournament.title}" створено!')
-            return redirect('tournament_detail', pk=tournament.pk)
+            messages.success(request, f"Турнір '{tournament.title}' створено!")
+            return redirect('dashboard')
     else:
         form = TournamentForm()
+    
+    return render(request, 'tournaments/tournament_form.html', {
+        'form': form, 
+        'title': 'Створення турніру'
+    })
 
-    return render(request, 'tournaments/tournament_form.html', {'form': form})
+@login_required
+def tournament_edit(request, pk):
+    if request.user.role != UserRole.ADMIN:
+        return redirect('home')
+    
+    tournament = get_object_or_404(Tournament, pk=pk)
+    if request.method == 'POST':
+        form = TournamentForm(request.POST, request.FILES, instance=tournament)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Параметри турніру оновлено")
+            return redirect('dashboard')
+    else:
+        form = TournamentForm(instance=tournament)
+    
+    return render(request, 'tournaments/tournament_form.html', {
+        'form': form, 
+        'title': 'Редагування турніру',
+        'tournament': tournament
+    })
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
@@ -322,7 +520,26 @@ class MyEvaluationsView(APIView):
         evaluations = Evaluation.objects.filter(jury=request.user).order_by('-created_at')
         return Response(EvaluationOutSerializer(evaluations, many=True).data)
 
+class AdminTeamDetailView(APIView):
+    permission_classes = [IsAdmin]
 
+    # Видалити команду повністю
+    def delete(self, request, team_id):
+        team = get_object_or_404(Team, pk=team_id)
+        team.delete()
+        return Response({"detail": "Команду видалено з турніру"}, status=status.HTTP_204_NO_CONTENT)
+
+class AdminMemberDeleteView(APIView):
+    permission_classes = [IsAdmin]
+
+    # Видалити конкретного учасника з команди
+    def delete(self, request, member_id):
+        member = get_object_or_404(TeamMember, pk=member_id)
+        # Перевірка: якщо це був останній учасник, можна або видалити команду, 
+        # або просто дозволити видалення.
+        member.delete()
+        return Response({"detail": "Учасника видалено"}, status=status.HTTP_204_NO_CONTENT)
+    
 class TournamentListCreateView(APIView):
     permission_classes = [AllowAny]
 

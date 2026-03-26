@@ -64,7 +64,8 @@ pip install -r requirements.txt
 python manage.py makemigrations tournaments
 python manage.py migrate
 python manage.py create_admin
-python manage.py seed_data
+python manage.py setup_admin
+#python manage.py seed_data
 ```
 
 ### 3. Запуск сервера

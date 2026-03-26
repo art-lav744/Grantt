@@ -6,7 +6,7 @@
 <div class="card">
     <h1>{{ team.name }}</h1>
     <p><strong>Турнір:</strong> {{ team.tournament.title }}</p>
-    <p><strong>Капітан:</strong> {{ team.captain.email|default:team.captain_email }}</p>
+    <p><strong>Капітан:</strong> {{ team.captain.email }}</p>
     <a class="btn" href="{% url 'submission_create' team.id %}">Подати роботу</a>
 </div>
 
