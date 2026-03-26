@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card border-primary mb-4">
+        <div class="card-body">
+            <h1 class="display-4">Команда: {{ team.name }}</h1>
+            <p class="lead">Турнір: <strong>{{ team.tournament.title }}</strong></p>
+            <span class="badge badge-info">Роль: Капітан</span>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header bg-dark text-white">Учасники</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">🌟 {{ team.captain.email }} (Капітан)</li>
+                    {% for member in team.members.all %}
+                        <li class="list-group-item">👤 {{ member.email }}</li>
+                    {% empty %}
+                        <li class="list-group-item text-muted">Поки що лише ви.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">Ваші подачі (Submissions)</div>
+                <div class="card-body">
+                    {% if team.submissions.exists %}
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Раунд</th>
+                                    <th>GitHub</th>
+                                    <th>Дата</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sub in team.submissions.all %}
+                                <tr>
+                                    <td>{{ sub.round.title }}</td>
+                                    <td><a href="{{ sub.github_link }}" target="_blank">Посилання</a></td>
+                                    <td>{{ sub.created_at|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p class="text-center">Ви ще не подали жодної роботи.</p>
+                        <div class="text-center">
+                            <a href="#" class="btn btn-outline-primary">Подати роботу</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,14 +1,15 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.conf import settings
+from django.utils import timezone
 
 
 class UserRole(models.TextChoices):
     ADMIN = 'admin', 'Адміністратор'
     ORGANIZER = 'organizer', 'Організатор'
     JURY = 'jury', 'Журі'
-    CAPTAIN = 'captain', 'Капітан'
-    PLAYER = 'player', 'Учасник'
+    PARTICIPANT = 'participant', 'Учасник'
 
 
 class UserManager(BaseUserManager):
@@ -26,7 +27,7 @@ class UserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
-        extra_fields.setdefault('role', UserRole.PLAYER)
+        extra_fields.setdefault('role', UserRole.PARTICIPANT)
         return self._create_user(email, password, **extra_fields)
 
     def create_superuser(self, email, password, **extra_fields):
@@ -48,12 +49,13 @@ class User(AbstractUser):
 
     email = models.EmailField(unique=True)
     nickname = models.CharField(max_length=150, unique=True)
-    role = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.PLAYER)
+    role = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.PARTICIPANT)
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
     is_verified = models.BooleanField(default=False)
+    full_name = models.CharField(max_length=255, verbose_name="ПІБ", blank=True, null=True)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['nickname']
+    REQUIRED_FIELDS = ['nickname', 'full_name']
 
     objects = UserManager()
 
@@ -71,42 +73,103 @@ class TournamentStatus(models.TextChoices):
 
 class Tournament(models.Model):
     title = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
-    status = models.CharField(max_length=20, choices=TournamentStatus.choices, default=TournamentStatus.DRAFT)
-    creator = models.ForeignKey('User', on_delete=models.SET_NULL, null=True, blank=True, related_name='tournaments')
-    reg_start = models.DateTimeField(null=True, blank=True)
-    reg_end = models.DateTimeField(null=True, blank=True)
-    max_teams = models.PositiveIntegerField(default=16)
-    cover_image = models.ImageField(upload_to='tournament_images/', null=True, blank=True)
+    description = models.TextField()
+    status = models.CharField(
+        max_length=20,
+        choices=TournamentStatus.choices,
+        default=TournamentStatus.DRAFT,
+    )
+    creator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='tournaments',
+        null=True,
+        blank=True,
+    )
+
+    # Період реєстрації
+    reg_start = models.DateTimeField()
+    reg_end = models.DateTimeField()
+
+    # Період проведення (саме тоді команди здають роботи)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+
+    max_teams = models.PositiveIntegerField(default=10)
+    cover_image = models.ImageField(upload_to='tournaments/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def logical_status(self):
+        now = timezone.now()
+        # Якщо адмін тримає в чернетці або примусово завершив — повертаємо це
+        if self.status in ['Draft', 'Finished']:
+            return self.status
+        
+        if now < self.reg_start:
+            return 'Scheduled'  # Відображається як запланований
+        elif self.reg_start <= now <= self.reg_end:
+            return 'Registration'
+        elif self.reg_end < now <= self.end_time:
+            return 'Running'
+        else:
+            return 'Finished'
 
     def __str__(self):
         return self.title
 
 
 class Team(models.Model):
-    name = models.CharField(max_length=255)
-    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='teams')
-    captain = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='captained_teams')
-    captain_email = models.EmailField()
-    captain_name = models.CharField(max_length=255)
-    image = models.ImageField(upload_to='team_images/', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = [('tournament', 'name')]
+    name = models.CharField(max_length=100, unique=True)
+    tournament = models.ForeignKey(
+        Tournament, 
+        on_delete=models.CASCADE, 
+        related_name='teams'
+    )
+    captain = models.OneToOneField(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='managed_team',
+        null=True,
+        blank=True,
+    )
+    
+    # Використовуємо проміжну модель TeamMember
+    members = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, 
+        through='TeamMember', 
+        related_name='teams_membership'
+    )
 
     def __str__(self):
         return self.name
 
 
 class TeamMember(models.Model):
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='members')
+    team = models.ForeignKey(
+        'Team', 
+        on_delete=models.CASCADE, 
+        related_name='memberships'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='team_participations'
+    )
+    # Вимоги ТЗ: ПІБ та Email учасника [cite: 13]
     full_name = models.CharField(max_length=255)
     email = models.EmailField()
+    
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # Валідація: Email унікальні в межах однієї команди [cite: 13]
+        unique_together = ('team', 'email')
 
     def __str__(self):
-        return f'{self.full_name} <{self.email}>'
+        return f'{self.full_name} ({self.email})'
 
 
 class Round(models.Model):
