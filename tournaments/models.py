@@ -52,9 +52,10 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=UserRole.choices, default=UserRole.PARTICIPANT)
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
     is_verified = models.BooleanField(default=False)
+    full_name = models.CharField(max_length=255, verbose_name="ПІБ", blank=True, null=True)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['nickname']
+    REQUIRED_FIELDS = ['nickname', 'full_name']
 
     objects = UserManager()
 
@@ -99,17 +100,20 @@ class Tournament(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     @property
-    def computed_status(self):
+    def logical_status(self):
         now = timezone.now()
+        # Якщо адмін тримає в чернетці або примусово завершив — повертаємо це
+        if self.status in ['Draft', 'Finished']:
+            return self.status
+        
         if now < self.reg_start:
-            return "Coming Soon"
-        if self.reg_start <= now <= self.reg_end:
-            return "Registration Open"
-        if self.start_time <= now <= self.end_time:
-            return "Running"
-        if now > self.end_time:
-            return "Finished"
-        return "Break"
+            return 'Scheduled'  # Відображається як запланований
+        elif self.reg_start <= now <= self.reg_end:
+            return 'Registration'
+        elif self.reg_end < now <= self.end_time:
+            return 'Running'
+        else:
+            return 'Finished'
 
     def __str__(self):
         return self.title

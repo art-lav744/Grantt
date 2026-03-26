@@ -119,21 +119,30 @@ def tournament_list(request):
 
 
 def tournament_detail(request, tournament_id):
+    # Використовуємо id=tournament_id, як передано в аргументах
     tournament = get_object_or_404(Tournament, id=tournament_id)
-    teams = tournament.teams.all()
+    
+    # Оптимізуємо запит до команд, щоб не було проблем з капітанами
+    teams = tournament.teams.all().select_related('captain')
     rounds = tournament.rounds.all()
     
     user_team = None
     if request.user.is_authenticated:
-        # Шукаємо команду користувача в цьому конкретному турнірі
-        user_team = Team.objects.filter(tournament=tournament, captain=request.user).first() or \
-                    Team.objects.filter(tournament=tournament, members=request.user).first()
+        # Перевіряємо, чи є юзер капітаном
+        user_team = Team.objects.filter(tournament=tournament, captain=request.user).first()
+        
+        # Якщо не капітан, перевіряємо, чи є він учасником через модель TeamMember
+        if not user_team:
+            user_team = Team.objects.filter(
+                tournament=tournament, 
+                members__user=request.user # звертаємось через related_name або модель TeamMember
+            ).first()
 
-    return render(request, 'tournaments/tournament_detail.html', {
+    return render(request, 'tournaments/tournament_detail.html', { 
         'tournament': tournament,
         'teams': teams,
         'rounds': rounds,
-        'user_team': user_team,  # Обов'язково передаємо це!
+        'user_team': user_team,
     })
 
 # У views.py для сторінки керування користувачами
@@ -372,27 +381,46 @@ def tournament_detail(request, tournament_id):
     user_team = Team.objects.filter(tournament=tournament, members=request.user).first() or \
                 Team.objects.filter(tournament=tournament, captain=request.user).first()
     
-    return render(request, 'tournaments/detail.html', {
+    return render(request, 'tournaments/tournament_detail.html', {
         'tournament': tournament,
         'user_team': user_team
     })
 
 @login_required
 def add_team_member(request, team_id):
-    team = get_object_or_404(Team, id=team_id, captain=request.user)
+    team = get_object_or_404(Team, id=team_id)
+    
+    if team.captain != request.user:
+        messages.error(request, "Тільки капітан може додавати учасників.")
+        return redirect('team_detail', pk=team_id)
+
     if request.method == 'POST':
-        email = request.POST.get('email')
-        try:
-            user_to_add = User.objects.get(email=email)
-            # Додаємо в ManyToMany для доступу
-            team.members.add(user_to_add)
-            # Створюємо запис у TeamMember для історії
-            TeamMember.objects.get_or_create(team=team, user=user_to_add)
-            return redirect('tournament_dashboard')
-        except User.DoesNotExist:
-            # Тут можна додати повідомлення про помилку
-            pass
-    return render(request, 'teams/add_member.html', {'team': team})
+        email = request.POST.get('email', '').strip().lower()
+        
+        # 1. Перевіряємо, чи існує користувач з таким email в системі
+        user_to_add = User.objects.filter(email__iexact=email).first()
+        
+        if not user_to_add:
+            messages.error(request, f"Користувача з email {email} не знайдено. Він має спочатку зареєструватися на платформі.")
+            return redirect('team_detail', pk=team_id)
+
+        # 2. Перевіряємо, чи він уже не в цій команді
+        if TeamMember.objects.filter(team=team, user=user_to_add).exists():
+            messages.warning(request, "Цей учасник вже є у вашій команді.")
+            return redirect('team_detail', pk=team_id)
+
+        # 3. Додаємо учасника
+        TeamMember.objects.create(
+            team=team,
+            user=user_to_add,
+            email=user_to_add.email,
+            full_name=user_to_add.full_name # ПІБ підтягується автоматично з профілю
+        )
+        
+        messages.success(request, f"Учасника {user_to_add.full_name} додано!")
+        return redirect('team_detail', pk=team_id)
+
+    return render(request, 'tournaments/add_member.html', {'team': team})
 
 @login_required
 def tournament_create(request):
@@ -492,7 +520,26 @@ class MyEvaluationsView(APIView):
         evaluations = Evaluation.objects.filter(jury=request.user).order_by('-created_at')
         return Response(EvaluationOutSerializer(evaluations, many=True).data)
 
+class AdminTeamDetailView(APIView):
+    permission_classes = [IsAdmin]
 
+    # Видалити команду повністю
+    def delete(self, request, team_id):
+        team = get_object_or_404(Team, pk=team_id)
+        team.delete()
+        return Response({"detail": "Команду видалено з турніру"}, status=status.HTTP_204_NO_CONTENT)
+
+class AdminMemberDeleteView(APIView):
+    permission_classes = [IsAdmin]
+
+    # Видалити конкретного учасника з команди
+    def delete(self, request, member_id):
+        member = get_object_or_404(TeamMember, pk=member_id)
+        # Перевірка: якщо це був останній учасник, можна або видалити команду, 
+        # або просто дозволити видалення.
+        member.delete()
+        return Response({"detail": "Учасника видалено"}, status=status.HTTP_204_NO_CONTENT)
+    
 class TournamentListCreateView(APIView):
     permission_classes = [AllowAny]
 
