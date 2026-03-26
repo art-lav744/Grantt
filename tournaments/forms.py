@@ -53,16 +53,21 @@ class RegisterForm(UserCreationForm):
     def clean_password1(self):
         password = self.cleaned_data.get('password1')
         if password:
+            error_list = []
             if len(password) < 8:
-                raise ValidationError('Пароль має містити щонайменше 8 символів.')
+                error_list.append('Пароль має містити щонайменше 8 символів.')
             if not re.search(r'[A-Z]', password):
-                raise ValidationError('Додайте хоча б одну велику літеру.')
+                error_list.append('Додайте хоча б одну велику літеру.')
             if not re.search(r'[a-z]', password):
-                raise ValidationError('Додайте хоча б одну малу літеру.')
+                error_list.append('Додайте хоча б одну малу літеру.')
             if not re.search(r'[0-9]', password):
-                raise ValidationError('Додайте хоча б одну цифру.')
+                error_list.append('Додайте хоча б одну цифру.')
             if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-                raise ValidationError('Додайте хоча б один спеціальний символ.')
+                error_list.append('Додайте хоча б один спеціальний символ.')
+
+            if error_list:
+                raise ValidationError(error_list)
+
         return password
 
     def save(self, commit=True):
