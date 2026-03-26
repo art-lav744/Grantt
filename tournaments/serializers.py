@@ -115,25 +115,29 @@ class LoginSerializer(serializers.Serializer):
 class TournamentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tournament
-        fields = ('id', 'title', 'description', 'reg_start', 'reg_end', 'max_teams')
+        fields = '__all__'
 
-    def validate(self, attrs):
-        reg_start = attrs.get('reg_start')
-        reg_end = attrs.get('reg_end')
-        if reg_start and reg_end and reg_end <= reg_start:
-            raise serializers.ValidationError('Дата завершення реєстрації має бути пізніше за дату початку.')
-        return attrs
-
-    def create(self, validated_data):
-        request = self.context['request']
-        return Tournament.objects.create(creator=request.user, status=TournamentStatus.DRAFT, **validated_data)
+    def validate(self, data):
+        # Перевірка логічного ланцюжка часу
+        if data['reg_end'] <= data['reg_start']:
+            raise serializers.ValidationError("Реєстрація не може закінчитися раніше, ніж почнеться.")
+        
+        # Ви просили, щоб початок турніру збігався з кінцем реєстрації
+        if data['start_time'] < data['reg_end']:
+            raise serializers.ValidationError("Турнір не може початися раніше завершення реєстрації.")
+            
+        if data['end_time'] <= data['start_time']:
+            raise serializers.ValidationError("Турнір не може завершитися раніше, ніж почнеться.")
+            
+        return data
 
 
 class TournamentOutSerializer(serializers.ModelSerializer):
     creator_id = serializers.IntegerField(source='creator.id', read_only=True)
     cover_image_path = serializers.SerializerMethodField()
     teams_count = serializers.IntegerField(read_only=True)
-
+    logical_status = serializers.ReadOnlyField()
+    
     class Meta:
         model = Tournament
         fields = ('id', 'title', 'description', 'status', 'creator_id', 'reg_start', 'reg_end', 'max_teams', 'cover_image_path', 'teams_count')

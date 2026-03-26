@@ -18,4 +18,6 @@ urlpatterns = [
     path('rounds/', views.RoundCreateView.as_view(), name='api_round_create'),
     path('rounds/<int:round_id>/distribute/', views.DistributeWorksView.as_view(), name='api_distribute_works'),
     path('submissions/', views.SubmissionCreateView.as_view(), name='api_submission_create'),
+    path('admin/teams/<int:team_id>/', views.AdminTeamDetailView.as_view(), name='admin_team_delete'),
+    path('admin/members/<int:member_id>/', views.AdminMemberDeleteView.as_view(), name='admin_member_delete'),
 ]
