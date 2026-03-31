@@ -129,10 +129,10 @@ class Team(models.Model):
         on_delete=models.CASCADE, 
         related_name='teams'
     )
-    captain = models.OneToOneField(
+    captain = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
-        related_name='managed_team',
+        related_name='managed_teams',
         null=True,
         blank=True,
     )
@@ -151,7 +151,7 @@ class Team(models.Model):
             verbose_name="Місто / школа / організація")
 
     class Meta:
-        unique_together = [('tournament', 'name')]
+        unique_together = [('tournament', 'name'), ('tournament', 'captain')]
     
     def __str__(self):
         return self.name

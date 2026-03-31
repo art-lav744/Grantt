@@ -240,9 +240,9 @@ def create_team(request, tournament_id):
         messages.error(request, "Реєстраційне вікно ще не відкрито або вже закрито.")
         return redirect('tournament_detail', tournament_id=tournament_id)
 
-    if Team.objects.filter(captain=request.user).exists():
-        messages.warning(request, "У вас вже є створена команда.")
-        return redirect('home')
+    if Team.objects.filter(captain=request.user, tournament=tournament).exists():
+        messages.warning(request, "У вас вже є створена команда на цей турнір.")
+        return redirect('tournament_detail', tournament_id=tournament_id)
 
     if request.method == 'POST':
         team_name = request.POST.get('team_name', '').strip()

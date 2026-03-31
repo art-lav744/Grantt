@@ -188,8 +188,12 @@ class TeamCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError(f'Усі місця на турнір зайняті (макс. {tournament.max_teams})')
 #captain email check
         captain_email = attrs['captain_email'].lower()
-        if Team.objects.filter(tournament=tournament, captain_email=attrs['captain_email'].lower()).exists():
-            raise serializers.ValidationError('Ця команда вже зареєстрована на турнір.')
+        if Team.objects.filter(tournament=tournament, captain_email=captain_email).exists():
+            raise serializers.ValidationError('Капітан з таким email вже має команду на цей турнір.')
+# Перевірка по User об'єкту для автентифікованих користувачів
+        if self.context.get('request') and self.context['request'].user.is_authenticated:
+            if Team.objects.filter(tournament=tournament, captain=self.context['request'].user).exists():
+                raise serializers.ValidationError('Ви вже маєте команду на цей турнір.')
 #members email check
         members = attrs.get('members', [])
         total_people = len(members) + 1  # капітан + члени

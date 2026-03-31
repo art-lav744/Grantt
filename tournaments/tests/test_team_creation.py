@@ -118,6 +118,76 @@ class TeamCreateSerializerTest(TestCase):
         self.assertEqual(members[1].full_name, 'Member Two')
         self.assertEqual(members[1].email, self.member2.email.lower())
 
+    def test_create_team_duplicate_captain_same_tournament(self):
+        """Капітан не може створити дві команди в одному турнірі"""
+        serializer1 = TeamCreateSerializer(data={
+            'name': 'Team One',
+            'tournament_id': self.tournament.id,
+            'captain_email': self.captain.email,
+            'captain_name': 'Captain Name',
+            'members': [],
+        }, context={'request': self._create_mock_request(self.captain)})
+        
+        self.assertTrue(serializer1.is_valid(), serializer1.errors)
+        team1 = serializer1.save()
+        
+        # Спробуємо створити другу команду з тим же капітаном в одному турнірі
+        serializer2 = TeamCreateSerializer(data={
+            'name': 'Team Two',
+            'tournament_id': self.tournament.id,
+            'captain_email': self.captain.email,
+            'captain_name': 'Captain Name',
+            'members': [],
+        }, context={'request': self._create_mock_request(self.captain)})
+        
+        self.assertFalse(serializer2.is_valid())
+        self.assertIn('капітан', str(serializer2.errors).lower())
+
+    def test_create_team_same_captain_different_tournaments(self):
+        """Капітан може створити команду в одному турнірі та іншу в іншому турнірі"""
+        tournament2 = Tournament.objects.create(
+            title='Second Tournament',
+            description='Test',
+            status=TournamentStatus.REGISTRATION,
+            creator=self.tournament.creator,
+            reg_start=self.now - timedelta(days=1),
+            reg_end=self.now + timedelta(days=10),
+            start_time=self.now + timedelta(days=11),
+            end_time=self.now + timedelta(days=20),
+            max_teams=10,
+            max_team_members=5,
+            min_team_members=1,
+        )
+        
+        serializer1 = TeamCreateSerializer(data={
+            'name': 'Team A',
+            'tournament_id': self.tournament.id,
+            'captain_email': self.captain.email,
+            'captain_name': 'Captain Name',
+            'members': [],
+        }, context={'request': self._create_mock_request(self.captain)})
+        
+        self.assertTrue(serializer1.is_valid(), serializer1.errors)
+        team1 = serializer1.save()
+        
+        # Створюємо другу команду в іншому турнірі (повинна пройти)
+        serializer2 = TeamCreateSerializer(data={
+            'name': 'Team B',
+            'tournament_id': tournament2.id,
+            'captain_email': self.captain.email,
+            'captain_name': 'Captain Name',
+            'members': [],
+        }, context={'request': self._create_mock_request(self.captain)})
+        
+        self.assertTrue(serializer2.is_valid(), serializer2.errors)
+        team2 = serializer2.save()
+        
+        # Перевіряємо, що обидві команди створені
+        self.assertNotEqual(team1.id, team2.id)
+        self.assertEqual(team1.captain, team2.captain)
+        self.assertEqual(team1.tournament.id, self.tournament.id)
+        self.assertEqual(team2.tournament.id, tournament2.id)
+
     def test_create_team_email_normalization(self):
         """Тест нормалізації email (до нижніх символів)"""
         serializer = TeamCreateSerializer(data={
@@ -335,12 +405,12 @@ class TeamCreateSerializerTest(TestCase):
             'name': 'Second Team',
             'tournament_id': self.tournament.id,
             'captain_email': self.captain.email,
-            'captain_name': 'Captain Name',
+            'captain_name': 'Captain',
             'members': [],
         }, context={'request': self._create_mock_request(self.captain)})
         
         self.assertFalse(serializer.is_valid())
-        self.assertIn('Ця команда вже зареєстрована на турнір', str(serializer.errors))
+        self.assertIn('Капітан з таким email вже має команду на цей турнір.', str(serializer.errors))
 
     def test_create_team_member_already_registered(self):
         """Тест створення команди коли учасник вже зареєстрований в інший команді"""
