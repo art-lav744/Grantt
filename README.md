@@ -1,23 +1,4 @@
-# Tournament_2026 rewritten to Django
-
-This is a Django + Django REST Framework rewrite of the uploaded FastAPI project.
-
-## What is included
-
-- custom email-based user model
-- JWT auth implemented with PyJWT
-- tournaments, teams, rounds, submissions, evaluations
-- image upload handling for user, team, and tournament images
-- admin site registration
-- management commands:
-  - `python manage.py create_admin`
-  - `python manage.py seed_data`
-- API routes aligned with the original project under `/api/...`
-
-## Important note
-
-The original archive referenced `Round`, `Submission`, and `Evaluation` in CRUD logic, but those SQLAlchemy models were missing from `app/models.py`.
-In this Django rewrite, those models were inferred and implemented from the existing FastAPI CRUD and schema usage.
+#Grantt
 
 ## Setup
 
@@ -28,6 +9,13 @@ py manage.py migrate
 py manage.py create_admin
 py manage.py setup_admin
 py manage.py runserver
+```
+
+## Admin panel
+```
+http://localhost:8000/admin/
+  admin@example.com
+  Admin123!
 ```
 
 ## Main endpoints
@@ -56,10 +44,32 @@ Send the token as:
 ```http
 Authorization: Bearer <token>
 ```
+## Roles
 
+| Дія | `admin` | `organizer` | `jury` | `team` |
+|-----|---------|-------------|--------|--------|
+| Створити турнір | ✅ | ✅ | ❌ | ❌ |
+| Змінити статус турніру | ✅ | ✅ | ❌ | ❌ |
+| Завантажити обкладинку турніру | ✅ | ✅ | ❌ | ❌ |
+| Створити раунд | ✅ | ✅ | ❌ | ❌ |
+| Розподілити роботи між журі | ✅ | ✅ | ❌ | ❌ |
+| Зареєструвати команду | ❌ | ❌ | ❌ | ✅ |
+| Подати роботу | ❌ | ❌ | ❌ | ✅ |
+| Переглянути свої оцінки | ❌ | ❌ | ✅ | ❌ |
+| Переглянути лідерборд | ✅ | ✅ | ✅ | ✅ |
 
 ## HTML and API routes
 - HTML pages are mounted at `/`
 - API endpoints are mounted at `/api/`
 - Login page: `/login/`
 - Registration page: `/register/`
+
+## Picture uploading
+
+```
+POST /api/users/me/profile-image/       → media/profile_images/
+POST /api/teams/{id}/image/             → media/team_images/
+POST /api/tournaments/{id}/image/       → media/tournament_images/
+```
+
+Формати: JPEG, PNG, GIF, WEBP. Максимум 5 MB. Фото профілю та команди автоматично кадруються до квадрату 400×400.
