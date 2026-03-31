@@ -170,52 +170,61 @@ class TeamCreateSerializer(serializers.Serializer):
     members = TeamMemberCreateSerializer(many=True, required=False, default=list)
 
     def validate(self, attrs):
+#existence
         try:
             tournament = Tournament.objects.get(pk=attrs['tournament_id'])
         except Tournament.DoesNotExist as exc:
             raise serializers.ValidationError('Турнір не знайдено') from exc
-
+#status
         if tournament.status != TournamentStatus.REGISTRATION:
             raise serializers.ValidationError('Реєстрація на цей турнір закрита або ще не почалася')
-
+#time
         now = timezone.now()
         if tournament.reg_start and tournament.reg_end and not (tournament.reg_start <= now <= tournament.reg_end):
             raise serializers.ValidationError('Ви поза межами реєстраційного вікна')
-
+#enough room
         current_teams_count = Team.objects.filter(tournament=tournament).count()
         if tournament.max_teams and current_teams_count >= tournament.max_teams:
             raise serializers.ValidationError(f'Усі місця на турнір зайняті (макс. {tournament.max_teams})')
-
+#captain email check
+        captain_email = attrs['captain_email'].lower()
+        if Team.objects.filter(tournament=tournament, captain_email=attrs['captain_email'].lower()).exists():
+            raise serializers.ValidationError('Ця команда вже зареєстрована на турнір.')
+#members email check
         members = attrs.get('members', [])
-        max_members = 5
-        if len(members) > max_members:
-            raise serializers.ValidationError(f'Максимальна кількість учасників — {max_members}')
-
-        all_emails = [attrs['captain_email'].lower()] + [member['email'].lower() for member in members]
+        total_people = len(members) + 1  # капітан + члени
+        if total_people > tournament.max_team_members or total_people < tournament.min_team_members:
+            raise serializers.ValidationError(f'Кількість учасників не відповідає вимогам (від {tournament.min_team_members} до {tournament.max_team_members}), зараз: {total_people}')
+#members count
+        all_emails = [captain_email] + [member['email'].lower() for member in members]
         duplicates = [email for email, count in Counter(all_emails).items() if count > 1]
         if duplicates:
             raise serializers.ValidationError('Один і той самий email вказано кілька разів')
+#already registered
+        existing_as_captain = Team.objects.filter(tournament=tournament, captain_email__in=all_emails).values_list('captain_email', flat=True)
+        existing_as_member = TeamMember.objects.filter(team__tournament=tournament, email__in=all_emails).values_list('email', flat=True)
+        already_registered = set(existing_as_captain) | set(existing_as_member)
 
-        for email in all_emails:
-            exists_as_captain = Team.objects.filter(tournament=tournament, captain_email=email).exists()
-            exists_as_member = TeamMember.objects.filter(team__tournament=tournament, email=email).exists()
-            if exists_as_captain or exists_as_member:
-                raise serializers.ValidationError(f'Учасник з email {email} вже зареєстрований у цьому турнірі')
+        if already_registered:
+            raise serializers.ValidationError(f'Учасники з email {", ".join(already_registered)} вже зареєстровані у цьому турнірі')
 
         attrs['tournament'] = tournament
+        attrs.pop('tournament_id', None)
         return attrs
 
     @transaction.atomic
     def create(self, validated_data):
         members_data = validated_data.pop('members', [])
         tournament = validated_data.pop('tournament')
+        validated_data['captain_email'] = validated_data['captain_email'].lower()
         team = Team.objects.create(
             tournament=tournament,
             captain=self.context['request'].user if self.context['request'].user.is_authenticated else None,
             **validated_data,
         )
         TeamMember.objects.bulk_create([
-            TeamMember(team=team, **member) for member in members_data
+            TeamMember(team=team, email=member['email'].lower(), full_name=member['full_name']) 
+            for member in members_data
         ])
         return team
 

@@ -6,32 +6,44 @@
 <div class="card">
     <h1>{{ team.name }}</h1>
     <p><strong>Турнір:</strong> {{ team.tournament.title }}</p>
-    <p><strong>Капітан:</strong> {{ team.captain.email }}</p>
-    <a class="btn" href="{% url 'submission_create' team.id %}">Подати роботу</a>
+    <p><strong>Капітан:</strong> {{ team.captain_name }} ({{ team.captain_email }})</p>
+    {% if team.organization %}
+        <p><strong>Організація:</strong> {{ team.organization }}</p>
+    {% endif %}
+    
+    {% if is_captain %}
+        <div style="margin-top: 15px;">
+            <a class="btn" href="{% url 'submission_create' team.id %}" style="background: #28a745; color: white; padding: 10px 20px;">📤 Подати роботу</a>
+            <a class="btn" href="{% url 'add_member' team.id %}" style="background: #007bff; color: white; padding: 10px 20px;">➕ Додати учасника</a>
+        </div>
+    {% endif %}
 </div>
 
 <div class="card">
     <h2>Учасники</h2>
-    {% if members %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Ім'я</th>
-                    <th>Email</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for member in members %}
-                <tr>
-                    <td>{{ member.full_name }}</td>
-                    <td>{{ member.email }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>Учасників ще не додано.</p>
-    {% endif %}
+    <table>
+        <thead>
+            <tr>
+                <th>Ім'я</th>
+                <th>Email</th>
+                <th>Дата приєднання</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>🌟 {{ team.captain_name }}</strong> (капітан)</td>
+                <td>{{ team.captain_email }}</td>
+                <td>—</td>
+            </tr>
+            {% for member in members %}
+            <tr>
+                <td>{{ member.full_name }}</td>
+                <td>{{ member.email }}</td>
+                <td>{{ member.joined_at|date:"d.m.Y" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
 <div class="card">
@@ -44,6 +56,7 @@
                     <th>GitHub</th>
                     <th>Відео</th>
                     <th>Опис</th>
+                    <th>Дата подачі</th>
                     <th>Оцінка</th>
                 </tr>
             </thead>
@@ -51,10 +64,11 @@
                 {% for submission in submissions %}
                 <tr>
                     <td>{{ submission.round.title }}</td>
-                    <td><a href="{{ submission.github_link }}" target="_blank">Відкрити</a></td>
-                    <td>{% if submission.video_link %}<a href="{{ submission.video_link }}" target="_blank">Відкрити</a>{% else %}—{% endif %}</td>
-                    <td>{{ submission.description|default:"—" }}</td>
-                    <td>{% if submission.evaluations.all %}{{ submission.evaluations.all|length }} оцінок{% else %}—{% endif %}</td>
+                    <td><a href="{{ submission.github_link }}" target="_blank">🔗 Посилання</a></td>
+                    <td>{% if submission.video_link %}<a href="{{ submission.video_link }}" target="_blank">📹 Відео</a>{% else %}—{% endif %}</td>
+                    <td>{{ submission.description|default:"—"|truncatewords:10 }}</td>
+                    <td>{{ submission.created_at|date:"d.m.Y H:i" }}</td>
+                    <td>{% if submission.evaluations.all %}<span class="badge badge-info">{{ submission.evaluations.all|length }} оцінок</span>{% else %}—{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>
