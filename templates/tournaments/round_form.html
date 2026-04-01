@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width: 600px; margin: auto;">
+    <h2>➕ Створити раунд для "{{ tournament.title }}"</h2>
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+            <div style="margin-bottom: 15px;">
+                <label><strong>{{ field.label }}</strong></label>
+                {{ field }}
+            </div>
+        {% endfor %}
+        <button type="submit" class="btn" style="background: #28a745; width: 100%;">Створити раунд</button>
+    </form>
+</div>
+{% endblock %}

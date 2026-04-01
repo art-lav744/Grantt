@@ -21,10 +21,10 @@
                 </tr>
             </thead>
             <tbody>
-                {% for member in members %}
+                {% for membership in team.memberships.all %}
                 <tr>
-                    <td>{{ member.full_name }}</td>
-                    <td>{{ member.email }}</td>
+                    <td>{{ membership.full_name }}</td>
+                    <td>{{ membership.email }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

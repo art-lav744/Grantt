@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Кабінет капітана{% endblock %}
+{% block title %}Особистий кабінет{% endblock %}
 
 {% block content %}
 <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 20px;">
@@ -8,92 +8,192 @@
     <div style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); padding: 30px; border-radius: 15px; color: white; margin-bottom: 30px; box-shadow: 0 4px 20px rgba(0,123,255,0.2);">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
-                <h2 style="margin: 0; font-size: 2.2em;">🚀 Кабінет команди</h2>
-                <p style="opacity: 0.9; margin-top: 5px;">Капітан: <strong>{{ nickname }}</strong></p>
+                <h2 style="margin: 0; font-size: 2.2em;">🚀 Мій кабінет</h2>
+                <p style="opacity: 0.9; margin-top: 5px;">Вітаємо, <strong>{{ nickname }}</strong> ({{ role }})</p>
             </div>
-            {% if team %}
-                <div style="text-align: right;">
-                    <span style="background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; font-size: 0.9em;">
-                        Турнір: {{ team.tournament.title }}
-                    </span>
-                </div>
-            {% endif %}
         </div>
     </div>
 
-    {% if team %}
-    <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px;">
+    <section style="margin-bottom: 40px;">
+        <h3 style="margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 10px;">
+            🏆 Мої команди та турніри
+        </h3>
         
-        <section>
-            <div class="card" style="padding: 20px; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); background: #fff; margin-bottom: 25px;">
-                <h3 style="margin-top: 0; color: #333; display: flex; align-items: center; gap: 10px;">
-                    👥 Склад: <span style="color: #007bff;">{{ team.name }}</span>
-                </h3>
-                <ul style="list-style: none; padding: 0; margin: 15px 0;">
-                    <li style="padding: 12px; background: #e7f1ff; border-radius: 8px; margin-bottom: 8px; color: #0056b3;">
-                        <strong>{{ team.captain.nickname }}</strong> <small>(Ви, капітан)</small>
+        {% if my_teams %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+                {% for t in my_teams %}
+                    <div class="card" style="border: 1px solid {% if selected_team.id == t.id %}#007bff{% else %}#eee{% endif %}; padding: 20px; transition: transform 0.2s; position: relative;">
+                        {% if selected_team.id == t.id %}
+                            <span style="position: absolute; top: 10px; right: 10px; background: #28a745; color: white; padding: 2px 10px; border-radius: 10px; font-size: 0.8em;">Вибрано</span>
+                        {% endif %}
+                        
+                        <h4 style="margin-top: 0;">{{ t.tournament.title }}</h4>
+                        <p style="margin-bottom: 5px;">Команда: <strong>{{ t.name }}</strong></p>
+                        <p style="font-size: 0.9em; color: #666;">Роль: 
+                            {% if t.captain == user %}
+                                <span style="color: #d97706; font-weight: bold;">👑 Капітан</span>
+                            {% else %}
+                                <span style="color: #2563eb;">👤 Учасник</span>
+                            {% endif %}
+                        </p>
+                        
+                        <a href="?team_id={{ t.id }}" class="btn" style="width: 100%; text-align: center; margin-top: 10px; background: {% if selected_team.id == t.id %}#0056b3{% else %}#007bff{% endif %};">
+                            {% if selected_team.id == t.id %}Оновити дані{% else %}Керувати командою{% endif %}
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 40px; background: #f8f9fa; border-radius: 15px;">
+                <p style="color: #6c757d;">Ви ще не зареєстровані в жодному турнірі.</p>
+                <a href="{% url 'tournament_list' %}" class="btn">Знайти турнір</a>
+            </div>
+        {% endif %}
+    </section>
+
+    {% if selected_team %}
+    <hr style="border: 0; border-top: 1px solid #eee; margin: 40px 0;">
+    
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;">
+        
+        <aside>
+            <div class="card" style="margin-bottom: 25px; border-top: 4px solid #007bff;">
+                <h3 style="font-size: 1.2em; margin-top: 0;">👥 Склад команди</h3>
+                <ul style="list-style: none; padding: 0;">
+                    <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                        👑 <strong>{{ selected_team.captain.full_name|default:selected_team.captain.nickname }}</strong> 
+                        <br><small style="color: #888;">{{ selected_team.captain.email }} (Капітан)</small>
                     </li>
                     {% for member in members %}
-                        <li style="padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between;">
-                            <span>{{ member.full_name }}</span>
-                            <small style="color: #666;">{{ member.email }}</small>
+                        <li style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                            👤 {{ member.user.full_name|default:member.user.nickname }}
+                            <br><small style="color: #888;">{{ member.user.email }}</small>
                         </li>
                     {% endfor %}
                 </ul>
-                <a href="{% url 'add_member' team.id %}" class="btn" style="width: 100%; text-align: center; background: #28a745; border: none; padding: 10px; border-radius: 8px; color: white; text-decoration: none; display: block;">+ Додати учасника</a>
+                
+                {% if selected_team.captain == user %}
+                    <a href="{% url 'add_member' selected_team.id %}" class="btn btn-secondary" style="width: 100%; text-align: center; font-size: 0.9em; margin-top: 10px;">
+                        ➕ Додати учасника
+                    </a>
+                {% endif %}
             </div>
 
-            <div class="card" style="padding: 20px; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); background: #f8f9fa;">
-                <h3 style="margin-top: 0;">📤 Подати рішення</h3>
-                <form method="post" action="{% url 'submission_create' team.id %}">
+            <div class="card" style="border-top: 4px solid #28a745;">
+                <h3 style="font-size: 1.2em; margin-top: 0;">📤 Подати роботу</h3>
+                <form method="post" action="{% url 'submission_create' selected_team.id %}">
                     {% csrf_token %}
-                    <div style="margin-bottom: 15px;">
-                        {{ form.as_p }}
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        {% for field in form %}
+                            <div>
+                                <label style="font-weight: 600; display: block; margin-bottom: 5px;">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <small style="color: #dc3545;">{{ field.errors.0 }}</small>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        <button type="submit" class="btn" style="background: #28a745; font-weight: bold;">Надіслати рішення</button>
                     </div>
-                    <button type="submit" class="btn" style="width: 100%; padding: 12px; font-weight: bold;">Відправити роботу</button>
                 </form>
             </div>
-        </section>
+        </aside>
 
         <section>
-            <div class="card" style="padding: 20px; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); background: #fff;">
-                <h3 style="margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 15px;">📂 Історія поданих робіт</h3>
+            <div class="card" style="min-height: 500px;">
+                <h3 style="margin-top: 0;">📝 Історія рішень: {{ selected_team.name }}</h3>
                 
                 {% if submissions %}
-                    <div style="margin-top: 20px;">
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
                     {% for sub in submissions %}
-                        <div style="padding: 15px; border: 1px solid #f0f0f0; border-radius: 10px; margin-bottom: 15px; transition: 0.3s; background: #fafafa;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <h4 style="margin: 0; color: #007bff;">{{ sub.round.title }}</h4>
-                                <span style="font-size: 0.8em; color: #999;">{{ sub.created_at|date:"d.m.Y H:i" }}</span>
+                        <div style="border: 1px solid #f0f0f0; border-left: 5px solid #007bff; padding: 15px; border-radius: 8px; background: #fafafa;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <strong style="font-size: 1.1em; color: #007bff;">Раунд: {{ sub.round.title }}</strong>
+                                <small style="color: #999;">{{ sub.created_at|date:"d.m.Y H:i" }}</small>
                             </div>
-                            <p style="margin: 10px 0; font-size: 0.9em; color: #555;">{{ sub.description|truncatewords:20 }}</p>
-                            <div style="display: flex; gap: 15px; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
+                            <p style="margin: 10px 0; font-size: 0.95em; color: #444;">{{ sub.description|truncatechars:150 }}</p>
+                            <div style="display: flex; gap: 15px;">
                                 <a href="{{ sub.github_link }}" target="_blank" style="text-decoration: none; font-size: 0.9em; font-weight: 600;">🔗 GitHub</a>
                                 {% if sub.video_link %}
-                                    <a href="{{ sub.video_link }}" target="_blank" style="text-decoration: none; color: #d63384; font-size: 0.9em; font-weight: 600;">🎥 Video Demo</a>
+                                    <a href="{{ sub.video_link }}" target="_blank" style="text-decoration: none; color: #d63384; font-size: 0.9em; font-weight: 600;">🎥 Відео-демо</a>
                                 {% endif %}
                             </div>
                         </div>
                     {% endfor %}
                     </div>
                 {% else %}
-                    <div style="text-align: center; padding: 60px; color: #bbb;">
-                        <p style="font-size: 1.2em;">Ви ще не подали жодної роботи.</p>
-                        <small>Скористайтеся формою зліва, щоб завантажити перше рішення.</small>
+                    <div style="text-align: center; padding: 80px 20px; color: #bbb;">
+                        <p style="font-size: 1.2em;">Ви ще не подали жодної роботи для цієї команди.</p>
+                        <small>Виберіть раунд та додайте посилання у формі зліва.</small>
                     </div>
                 {% endif %}
             </div>
         </section>
     </div>
-
-    {% else %}
-    <div style="text-align: center; padding: 80px 20px; background: white; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-        <h2 style="color: #6c757d;">У вас поки немає активної команди</h2>
-        <p style="margin-bottom: 30px; color: #888;">Для того, щоб користуватися кабінетом, вам потрібно зареєструвати команду на один із турнірів.</p>
-        <a href="{% url 'tournament_list' %}" class="btn" style="padding: 15px 40px; font-size: 1.1em;">Переглянути турніри</a>
-    </div>
     {% endif %}
 
 </div>
+
+<style>
+    .card {
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+        border: 1px solid #eee;
+        box-sizing: border-box;
+    }
+    
+    /* Універсальна кнопка */
+    .btn {
+        display: block;
+        width: 100%;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border: none;
+        background: #007bff;
+        color: white;
+        text-decoration: none;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        text-align: center;
+        transition: all 0.2s ease;
+        box-sizing: border-box; /* Важливо, щоб padding не вилізав за краї */
+        margin-top: 10px;
+    }
+
+    .btn:hover {
+        background: #0056b3;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .btn-success {
+        background: #28a745;
+    }
+
+    .btn-success:hover {
+        background: #218838;
+    }
+
+    input, select, textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-sizing: border-box;
+        margin-top: 5px;
+    }
+</style>
 {% endblock %}

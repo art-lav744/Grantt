@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.exceptions import ValidationError
 
-from .models import Submission, TeamMember, Tournament, User, UserRole
+from .models import Submission, TeamMember, Tournament, User, UserRole, Round, Team
 
 
 class RegisterForm(UserCreationForm):
@@ -76,6 +76,25 @@ class LoginForm(AuthenticationForm):
         if not user.is_verified:
             raise forms.ValidationError('Спочатку підтвердіть email.')
 
+class TeamForm(forms.ModelForm):
+    class Meta:
+        model = Team
+        fields = ['name']  # Додайте інші поля моделі Team, якщо вони є
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Назва вашої команди'}),
+        }
+
+class RoundForm(forms.ModelForm):
+    class Meta:
+        model = Round
+        fields = ['title', 'description', 'requirements', 'start_time', 'end_time']
+        widgets = {
+            'start_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'end_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'requirements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+        }
 
 class SubmissionForm(forms.ModelForm):
     class Meta:
@@ -100,6 +119,45 @@ class SubmissionForm(forms.ModelForm):
                 tournament=team.tournament
             ).order_by('start_time', 'id')
 
+class AddMemberForm(forms.Form):
+    email = forms.EmailField(label="Email учасника")
+
+    def __init__(self, *args, **kwargs):
+        self.team = kwargs.pop('team')
+        self.request_user = kwargs.pop('user')
+        super().__init__(*args, **kwargs)
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email').lower().strip()
+        
+        # 1. Перевірка, чи не намагається капітан додати самого себе
+        if email == self.request_user.email.lower():
+            raise ValidationError("Ви вже є капітаном цієї команди. Себе додавати не потрібно.")
+
+        # Отримуємо об'єкт користувача, якого хочуть додати
+        user_to_add = User.objects.filter(email__iexact=email).first()
+        if not user_to_add:
+            raise ValidationError("Користувача з таким email не знайдено.")
+
+        # 2. Перевірка: чи цей користувач вже є в ЯКІЙСЬ команді ЦЬОГО турніру?
+        tournament = self.team.tournament
+        
+        # Перевірка серед капітанів турніру
+        is_captain_in_tournament = Team.objects.filter(
+            tournament=tournament, 
+            captain=user_to_add
+        ).exists()
+        
+        # Перевірка серед учасників турніру
+        is_member_in_tournament = TeamMember.objects.filter(
+            team__tournament=tournament, 
+            user=user_to_add
+        ).exists()
+
+        if is_captain_in_tournament or is_member_in_tournament:
+            raise ValidationError("Цей користувач вже зареєстрований у складі іншої команди на цей турнір.")
+            
+        return email
 
 class TeamMemberForm(forms.ModelForm):
     class Meta:
