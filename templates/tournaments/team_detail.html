@@ -4,7 +4,12 @@
 
 {% block content %}
 <div class="card">
-    <h1>{{ team.name }}</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>{{ team.name }}</h1>
+        {% if is_captain %}
+            <a class="btn" href="{% url 'submission_create' team.id %}" style="background: #28a745;">🚀 Подати роботу</a>
+        {% endif %}
+    </div>
     <p><strong>Турнір:</strong> {{ team.tournament.title }}</p>
     <p><strong>Капітан:</strong> {{ team.captain_name }} ({{ team.captain_email }})</p>
     {% if team.organization %}
@@ -47,8 +52,8 @@
 </div>
 
 <div class="card">
-    <h2>Подачі</h2>
-    {% if submissions %}
+    <h2>Історія подач</h2>
+    {% if team.submissions.all %}
         <table>
             <thead>
                 <tr>
@@ -61,7 +66,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for submission in submissions %}
+                {% for sub in team.submissions.all %}
                 <tr>
                     <td>{{ submission.round.title }}</td>
                     <td><a href="{{ submission.github_link }}" target="_blank">🔗 Посилання</a></td>
@@ -74,7 +79,7 @@
             </tbody>
         </table>
     {% else %}
-        <p>Подач поки немає.</p>
+        <p>Команда ще не подавала робіт.</p>
     {% endif %}
 </div>
 {% endblock %}
