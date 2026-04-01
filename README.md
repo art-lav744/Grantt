@@ -8,6 +8,7 @@ py manage.py makemigrations tournaments
 py manage.py migrate
 py manage.py create_admin
 py manage.py setup_admin
+py manage.py seed_data
 py manage.py runserver
 ```
 
