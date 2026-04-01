@@ -53,6 +53,7 @@ class User(AbstractUser):
     profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
     is_verified = models.BooleanField(default=False)
     full_name = models.CharField(max_length=255, verbose_name="ПІБ", blank=True, null=True)
+    discord_tag = models.CharField(max_length=255, blank=True, null=True, verbose_name="Discord тег")
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['nickname', 'full_name']
@@ -96,6 +97,8 @@ class Tournament(models.Model):
     end_time = models.DateTimeField()
 
     max_teams = models.PositiveIntegerField(default=10)
+    max_team_members = models.PositiveIntegerField(default=5)
+    min_team_members = models.PositiveIntegerField(default=2)
     cover_image = models.ImageField(upload_to='tournaments/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -120,27 +123,36 @@ class Tournament(models.Model):
 
 
 class Team(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)  # Перевірка унікальності імені в межах турніру буде через unique_together
     tournament = models.ForeignKey(
         Tournament, 
         on_delete=models.CASCADE, 
         related_name='teams'
     )
-    captain = models.OneToOneField(
+    captain = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
-        related_name='managed_team',
+        related_name='managed_teams',
         null=True,
         blank=True,
     )
-    
-    # Використовуємо проміжну модель TeamMember
+    captain_email = models.EmailField(blank=True, default='')
+    captain_name = models.CharField(max_length=255, blank=True, default='')
     members = models.ManyToManyField(
-        settings.AUTH_USER_MODEL, 
-        through='TeamMember', 
-        related_name='teams_membership'
-    )
+        settings.AUTH_USER_MODEL,
+        through='TeamMember',
+        related_name='teams_membership',
+    )# Використовуємо проміжну модель TeamMember
 
+    organization = models.CharField(
+            max_length=255,
+            blank=True,
+            null=True,
+            verbose_name="Місто / школа / організація")
+
+    class Meta:
+        unique_together = [('tournament', 'name'), ('tournament', 'captain')]
+    
     def __str__(self):
         return self.name
 

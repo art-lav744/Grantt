@@ -2,58 +2,159 @@
 
 {% block content %}
 <div class="container mt-4">
+    <!-- Team Header -->
     <div class="card border-primary mb-4">
         <div class="card-body">
-            <h1 class="display-4">Команда: {{ team.name }}</h1>
-            <p class="lead">Турнір: <strong>{{ team.tournament.title }}</strong></p>
-            <span class="badge badge-info">Роль: Капітан</span>
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="display-4">{{ team.name }}</h1>
+                    <p class="lead mb-0">
+                        <strong>{{ team.tournament.title }}</strong>
+                        {% if team.organization %}
+                            <span class="badge badge-secondary">{{ team.organization }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-auto">
+                    <span class="badge badge-info badge-lg">Капітан</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="row">
+        <!-- Team Info & Captain -->
         <div class="col-md-4">
-            <div class="card h-100">
-                <div class="card-header bg-dark text-white">Учасники</div>
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">Інформація про команду</div>
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item">🌟 {{ team.captain.email }} (Капітан)</li>
-                    {% for member in team.members.all %}
-                        <li class="list-group-item">👤 {{ member.email }}</li>
+                    <li class="list-group-item">
+                        <strong>Капітан:</strong><br>
+                        {{ team.captain_name }}<br>
+                        <small class="text-muted">{{ team.captain_email }}</small>
+                    </li>
+                    {% if team.organization %}
+                        <li class="list-group-item">
+                            <strong>Організація:</strong><br>
+                            {{ team.organization }}
+                        </li>
+                    {% endif %}
+                    <li class="list-group-item">
+                        <strong>Учасників:</strong><br>
+                        {{ team.memberships.count }} / {{ team.tournament.max_team_members }}
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Members List -->
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    Учасники команди ({{ team.memberships.count }})
+                </div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <strong>{{ team.captain_name }} - Капітан</strong><br>
+                        <small class="text-muted">{{ team.captain_email }}</small>
+                    </li>
+                    {% for member in team.memberships.all %}
+                        <li class="list-group-item">
+                            <strong>{{ member.full_name }}</strong><br>
+                            <small class="text-muted">{{ member.email }}</small><br>
+                            <small class="text-secondary">Приєднався: {{ member.joined_at|date:"d.m.Y" }}</small>
+                        </li>
                     {% empty %}
-                        <li class="list-group-item text-muted">Поки що лише ви.</li>
+                        <li class="list-group-item text-muted text-center">
+                            Поки що лише капітан.
+                        </li>
                     {% endfor %}
                 </ul>
+                <div class="card-footer">
+                    <a href="{% url 'add_member' team.id %}" class="btn btn-sm btn-outline-primary">
+                        ➕ Додати учасника
+                    </a>
+                </div>
             </div>
         </div>
 
+        <!-- Submissions -->
         <div class="col-md-8">
-            <div class="card h-100">
-                <div class="card-header bg-success text-white">Ваші подачі (Submissions)</div>
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    Подачі (Submissions)
+                </div>
                 <div class="card-body">
                     {% if team.submissions.exists %}
-                        <table class="table">
-                            <thead>
+                        <table class="table table-hover">
+                            <thead class="table-light">
                                 <tr>
                                     <th>Раунд</th>
+                                    <th>Дата подачі</th>
                                     <th>GitHub</th>
-                                    <th>Дата</th>
+                                    <th>Дії</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for sub in team.submissions.all %}
                                 <tr>
-                                    <td>{{ sub.round.title }}</td>
-                                    <td><a href="{{ sub.github_link }}" target="_blank">Посилання</a></td>
+                                    <td>
+                                        <strong>{{ sub.round.title }}</strong><br>
+                                        <small class="text-muted">{{ sub.round.description|truncatewords:10 }}</small>
+                                    </td>
                                     <td>{{ sub.created_at|date:"d.m.Y H:i" }}</td>
+                                    <td>
+                                        <a href="{{ sub.github_link }}" target="_blank" class="btn btn-sm btn-outline-dark">
+                                            🔗 GitHub
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if sub.video_link %}
+                                            <a href="{{ sub.video_link }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                📹 Відео
+                                            </a>
+                                        {% endif %}
+                                    </td>
                                 </tr>
+                                {% if sub.description %}
+                                <tr class="table-light">
+                                    <td colspan="4">
+                                        <small><strong>Опис:</strong> {{ sub.description }}</small>
+                                    </td>
+                                </tr>
+                                {% endif %}
                                 {% endfor %}
                             </tbody>
                         </table>
                     {% else %}
-                        <p class="text-center">Ви ще не подали жодної роботи.</p>
-                        <div class="text-center">
-                            <a href="#" class="btn btn-outline-primary">Подати роботу</a>
+                        <div class="alert alert-info" role="alert">
+                            <h5>Ви ще не подали жодної роботи</h5>
+                            <p>Очікуємо вашої першої подачі!</p>
+                            <a href="{% url 'submission_create' team.id %}" class="btn btn-primary">
+                                📤 Подати роботу
+                            </a>
                         </div>
                     {% endif %}
+                </div>
+            </div>
+
+            <!-- Tournament Info -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">Інформація про турнір</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Статус:</strong> <span class="badge badge-warning">{{ team.tournament.logical_status }}</span></p>
+                            <p><strong>Реєстрація:</strong><br>
+                                {{ team.tournament.reg_start|date:"d.m.Y H:i" }} — 
+                                {{ team.tournament.reg_end|date:"d.m.Y H:i" }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Проведення:</strong><br>
+                                {{ team.tournament.start_time|date:"d.m.Y H:i" }} — 
+                                {{ team.tournament.end_time|date:"d.m.Y H:i" }}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

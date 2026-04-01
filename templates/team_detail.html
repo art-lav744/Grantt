@@ -11,6 +11,21 @@
 </div>
 
 <div class="card">
+    <h2>Додати учасника</h2>
+    {% if user == team.captain %}
+    <form method="post" action="{% url 'add_team_member' team.id %}">
+        {% csrf_token %}
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <input type="email" name="email" class="form-control" placeholder="Email учасника" required>
+            <button type="submit" class="btn" style="background: #007bff; color: white; padding: 10px 20px;">Додати</button>
+        </div>
+    </form>
+    {% else %}
+        <p style="color: #666;">Тільки капітан може додавати учасників.</p>
+    {% endif %}
+</div>
+
+<div class="card">
     <h2>Учасники</h2>
     {% if members %}
         <table>
