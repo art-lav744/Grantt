@@ -452,12 +452,15 @@ def tournament_detail(request, tournament_id):
 @login_required
 def add_team_member(request, team_id):
     team = get_object_or_404(Team, id=team_id)
+    
+    # ПЕРЕВІРКА №1: Тільки капітан може зайти сюди
     if request.user != team.captain:
+        messages.error(request, "Тільки капітан команди може додавати учасників.")
+        # ОБОВ'ЯЗКОВО має бути return перед redirect
         return redirect('team_detail', pk=team.id)
 
     if request.method == 'POST':
         email = request.POST.get('email')
-        # Шукаємо користувача в системі за імейлом
         user_to_add = User.objects.filter(email=email).first()
         
         if user_to_add:
@@ -473,7 +476,12 @@ def add_team_member(request, team_id):
         else:
             messages.error(request, "Користувача з таким email не знайдено.")
             
+        # ОБОВ'ЯЗКОВО return після обробки форми
         return redirect('team_detail', pk=team.id)
+
+    # ПЕРЕВІРКА №2: Рендер форми для GET запиту
+    # Цей рядок має бути в самому кінці функції без жодних відступів зліва
+    return render(request, 'tournaments/add_member.html', {'team': team})
     
 @login_required
 def tournament_create(request):

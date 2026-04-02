@@ -19,7 +19,7 @@ urlpatterns = [
 
     path('teams/<int:pk>/', views.team_detail, name='team_detail'),
     path('my-team/', views.team_dashboard, name='team_dashboard'),
-    path('teams/<int:team_id>/submit/', views.submission_create, name='submission_create'),
+    path('teams/<int:team_id>/submit/', views.submission_create, name='team_dashboard'),
     
     path('teams/<int:team_id>/add-member/', views.add_team_member, name='add_member'),
     path('tournament/create/', views.tournament_create, name='tournament_create'),
