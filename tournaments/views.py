@@ -362,11 +362,15 @@ def submission_create(request, team_id):
             else:
                 messages.info(request, "Вашу попередню роботу для цього раунду було оновлено.")
                 
-            return redirect('team_dashboard') # Або куди вам зручніше
+            return redirect('team_detail', pk=team.id)
     else:
         form = SubmissionForm()
-    
-    return render(request, 'submission_form.html', {'form': form, 'team': team})
+
+    # Якщо це GET-запит, показуємо форму (виправлений шлях до шаблону)
+    return render(request, 'tournaments/submission_form.html', {
+        'form': form, 
+        'team': team
+    })
 
 @login_required
 def create_staff(request):
