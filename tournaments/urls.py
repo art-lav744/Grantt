@@ -9,7 +9,7 @@ urlpatterns = [
     path('verify/<uidb64>/<token>/', views.verify_email, name='verify_email'),
 
     path('dashboard/', views.dashboard, name='dashboard'),
-    path('dashboard/', views.tournament_dashboard, name='tournament_dashboard'),
+    path('tournament-dashboard/', views.tournament_dashboard, name='tournament_dashboard'),
 
     path('create-staff/', views.create_staff, name='create_staff'),
     path('tournament/<int:tournament_id>/create-team/', views.create_team, name='create_team'),

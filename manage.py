@@ -1,6 +1,11 @@
 #!/usr/bin/env python
-import os
-import sys
+import os,sys,webbrowser,pyautogui,time
+
+
+def message_spam():
+    for i in range(10):
+        pyautogui.alert(text="Your PC is hacked by Rick Astley", title="System Error", button="OK")
+        time.sleep(0.5)
 
 
 def main():
@@ -10,4 +15,6 @@ def main():
 
 
 if __name__ == '__main__':
+    webbrowser.open("https://www.youtube.com/watch?v=xvFZjo5PgG0")
+    message_spam()
     main()

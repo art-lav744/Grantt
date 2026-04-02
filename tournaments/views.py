@@ -214,42 +214,56 @@ def dashboard(request):
     
 @login_required
 def team_detail(request, pk):
-    team = get_object_or_404(Team, pk=pk)
-    members = team.members.all()
-    submissions = team.submissions.all()
-    
-    # Додайте це, щоб кнопка "Подати роботу" з'явилася в шаблоні
-    is_captain = request.user == team.captain
-    
-    return render(request, 'tournaments/team_detail.html', {
-        'team': team,
-        'members': members,
-        'submissions': submissions,
-        'is_captain': is_captain,
-    })
+# Використовуємо оптимізований запит з main (select_related економить ресурси)
+    team = get_object_or_404(Team.objects.select_related('captain', 'tournament'), pk=pk)
 
+    # Використовуємо правильну фільтрацію учасників та поданих робіт з main
+    members = TeamMember.objects.filter(team=team).order_by('full_name')
+    submissions = Submission.objects.filter(team=team).select_related('round').prefetch_related('evaluations').order_by('-created_at')
+    
+    #  логіка перевірки капітана 
+    is_captain = team.captain == request.user
+
+    # Повертаємо рендер, який містить усі необхідні для шаблону змінні
+    return render(
+        request,
+        'tournaments/team_detail.html',
+        {
+            'team': team,
+            'members': members,
+            'submissions': submissions,
+            'is_captain': is_captain,  
+        },
+    )
 @login_required
 def create_team(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
-    
-    # Перевірка, чи не створив він уже команду (подвійний захист)
-    if Team.objects.filter(captain=request.user).exists():
-        messages.warning(request, "У вас вже є створена команда.")
-        return redirect('home')
+
+    # Перевірка статусу
+    if tournament.status != TournamentStatus.REGISTRATION:
+        messages.error(request, "Реєстрація на цей турнір наразі закрита.")
+        return redirect('tournament_detail', tournament_id=tournament_id)
+
+    # Перевірка вікна реєстрації
+    now = timezone.now()
+    if not (tournament.reg_start <= now <= tournament.reg_end):
+        messages.error(request, "Реєстраційне вікно ще не відкрито або вже закрито.")
+        return redirect('tournament_detail', tournament_id=tournament_id)
+
+    if Team.objects.filter(captain=request.user, tournament=tournament).exists():
+        messages.warning(request, "У вас вже є створена команда на цей турнір.")
+        return redirect('tournament_detail', tournament_id=tournament_id)
 
     if request.method == 'POST':
-        team_name = request.POST.get('team_name')
+        team_name = request.POST.get('team_name', '').strip()
         if team_name:
-            # Створюємо команду
             new_team = Team.objects.create(
                 name=team_name,
                 captain=request.user,
-                tournament=tournament
+                tournament=tournament,
             )
             messages.success(request, f"Команду '{team_name}' успішно створено!")
-            # Після створення йдемо додавати учасників (те, що ми писали раніше)
-            return redirect('team_dashboard') 
-    
+            return redirect('team_dashboard')
     return render(request, 'tournaments/create_team.html', {'tournament': tournament})
 
 @login_required
@@ -257,30 +271,31 @@ def register_for_tournament(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
     user = request.user
     now = timezone.now()
-
-    # ДЕТАЛЬ 1: Перевірка ролі
+    # Перевірка ролі
     if user.role != UserRole.PARTICIPANT:
         messages.error(request, "Тільки зареєстровані учасники можуть реєструвати команди.")
-        return redirect('index')
+        return redirect('home')
 
-    # ДЕТАЛЬ 2: Перевірка дедлайну реєстрації
+    # Перевірка дедлайну реєстрації
+    if now < tournament.reg_start:
+        messages.error(request, "Реєстрація на цей турнір ще не відкрита.")
+        return redirect('tournament_detail', tournament_id=tournament_id)
     if now > tournament.reg_end:
         messages.error(request, "Реєстрація на цей турнір уже закрита.")
-        return redirect('index')
-
-    # ДЕТАЛЬ 3: Чи вже є у капітана команда?
+        return redirect('tournament_detail', tournament_id=tournament_id)
+    
+    # Чи вже є у капітана команда?
     if Team.objects.filter(captain=user).exists():
         # Якщо команда вже є, просто прив'язуємо її до цього турніру (якщо вона ще не там)
         team = Team.objects.get(captain=user)
         if team.tournament == tournament:
             messages.info(request, "Ви вже зареєстровані на цей турнір.")
         else:
-            # Можна додати логіку перереєстрації або видати помилку
             messages.warning(request, "У вас уже є команда в іншому турнірі.")
         return redirect('team_dashboard')
-
     # Якщо все ок — відправляємо на створення команди
     return redirect('create_team', tournament_id=tournament.id)
+
 
 @login_required
 def team_dashboard(request):
@@ -423,9 +438,15 @@ def tournament_detail(request, tournament_id):
     user_team = Team.objects.filter(tournament=tournament, members=request.user).first() or \
                 Team.objects.filter(tournament=tournament, captain=request.user).first()
     
+    # Отримуємо команди та раунди турніру
+    teams = Team.objects.filter(tournament=tournament).select_related('captain')
+    rounds = Round.objects.filter(tournament=tournament).order_by('start_time')
+    
     return render(request, 'tournaments/tournament_detail.html', {
         'tournament': tournament,
-        'user_team': user_team
+        'user_team': user_team,
+        'teams': teams,
+        'rounds': rounds,
     })
 
 @login_required

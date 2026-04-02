@@ -3,67 +3,95 @@
 {% block title %}Команда {{ team.name }}{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>{{ team.name }}</h1>
+<div class="card" style="padding: 25px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); background: white;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <h1 style="margin: 0;">{{ team.name }}</h1>
         {% if is_captain %}
-            <a class="btn" href="{% url 'submission_create' team.id %}" style="background: #28a745;">🚀 Подати роботу</a>
+            <div style="display: flex; gap: 10px;">
+                <a class="btn" href="{% url 'submission_create' team.id %}" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">🚀 Подати роботу</a>
+                <a class="btn" href="{% url 'add_member' team.id %}" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 600;">➕ Додати учасника</a>
+            </div>
         {% endif %}
     </div>
+    
+    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+    
     <p><strong>Турнір:</strong> {{ team.tournament.title }}</p>
-    <p><strong>Капітан:</strong> {{ team.captain.full_name|default:team.captain.email }}</p>
+    <p><strong>Капітан:</strong> {{ team.captain_name|default:team.captain.full_name }} ({{ team.captain_email|default:team.captain.email }})</p>
+    {% if team.organization %}
+        <p><strong>Організація:</strong> {{ team.organization }}</p>
+    {% endif %}
 </div>
 
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h2>Учасники</h2>
-        {% if is_captain %}
-           <a href="{% url 'add_member' team.id %}" ...>+ Додати учасника</a>
-        {% endif %}
-    </div>
-    <table>
+<div class="card" style="padding: 25px; margin-bottom: 20px; border-radius: 12px; background: white;">
+    <h2 style="margin-top: 0;">👥 Учасники</h2>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
         <thead>
-            <tr>
-                <th>ПІБ</th>
-                <th>Email</th>
+            <tr style="text-align: left; border-bottom: 2px solid #eee;">
+                <th style="padding: 10px;">Ім'я</th>
+                <th style="padding: 10px;">Email</th>
+                <th style="padding: 10px;">Дата приєднання</th>
             </tr>
         </thead>
         <tbody>
-            {% for member in team.members.all %}
-            <tr>
-                <td>{{ member.user.full_name }}</td>
-                <td>{{ member.user.email }}</td>
+            <tr style="background: #f8f9ff;">
+                <td style="padding: 10px;"><strong>🌟 {{ team.captain_name|default:team.captain.full_name }}</strong> (капітан)</td>
+                <td style="padding: 10px;">{{ team.captain_email|default:team.captain.email }}</td>
+                <td style="padding: 10px; color: #888;">—</td>
+            </tr>
+            {% for member in members %}
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px;">{{ member.full_name|default:member.user.full_name }}</td>
+                <td style="padding: 10px;">{{ member.email|default:member.user.email }}</td>
+                <td style="padding: 10px;">{{ member.joined_at|date:"d.m.Y" }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="2">Учасників ще не додано.</td></tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
 
-<div class="card">
-    <h2>Історія подач</h2>
-    {% if team.submissions.all %}
-        <table>
+<div class="card" style="padding: 25px; border-radius: 12px; background: white;">
+    <h2 style="margin-top: 0;">📂 Історія подач</h2>
+    {% if submissions %}
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
             <thead>
-                <tr>
-                    <th>Раунд</th>
-                    <th>GitHub</th>
-                    <th>Дата</th>
+                <tr style="text-align: left; border-bottom: 2px solid #eee;">
+                    <th style="padding: 10px;">Раунд</th>
+                    <th style="padding: 10px;">Код</th>
+                    <th style="padding: 10px;">Відео</th>
+                    <th style="padding: 10px;">Дата подачі</th>
+                    <th style="padding: 10px;">Статус</th>
                 </tr>
             </thead>
             <tbody>
-                {% for sub in team.submissions.all %}
-                <tr>
-                    <td>{{ sub.round.title }}</td>
-                    <td><a href="{{ sub.github_link }}" target="_blank">Переглянути код</a></td>
-                    <td>{{ sub.created_at|date:"d.m.Y H:i" }}</td>
+                {% for submission in submissions %}
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px;"><strong>{{ submission.round.title }}</strong></td>
+                    <td style="padding: 10px;"><a href="{{ submission.github_link }}" target="_blank" style="color: #007bff;">🔗 GitHub</a></td>
+                    <td style="padding: 10px;">
+                        {% if submission.video_link %}
+                            <a href="{{ submission.video_link }}" target="_blank" style="color: #d63384;">📹 Відео</a>
+                        {% else %}
+                            <span style="color: #ccc;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 10px; font-size: 0.9em;">{{ submission.created_at|date:"d.m.Y H:i" }}</td>
+                    <td style="padding: 10px;">
+                        {% if submission.evaluations.all %}
+                            <span style="background: #e7f3ff; color: #007bff; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">
+                                {{ submission.evaluations.all|length }} оцінок
+                            </span>
+                        {% else %}
+                            <span style="color: #999; font-size: 0.85em;">Очікує оцінки</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <p>Команда ще не подавала робіт.</p>
+        <p style="text-align: center; padding: 40px; color: #888;">Команда ще не подавала робіт.</p>
     {% endif %}
 </div>
 {% endblock %}

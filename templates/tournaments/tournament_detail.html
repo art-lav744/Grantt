@@ -9,6 +9,16 @@
     <p><strong>Початок реєстрації:</strong> {{ tournament.reg_start|default:"—" }}</p>
     <p><strong>Кінець реєстрації:</strong> {{ tournament.reg_end|default:"—" }}</p>
     <p><strong>Статус:</strong> {{ tournament.status }}</p>
+    
+    {% if user.is_authenticated and not user_team and tournament.status == 'registration' %}
+        <a href="{% url 'create_team' tournament.id %}" class="btn" style="background: #28a745; color: white; padding: 10px 20px; margin-top: 15px;">
+            🛡️ Зареєструвати команду
+        </a>
+    {% elif user_team %}
+        <p style="color: #28a745; margin-top: 15px;">✅ Ви вже зареєстровані на цей турнір</p>
+    {% elif tournament.status != 'registration' %}
+        <p style="color: #dc3545; margin-top: 15px;">❌ Реєстрація на цей турнір закрита</p>
+    {% endif %}
 </div>
 
 <div class="card">
@@ -26,7 +36,7 @@
                 {% for team in teams %}
                 <tr>
                     <td>{{ team.name }}</td>
-                    <td>{{ team.captain.email }}</td>
+                    <td>{{ team.captain_name }} ({{ team.captain_email }})</td>
                     <td><a class="btn" href="{% url 'team_detail' team.id %}">Переглянути</a></td>
                 </tr>
                 {% endfor %}
