@@ -831,3 +831,27 @@ class SubmissionCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         submission = serializer.save()
         return Response(serializer.to_representation(submission), status=status.HTTP_201_CREATED)
+
+class ActiveTaskView(APIView):
+    permission_classes = [IsAuthenticatedJWT]
+
+    def get(self, request):
+        # 1. Знаходимо команду користувача
+        member = TeamMember.objects.filter(email=request.user.email).first()
+        if not member or not member.team:
+            return Response({'detail': 'Ви не є членом жодної команди'}, status=404)
+        
+        # 2. Знаходимо активний раунд турніру цієї команди
+        tournament = member.team.tournament
+        active_round = Round.objects.filter(
+            tournament=tournament,
+            status='Active',
+            start_time__lte=timezone.now(),
+            end_time__gte=timezone.now()
+        ).first()
+
+        if not active_round:
+            return Response({'detail': 'На даний момент немає активних завдань'}, status=404)
+
+        serializer = RoundCreateSerializer(active_round)
+        return Response(serializer.data)

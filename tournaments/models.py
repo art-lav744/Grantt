@@ -189,6 +189,7 @@ class Round(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     requirements = models.TextField()
+    evaluation_criteria = models.TextField(verbose_name="Критерії оцінювання", blank=True, null=True)  # НОВЕ ПОЛЕ
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     status = models.CharField(max_length=20, default='Draft')
