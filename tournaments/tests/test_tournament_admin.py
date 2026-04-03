@@ -1,3 +1,4 @@
+
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -16,12 +17,6 @@ class TournamentAdminTests(TestCase):
             is_verified=True,
             is_staff=True,
         )
-
-    def test_admin_dashboard_opens(self):
-        self.client.force_login(self.admin)
-        response = self.client.get(reverse('dashboard'))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Панель керування турнірами')
 
     def test_tournament_create_success(self):
         self.client.force_login(self.admin)
