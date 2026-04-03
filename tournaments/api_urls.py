@@ -20,4 +20,5 @@ urlpatterns = [
     path('submissions/', views.SubmissionCreateView.as_view(), name='api_submission_create'),
     path('admin/teams/<int:team_id>/', views.AdminTeamDetailView.as_view(), name='admin_team_delete'),
     path('admin/members/<int:member_id>/', views.AdminMemberDeleteView.as_view(), name='admin_member_delete'),
+    path('rounds/active/', views.ActiveTaskView.as_view(), name='api_active_round'),
 ]
