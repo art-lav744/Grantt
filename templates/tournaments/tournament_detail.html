@@ -47,29 +47,45 @@
     {% endif %}
 </div>
 
-<div class="card">
-    <h2>Раунди</h2>
+<div class="card p-4 shadow-sm mt-4">
+    <h2 class="mb-4">📋 Завдання та раунди</h2>
+    
     {% if rounds %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Назва</th>
-                    <th>Початок</th>
-                    <th>Кінець</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for round in rounds %}
-                <tr>
-                    <td>{{ round.title }}</td>
-                    <td>{{ round.start_time }}</td>
-                    <td>{{ round.end_time }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        {% for round in rounds %}
+            <div class="card shadow-sm mb-4 border-primary">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0 h5">{{ round.title }}</h3>
+                    <span class="badge bg-light text-primary">Старт: {{ round.start_time|date:"d.m.Y H:i" }}</span>
+                </div>
+                <div class="card-body">
+                    <h5>📝 Опис завдання:</h5>
+                    <p class="text-muted">{{ round.description|default:"Опис відсутній" }}</p>
+                    <hr>
+                    
+                    <h5>📋 Вимоги:</h5>
+                    <div class="alert alert-secondary">
+                        {{ round.requirements|linebreaks|default:"Вимоги не вказані" }}
+                    </div>
+
+                    <h5>⚖️ Критерії оцінювання:</h5>
+                    <div class="border rounded p-3 bg-light">
+                        {% if round.evaluation_criteria %}
+                            {{ round.evaluation_criteria|linebreaks }}
+                        {% else %}
+                            <p class="text-italic text-muted mb-0">Критерії оцінювання будуть додані організатором пізніше.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">ID раунду: #{{ round.id }}</span>
+                    <strong class="text-danger">
+                        ⏳ Дедлайн здачі: {{ round.end_time|date:"d.m.Y H:i" }}
+                    </strong>
+                </div>
+            </div>
+        {% endfor %}
     {% else %}
-        <p>Раундів ще немає.</p>
+        <div class="alert alert-info">Раундів для цього турніру ще не створено.</div>
     {% endif %}
 </div>
 {% endblock %}
