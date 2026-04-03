@@ -247,7 +247,7 @@ class RoundCreateSerializer(serializers.ModelSerializer):
 class SubmissionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Submission
-        fields = ('id', 'team', 'round', 'github_link', 'video_link', 'description')
+        fields = ('id', 'team', 'round', 'github_link', 'video_link', 'description', 'created_at')
 
     def validate(self, attrs):
         round_obj = attrs['round']

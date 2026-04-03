@@ -201,8 +201,8 @@ class Submission(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='submissions')
     round = models.ForeignKey(Round, on_delete=models.CASCADE, related_name='submissions')
     github_link = models.URLField()
-    video_link = models.URLField(blank=True, null=True)
-    description = models.TextField(blank=True, null=True)
+    video_link = models.URLField()
+    description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
