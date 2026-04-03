@@ -289,6 +289,11 @@ def team_detail(request, pk):
 @login_required
 def create_team(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    # Перевірка ролі - тільки учасники можуть створювати команди
+    if request.user.role != UserRole.PARTICIPANT:
+        messages.error(request, "Тільки зареєстровані учасники можуть створювати команди.")
+        return redirect('tournament_detail', tournament_id=tournament_id)
 
     # Перевірка статусу
     if tournament.status != TournamentStatus.REGISTRATION:
@@ -308,6 +313,11 @@ def create_team(request, tournament_id):
     if request.method == 'POST':
         team_name = request.POST.get('team_name', '').strip()
         if team_name:
+            # Перевірка унікальності імені команди в межах турніру
+            if Team.objects.filter(tournament=tournament, name=team_name).exists():
+                messages.error(request, f"Команда з назвою '{team_name}' вже існує в цьому турнірі. Виберіть іншу назву.")
+                return render(request, 'tournaments/create_team.html', {'tournament': tournament})
+            
             new_team = Team.objects.create(
                 name=team_name,
                 captain=request.user,

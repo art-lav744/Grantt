@@ -10,7 +10,7 @@
     <p><strong>Кінець реєстрації:</strong> {{ tournament.reg_end|default:"—" }}</p>
     <p><strong>Статус:</strong> {{ tournament.status }}</p>
     
-    {% if user.is_authenticated and not user_team and tournament.status == 'registration' %}
+    {% if user.is_authenticated and not user_team and tournament.status == 'registration' and user.role == 'participant' %}
         <a href="{% url 'create_team' tournament.id %}" class="btn" style="background: #28a745; color: white; padding: 10px 20px; margin-top: 15px;">
             🛡️ Зареєструвати команду
         </a>
