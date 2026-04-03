@@ -19,7 +19,7 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.utils import timezone
 
-from .forms import RegisterForm, SubmissionForm, TeamMemberForm, TournamentForm, RoundForm, TeamForm
+from .forms import RegisterForm, SubmissionForm, TeamMemberForm, TournamentForm, RoundForm, TeamForm, ProfileEditForm
 from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
 from .permissions import IsAdmin, IsAuthenticatedJWT, IsJury, IsOrganizerOrAdmin
 from .serializers import (
@@ -157,6 +157,57 @@ def user_management(request):
         return redirect('home')
     
     return render(request, 'management/users.html', {'users': users})
+
+@login_required
+def profile_view(request):
+    """
+    Особистий кабінет користувача:
+    - перегляд та редагування профілю (нікнейм, ПІБ, Discord, аватарка)
+    - всі команди де є учасником або капітаном
+    - всі подані роботи (submissions) команд користувача
+    """
+    user = request.user
+ 
+    if request.method == 'POST':
+        form = ProfileEditForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Профіль успішно оновлено!')
+            return redirect('profile')
+        else:
+            messages.error(request, 'Будь ласка, виправте помилки у формі.')
+    else:
+        form = ProfileEditForm(instance=user)
+ 
+    # Команди де користувач — капітан
+    captain_teams = Team.objects.filter(
+        captain=user
+    ).select_related('tournament')
+ 
+    # Команди де користувач — учасник (через TeamMember)
+    member_teams = Team.objects.filter(
+        memberships__user=user
+    ).select_related('tournament').exclude(captain=user)
+ 
+    all_teams = list(captain_teams) + list(member_teams)
+ 
+    # Всі submission для команд користувача
+    team_ids = [t.id for t in all_teams]
+    submissions = (
+        Submission.objects
+        .filter(team__id__in=team_ids)
+        .select_related('team', 'round', 'team__tournament')
+        .prefetch_related('evaluations')
+        .order_by('-created_at')
+    )
+ 
+    context = {
+        'form': form,
+        'captain_teams': captain_teams,
+        'member_teams': member_teams,
+        'submissions': submissions,
+    }
+    return render(request, 'tournaments/profile.html', context)
 
 @login_required
 def dashboard(request):
