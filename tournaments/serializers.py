@@ -236,7 +236,7 @@ class TeamCreateSerializer(serializers.Serializer):
 class RoundCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Round
-        fields = ('id', 'title', 'description', 'requirements', 'start_time', 'end_time', 'tournament')
+        fields = ('id', 'title', 'description', 'requirements', 'evaluation_criteria', 'start_time', 'end_time', 'tournament')
 
     def validate(self, attrs):
         if attrs['end_time'] <= attrs['start_time']:
