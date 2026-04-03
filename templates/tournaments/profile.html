@@ -1,0 +1,518 @@
+{% extends "base.html" %}
+{% block title %}Мій кабінет — Tournament 2026{% endblock %}
+
+{% block content %}
+<style>
+  /* ── Загальний layout ── */
+  .profile-grid {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* ── Sidebar ── */
+  .profile-sidebar {
+    position: sticky;
+    top: 24px;
+  }
+
+  .avatar-wrap {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    margin: 0 auto 16px;
+  }
+  .avatar-wrap img,
+  .avatar-placeholder {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #2563eb;
+  }
+  .avatar-placeholder {
+    background: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 42px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .avatar-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: #2563eb;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .avatar-badge svg { width: 14px; height: 14px; fill: #fff; }
+
+  .sidebar-name {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .sidebar-email {
+    text-align: center;
+    color: #6b7280;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .role-badge {
+    display: block;
+    margin: 0 auto 20px;
+    width: fit-content;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .sidebar-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-top: 1px solid #e5e7eb;
+    font-size: 14px;
+    color: #374151;
+  }
+  .sidebar-stat span:last-child {
+    font-weight: 700;
+    color: #111827;
+  }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 24px;
+  }
+  .tab-btn {
+    padding: 10px 20px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color .2s, border-color .2s;
+  }
+  .tab-btn.active {
+    color: #2563eb;
+    border-color: #2563eb;
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Form ── */
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .field-group { margin-bottom: 16px; }
+  .field-group label {
+    display: block;
+    font-weight: 600;
+    font-size: 13px;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+  .field-group input[type="text"],
+  .field-group input[type="email"],
+  .field-group input[type="file"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+    transition: border-color .2s;
+  }
+  .field-group input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+  }
+  .errorlist {
+    list-style: none;
+    padding: 0;
+    margin: 4px 0 0;
+    color: #dc2626;
+    font-size: 12px;
+  }
+
+  /* ── Teams ── */
+  .team-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    transition: box-shadow .2s;
+  }
+  .team-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+  .team-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: #eff6ff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .team-info { flex: 1; }
+  .team-info h4 { margin: 0 0 4px; font-size: 15px; }
+  .team-info p  { margin: 0; font-size: 13px; color: #6b7280; }
+  .captain-chip {
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .member-chip {
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #f0fdf4;
+    color: #166534;
+  }
+
+  /* ── Submissions table ── */
+  .sub-status {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .sub-status.scored { background: #dcfce7; color: #166534; }
+  .sub-status.pending { background: #fef3c7; color: #92400e; }
+
+  .score-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .score-bar {
+    flex: 1;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .score-bar-fill {
+    height: 100%;
+    background: #2563eb;
+    border-radius: 3px;
+  }
+
+  /* ── Empty states ── */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #9ca3af;
+  }
+  .empty-state svg { margin-bottom: 12px; }
+  .empty-state p { margin: 0; font-size: 14px; }
+
+  @media (max-width: 768px) {
+    .profile-grid { grid-template-columns: 1fr; }
+    .profile-sidebar { position: static; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="profile-grid">
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="profile-sidebar">
+    <div class="card" style="text-align:center;">
+
+      <div class="avatar-wrap">
+        {% if user.profile_image %}
+          <img src="{{ user.profile_image.url }}" alt="Аватар">
+        {% else %}
+          <div class="avatar-placeholder">
+            {{ user.nickname|first|upper }}
+          </div>
+        {% endif %}
+        <!-- клік на іконку відкриває вкладку редагування -->
+        <div class="avatar-badge" onclick="switchTab('edit')" title="Змінити фото">
+          <svg viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 1 1 2.828 2.828l-9.5 9.5A2 2 0 0 1 5.5 16.5H4a1 1 0 0 1-1-1v-1.5a2 2 0 0 1 .586-1.414l9.5-9.5z"/></svg>
+        </div>
+      </div>
+
+      <div class="sidebar-name">{{ user.nickname }}</div>
+      <div class="sidebar-email">{{ user.email }}</div>
+      <span class="role-badge">
+        {% if user.role == 'admin' %}Адміністратор
+        {% elif user.role == 'organizer' %}Організатор
+        {% elif user.role == 'jury' %}Журі
+        {% else %}Учасник{% endif %}
+      </span>
+
+      {% if user.full_name %}
+        <div class="sidebar-stat">
+          <span>ПІБ</span>
+          <span>{{ user.full_name }}</span>
+        </div>
+      {% endif %}
+
+      {% if user.discord_tag %}
+        <div class="sidebar-stat">
+          <span>Discord</span>
+          <span style="color:#5865F2;font-weight:700;">{{ user.discord_tag }}</span>
+        </div>
+      {% endif %}
+
+      <div class="sidebar-stat">
+        <span>Команд</span>
+        <span>{{ captain_teams|length|add:member_teams|length }}</span>
+      </div>
+      <div class="sidebar-stat">
+        <span>Подач</span>
+        <span>{{ submissions|length }}</span>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ═══════════ MAIN CONTENT ═══════════ -->
+  <main>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('teams')" id="tab-teams">🏆 Команди</button>
+      <button class="tab-btn" onclick="switchTab('submissions')" id="tab-submissions">📁 Подані роботи</button>
+      <button class="tab-btn" onclick="switchTab('edit')" id="tab-edit">⚙️ Редагувати профіль</button>
+    </div>
+
+    <!-- ── Панель: Команди ── -->
+    <div class="tab-panel active" id="panel-teams">
+
+      {% if captain_teams %}
+        <h3 style="margin-top:0; margin-bottom:12px; font-size:14px; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Я капітан</h3>
+        {% for team in captain_teams %}
+          <div class="team-card">
+            <div class="team-icon">🎖️</div>
+            <div class="team-info">
+              <h4>{{ team.name }}
+                <span class="captain-chip">Капітан</span>
+              </h4>
+              <p>{{ team.tournament.title }}
+                {% if team.organization %} &nbsp;·&nbsp; {{ team.organization }}{% endif %}
+              </p>
+            </div>
+            <a href="{% url 'team_detail' team.pk %}" class="btn" style="white-space:nowrap; font-size:13px; padding:7px 14px;">Переглянути</a>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% if member_teams %}
+        {% if captain_teams %}
+          <h3 style="margin-top:24px; margin-bottom:12px; font-size:14px; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Я учасник</h3>
+        {% else %}
+          <h3 style="margin-top:0; margin-bottom:12px; font-size:14px; color:#6b7280; text-transform:uppercase; letter-spacing:.05em;">Я учасник</h3>
+        {% endif %}
+        {% for team in member_teams %}
+          <div class="team-card">
+            <div class="team-icon">👥</div>
+            <div class="team-info">
+              <h4>{{ team.name }}
+                <span class="member-chip">Учасник</span>
+              </h4>
+              <p>{{ team.tournament.title }}
+                {% if team.organization %} &nbsp;·&nbsp; {{ team.organization }}{% endif %}
+              </p>
+            </div>
+            <a href="{% url 'team_detail' team.pk %}" class="btn btn-secondary" style="white-space:nowrap; font-size:13px; padding:7px 14px;">Переглянути</a>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      {% if not captain_teams and not member_teams %}
+        <div class="card empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><circle cx="12" cy="7" r="4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>
+          <p>Ви поки не входите до жодної команди.</p>
+          <a href="{% url 'tournament_list' %}" class="btn" style="margin-top:14px; display:inline-block;">Переглянути турніри</a>
+        </div>
+      {% endif %}
+
+    </div>
+
+    <!-- ── Панель: Подані роботи ── -->
+    <div class="tab-panel" id="panel-submissions">
+      {% if submissions %}
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table>
+            <thead style="background:#f9fafb;">
+              <tr>
+                <th>Турнір / Раунд</th>
+                <th>Команда</th>
+                <th>Дата подачі</th>
+                <th>Оцінка</th>
+                <th>Посилання</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in submissions %}
+                {% with evals=sub.evaluations.all %}
+                  <tr>
+                    <td>
+                      <strong style="font-size:14px;">{{ sub.round.tournament.title }}</strong><br>
+                      <span style="color:#6b7280; font-size:12px;">{{ sub.round.title }}</span>
+                    </td>
+                    <td style="font-size:14px;">{{ sub.team.name }}</td>
+                    <td style="font-size:13px; color:#6b7280;">{{ sub.created_at|date:"d.m.Y H:i" }}</td>
+                    <td>
+                      {% if evals %}
+                        {% with count=evals|length %}
+                          <span class="sub-status scored">Оцінено ({{ count }})</span>
+                        {% endwith %}
+                      {% else %}
+                        <span class="sub-status pending">На розгляді</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if sub.github_link %}
+                        <a href="{{ sub.github_link }}" target="_blank" rel="noopener" style="color:#2563eb; font-size:13px; margin-right:8px;">GitHub</a>
+                      {% endif %}
+                      {% if sub.video_link %}
+                        <a href="{{ sub.video_link }}" target="_blank" rel="noopener" style="color:#2563eb; font-size:13px;">Відео</a>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="card empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
+          <p>Ваші команди ще не подавали жодних робіт.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Панель: Редагування профілю ── -->
+    <div class="tab-panel" id="panel-edit">
+      <div class="card">
+        <h3 style="margin-top:0; margin-bottom:20px;">Редагувати профіль</h3>
+
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <!-- Аватарка -->
+          <div class="field-group">
+            <label>Аватарка</label>
+            {% if user.profile_image %}
+              <div style="margin-bottom:10px;">
+                <img src="{{ user.profile_image.url }}" alt="Поточна аватарка"
+                     style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb;">
+                <span style="margin-left:10px; font-size:13px; color:#6b7280;">Поточна аватарка</span>
+              </div>
+            {% endif %}
+            <input type="file" name="profile_image" accept="image/*">
+            {% if form.profile_image.errors %}
+              <ul class="errorlist">{% for e in form.profile_image.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+            {% endif %}
+          </div>
+
+          <div class="form-row">
+            <!-- Нікнейм -->
+            <div class="field-group">
+              <label for="{{ form.nickname.id_for_label }}">{{ form.fields.nickname.label }}</label>
+              <input type="text"
+                     id="{{ form.nickname.id_for_label }}"
+                     name="nickname"
+                     value="{{ form.nickname.value|default_if_none:'' }}"
+                     placeholder="Ваш нікнейм">
+              {% if form.nickname.errors %}
+                <ul class="errorlist">{% for e in form.nickname.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+              {% endif %}
+            </div>
+
+            <!-- ПІБ -->
+            <div class="field-group">
+              <label for="{{ form.full_name.id_for_label }}">{{ form.fields.full_name.label }}</label>
+              <input type="text"
+                     id="{{ form.full_name.id_for_label }}"
+                     name="full_name"
+                     value="{{ form.full_name.value|default_if_none:'' }}"
+                     placeholder="Прізвище Ім'я По-батькові">
+              {% if form.full_name.errors %}
+                <ul class="errorlist">{% for e in form.full_name.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Discord -->
+          <div class="field-group">
+            <label for="{{ form.discord_tag.id_for_label }}">{{ form.fields.discord_tag.label }}</label>
+            <div style="position:relative;">
+              <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#5865F2; font-weight:700; font-size:16px; pointer-events:none;">⌗</span>
+              <input type="text"
+                     id="{{ form.discord_tag.id_for_label }}"
+                     name="discord_tag"
+                     value="{{ form.discord_tag.value|default_if_none:'' }}"
+                     placeholder="username або @username"
+                     style="padding-left:30px;">
+            </div>
+            {% if form.discord_tag.errors %}
+              <ul class="errorlist">{% for e in form.discord_tag.errors %}<li>{{ e }}</li>{% endfor %}</ul>
+            {% endif %}
+          </div>
+
+          <!-- Email (тільки для перегляду) -->
+          <div class="field-group">
+            <label>Email <span style="font-weight:400; color:#9ca3af;">(не змінюється)</span></label>
+            <input type="email" value="{{ user.email }}" disabled
+                   style="background:#f9fafb; color:#6b7280; cursor:not-allowed;">
+          </div>
+
+          <div style="display:flex; gap:12px; align-items:center;">
+            <button type="submit" class="btn">💾 Зберегти зміни</button>
+            <button type="button" class="btn btn-secondary" onclick="switchTab('teams')">Скасувати</button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  function switchTab(name) {
+    // Кнопки
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    // Панелі
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+  }
+
+  // Якщо є помилки форми — одразу відкрити вкладку редагування
+  const hasFormErrors = "{{ form.errors|yesno:'true,false' }}";
+  if (hasFormErrors === 'true') switchTab('edit');
+</script>
+{% endblock %}
