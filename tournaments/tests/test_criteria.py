@@ -1,11 +1,19 @@
 from django.test import TestCase
-from .models import Round, Tournament
 from django.utils import timezone
+from ..models import Round, Tournament
 
 class RoundModelTest(TestCase):
     def setUp(self):
-        # Створюємо тестовий турнір, бо він потрібен для раунду
-        self.tournament = Tournament.objects.create(title="Test Tournament")
+        # Створюємо таймстемп для обов'язкових полів
+        now = timezone.now()
+        # Створюємо турнір з усіма обов'язковими датами
+        self.tournament = Tournament.objects.create(
+            title="Test Tournament",
+            reg_start=now,
+            reg_end=now + timezone.timedelta(days=7),
+            start_time=now + timezone.timedelta(days=8),
+            end_time=now + timezone.timedelta(days=10)
+        )
 
     def test_round_evaluation_criteria_save(self):
         """Перевірка, що критерії зберігаються і читаються з БД"""
