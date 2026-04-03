@@ -3,8 +3,8 @@ import re
 from django import forms
 from django.conf import settings
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-
 from .models import Submission, TeamMember, Tournament, User, UserRole, Round, Team
 
 
@@ -80,6 +80,31 @@ class LoginForm(AuthenticationForm):
         super().confirm_login_allowed(user)
         if not user.is_verified:
             raise forms.ValidationError('Спочатку підтвердіть email.')
+
+User=get_user_model()
+class ProfileEditForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['nickname', 'full_name', 'discord_tag', 'profile_image']
+        labels = {
+            'nickname': 'Нікнейм',
+            'full_name': 'ПІБ',
+            'discord_tag': 'Discord тег',
+            'profile_image': 'Аватарка',
+        }
+        widgets = {
+            'nickname': forms.TextInput(attrs={'placeholder': 'Ваш нікнейм'}),
+            'full_name': forms.TextInput(attrs={'placeholder': 'Прізвище Ім\'я По-батькові'}),
+            'discord_tag': forms.TextInput(attrs={'placeholder': 'username#0000 або @username'}),
+        }
+ 
+    def clean_nickname(self):
+        nickname = self.cleaned_data.get('nickname')
+        qs = User.objects.filter(nickname=nickname).exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('Цей нікнейм вже зайнятий.')
+        return nickname
+ 
 
 class TeamForm(forms.ModelForm):
     class Meta:
