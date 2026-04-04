@@ -60,12 +60,25 @@
                 <div class="card-body">
                     <h5>📝 Опис завдання:</h5>
                     <p class="text-muted">{{ round.description|default:"Опис відсутній" }}</p>
-                    <hr>
+                    
                     
                     <h5>📋 Вимоги:</h5>
                     <div class="alert alert-secondary">
-                        {{ round.requirements|linebreaks|default:"Вимоги не вказані" }}
+                        <li>Коректність (код працює)</li>
+                        <li>Відповідність задачі</li>
+                        <li>Якість коду</li>
+                        <li>Оптимальність</li>
+                        <li>README</li>
                     </div>
+
+                    <h5>🧪 Must Have (обов’язкові умови)</h5>
+                    <div class="border-primary">
+                    Робота НЕ оцінюється, якщо:
+
+                    <li>Відсутнє GitHub посилання</li>
+                    <li>Код не запускається</li>
+                    <li>Порушено умову задачі</li>
+                    <li>Пропущено дедлайн</li>
 
                     <h5>⚖️ Критерії оцінювання:</h5>
                     <div class="border rounded p-3 bg-light">
@@ -76,6 +89,7 @@
                         {% endif %}
                     </div>
                 </div>
+                <hr>
                 <div class="card-footer bg-white d-flex justify-content-between align-items-center">
                     <span class="text-muted small">ID раунду: #{{ round.id }}</span>
                     <strong class="text-danger">

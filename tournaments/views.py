@@ -514,7 +514,7 @@ def tournament_detail(request, tournament_id):
         'tournament': tournament,
         'user_team': user_team,
         'teams': teams,
-        'rounds': rounds,
+        'rounds': rounds
     })
 
 @login_required
