@@ -21,6 +21,8 @@ class RegisterForm(UserCreationForm):
         self.fields['password1'].help_text = (
             'Мінімум 8 символів: велика та мала літери, цифра і спецсимвол (!@#$%^&*).'
         )
+        self.fields['password1'].widget = forms.PasswordInput(render_value=True)
+        self.fields['password2'].widget = forms.PasswordInput(render_value=True)
 
     def clean_email(self):
         email = self.cleaned_data['email'].strip().lower()

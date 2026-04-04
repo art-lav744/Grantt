@@ -85,3 +85,14 @@ class RegisterTest(TestCase):
             response.context['form'], 'password2',
             'Паролі не збігаються'
         )
+
+    def test_register_keeps_password_values_on_error(self):
+        response = self.client.post(reverse('register'), {
+            'email': 'newuser@gmail.com',
+            'nickname': 'newuser',
+            'password1': 'Test1234!',
+            'password2': 'Wrong1234!',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="password1" value="Test1234!"', html=False)
+        self.assertContains(response, 'name="password2" value="Wrong1234!"', html=False)
