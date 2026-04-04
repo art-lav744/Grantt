@@ -3,11 +3,13 @@
 <div class="card" style="max-width: 600px; margin: auto;">
     <h2>➕ Створити раунд для "{{ tournament.title }}"</h2>
     <form method="post">
+        {% if form.non_field_errors %}<div style="color:red; margin-bottom:10px;">{{ form.non_field_errors }}</div>{% endif %}
         {% csrf_token %}
         {% for field in form %}
             <div style="margin-bottom: 15px;">
                 <label><strong>{{ field.label }}</strong></label>
                 {{ field }}
+                {% for error in field.errors %}<div style="color:red; font-size:0.85rem; margin-top:5px;">{{ error }}</div>{% endfor %}
             </div>
         {% endfor %}
         <button type="submit" class="btn" style="background: #28a745; width: 100%;">Створити раунд</button>

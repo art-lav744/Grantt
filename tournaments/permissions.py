@@ -9,7 +9,7 @@ class IsAuthenticatedJWT(BasePermission):
 
 class IsAdmin(BasePermission):
     def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and request.user.role == UserRole.ADMIN)
+        return bool(request.user and request.user.is_authenticated and request.user.is_admin_like)
 
 
 class IsOrganizerOrAdmin(BasePermission):
@@ -19,4 +19,4 @@ class IsOrganizerOrAdmin(BasePermission):
 
 class IsJury(BasePermission):
     def has_permission(self, request, view):
-        return bool(request.user and request.user.is_authenticated and request.user.role == UserRole.JURY)
+        return bool(request.user and request.user.is_authenticated and request.user.is_jury_like)

@@ -60,6 +60,14 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    @property
+    def is_admin_like(self):
+        return self.role in {UserRole.ADMIN, UserRole.ORGANIZER}
+
+    @property
+    def is_jury_like(self):
+        return self.role in {UserRole.JURY, UserRole.ORGANIZER}
+
     def __str__(self):
         return self.email
 
