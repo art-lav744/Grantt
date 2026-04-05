@@ -20,7 +20,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils import timezone
 
 from .forms import RegisterForm, SubmissionForm, TeamMemberForm, TournamentForm, RoundForm, TeamForm, ProfileEditForm
-from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
+from .models import Evaluation, Round, RoundStatus, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
 from .permissions import IsAdmin, IsAuthenticatedJWT, IsJury, IsOrganizerOrAdmin
 from .serializers import (
     EvaluationOutSerializer,
@@ -410,6 +410,9 @@ def submission_create(request, team_id):
             video_link = form.cleaned_data['video_link']
             description = form.cleaned_data['description']
 
+            if not round_obj.is_active_now():
+                return messages.error(request, "Сабміт для цього раунду вже закритий!")
+
             # Використовуємо update_or_create, щоб уникнути IntegrityError
             submission, created = Submission.objects.update_or_create(
                 team=team,
@@ -508,7 +511,7 @@ def tournament_detail(request, tournament_id):
     
     # Отримуємо команди та раунди турніру
     teams = Team.objects.filter(tournament=tournament).select_related('captain')
-    rounds = Round.objects.filter(tournament=tournament).order_by('start_time')
+    rounds = Round.objects.filter(tournament=tournament, status=RoundStatus.ACTIVE).order_by('start_time')
     
     return render(request, 'tournaments/tournament_detail.html', {
         'tournament': tournament,
@@ -848,7 +851,7 @@ class ActiveTaskView(APIView):
         tournament = member.team.tournament
         active_round = Round.objects.filter(
             tournament=tournament,
-            status='Active',
+            status=RoundStatus.ACTIVE,
             start_time__lte=timezone.now(),
             end_time__gte=timezone.now()
         ).first()

@@ -191,6 +191,11 @@ class TeamMember(models.Model):
     def __str__(self):
         return f'{self.full_name} ({self.email})'
 
+# Так буде легше й зрозуміліше
+class RoundStatus(models.TextChoices):
+    DRAFT = 'draft', 'Draft'
+    ACTIVE = 'active', 'Active'
+    CLOSED = 'closed', 'Closed'
 
 class Round(models.Model):
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='rounds')
@@ -200,7 +205,32 @@ class Round(models.Model):
     evaluation_criteria = models.TextField(verbose_name="Критерії оцінювання", blank=True, null=True)  # НОВЕ ПОЛЕ
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    status = models.CharField(max_length=20, default='Draft')
+    status = models.CharField(
+        max_length=20,
+        choices=RoundStatus.choices,
+        default=RoundStatus.DRAFT
+    )
+
+    def set_status(self, new_status):
+        allowed_transitions = {
+            RoundStatus.DRAFT: [RoundStatus.ACTIVE],
+            RoundStatus.ACTIVE: [RoundStatus.CLOSED],
+            RoundStatus.CLOSED: [],
+        }
+
+        if new_status in allowed_transitions[self.status]:
+            self.status = new_status
+            self.save()
+            return True
+
+        return False
+
+    def is_active_now(self):
+        now = timezone.now()
+        return (
+            self.status == RoundStatus.ACTIVE and
+            self.start_time <= now <= self.end_time
+        )
 
     def __str__(self):
         return f'{self.tournament.title}: {self.title}'

@@ -47,7 +47,7 @@ class ActiveRoundAPITest(APITestCase):
             evaluation_criteria="1. Технічна частина\n2. Креативність",
             start_time=now - timezone.timedelta(hours=1),
             end_time=now + timezone.timedelta(hours=5),
-            status='Active' 
+            status=RoundStatus.ACTIVE
         )
         
         # 6. Авторизація
