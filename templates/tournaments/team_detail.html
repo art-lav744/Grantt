@@ -80,7 +80,14 @@
                     <td style="padding: 10px;">
                         {% if submission.evaluations.all %}
                             <span style="background: #e7f3ff; color: #007bff; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600;">
-                                {{ submission.evaluations.all|length }} оцінок
+                                {% for eval in submission.evaluations.all %}
+                                    {% if eval.tech_score %}
+                                        {{ eval.tech_score }}
+                                    {% endif %}
+                                    {% if eval.func_score %}
+                                        {{ eval.func_score }}
+                                    {% endif %}
+                                {% endfor %}
                             </span>
                         {% else %}
                             <span style="color: #999; font-size: 0.85em;">Очікує оцінки</span>

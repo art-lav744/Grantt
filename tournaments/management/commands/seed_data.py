@@ -1,8 +1,9 @@
 #не працює
 from datetime import timedelta
+import random
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from tournaments.models import Tournament, TournamentStatus, User, Team, TeamMember, UserRole
+from tournaments.models import Tournament, TournamentStatus, User, Team, TeamMember, UserRole, Round, Submission, Evaluation
 
 
 class Command(BaseCommand):
@@ -103,6 +104,22 @@ class Command(BaseCommand):
             }
         )
         
+        # Jury User
+        jury, _ = User.objects.get_or_create(
+            email='jury@gmail.com',
+            defaults={
+                'nickname': 'jury_user',
+                'role': UserRole.JURY,
+                'full_name': 'Журі В',
+                'discord_tag': 'jury#0004',
+                'is_verified': True,
+                'profile_image': None,
+            }
+        )
+        jury.set_password('Password123!')
+        jury.save()
+        jury.jury_tournaments.add(tournament)
+        
         # === CREATE TEAMS ===
         
         team1, _ = Team.objects.get_or_create(
@@ -137,13 +154,48 @@ class Command(BaseCommand):
                 'user': participant2,
             }
         )
-        
 
+
+        round1, _ = Round.objects.get_or_create(
+            tournament=tournament,
+            title='Round 1',
+            description='Description of Round 1',
+            requirements='Requirements of Round 1',
+            start_time=timezone.now() - timedelta(days=1),
+            end_time=timezone.now() + timedelta(days=1),
+            status='Draft',
+        )
+        round1.save()
+        
+        # === CREATE SUBMISSIONS ===
+        submission1, _ = Submission.objects.get_or_create(
+            team=team1,
+            round=round1,
+            github_link='https://github.com/example',
+            video_link='https://www.youtube.com/watch?v=example',
+            description='Description of Submission 1',
+        )
+        submission1.save()
+        
+        # Distribute works to jury
+        submissions = list(Submission.objects.filter(round=round1))
+        jury_members = list(User.objects.filter(role=UserRole.JURY, jury_tournaments=tournament))
+        if jury_members:
+            k_actual = min(3, len(jury_members))
+            for submission in submissions:
+                chosen = random.sample(jury_members, k=k_actual)
+                for jury in chosen:
+                    Evaluation.objects.get_or_create(
+                        submission=submission,
+                        jury=jury,
+                        defaults={'tech_score': 0, 'func_score': 0},
+                    )
         
         self.stdout.write(self.style.SUCCESS('  Seed data created successfully!'))
         self.stdout.write(self.style.WARNING('   Created:'))
         self.stdout.write(f'    Admin: admin@gmail.com / Password123!')
         self.stdout.write(f'    Organizer: organizer@gmail.com / Password123!')
+        self.stdout.write(f'    Jury: jury@gmail.com / Password123!')
         self.stdout.write(f'    Participant 1: participant1@gmail.com / Password123!')
         self.stdout.write(f'    Participant 2: participant2@gmail.com / Password123!')
         self.stdout.write(f'    Participant 3: participant3@gmail.com / Password123!')

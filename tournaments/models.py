@@ -54,6 +54,7 @@ class User(AbstractUser):
     is_verified = models.BooleanField(default=False)
     full_name = models.CharField(max_length=255, verbose_name="ПІБ", blank=True, null=True)
     discord_tag = models.CharField(max_length=255, blank=True, null=True, verbose_name="Discord тег")
+    jury_tournaments = models.ManyToManyField('Tournament', related_name='jury_members', blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['nickname', 'full_name']
@@ -212,6 +213,7 @@ class Submission(models.Model):
 class Evaluation(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name='evaluations')
     jury = models.ForeignKey(User, on_delete=models.CASCADE, related_name='evaluations')
+    comment = models.TextField(blank=True, default='', verbose_name='Коментар')
     tech_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
     func_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
     created_at = models.DateTimeField(auto_now_add=True)
