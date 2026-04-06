@@ -3,6 +3,19 @@
 <div class="container">
     <h2>Панель Організатора</h2>
 
+    <div class="admin-stats" style="display: flex; gap: 20px; margin-bottom: 30px;">
+        <div class="card" style="flex: 1; border-left: 5px solid #2563eb;">
+            <h3>Усі турніри</h3>
+            <p style="font-size: 28px; font-weight: bold;">{{ tournaments|length }}</p>
+            <a href="{% url 'tournament_create' %}" class="btn">➕ Новий турнір</a>
+        </div>
+        <div class="card" style="flex: 1; border-left: 5px solid #28a745;">
+            <h3>Користувачі</h3>
+            <p style="font-size: 28px; font-weight: bold;">{{ total_users }}</p>
+            <a href="/admin/tournaments/user/" class="btn btn-secondary">Керувати ролями</a>
+        </div>
+    </div>
+
     <div class="card" style="padding: 20px; margin-bottom: 20px;">
         <h3>Створити обліковий запис для персоналу</h3>
         <form method="post" action="{% url 'create_staff' %}">
@@ -17,28 +30,51 @@
     </div>
 
     <div class="card" style="padding: 20px;">
-        <h3>Мої турніри</h3>
-        {% if my_tournaments %}
+        <h3>Усі турніри</h3>
+        {% if tournaments %}
             <table class="table" style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr>
                         <th style="text-align:left;">Назва</th>
+                        <th style="text-align:left;">Організатор</th>
                         <th style="text-align:left;">Команд</th>
                         <th style="text-align:left;">Статус</th>
+                        <th style="text-align:left;">Дії</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for tournament in my_tournaments %}
+                    {% for tournament in tournaments %}
                     <tr>
                         <td>{{ tournament.title }}</td>
+                        <td>{{ tournament.creator.nickname|default:tournament.creator.email|default:"—" }}</td>
                         <td>{{ tournament.teams_count }}</td>
                         <td>{{ tournament.status }}</td>
+                        <td>
+                            <a href="{% url 'round_create' tournament.id %}" class="btn" style="background: #6f42c1; padding: 5px 10px; font-size: 13px;">➕ Раунд</a>
+                            <a href="{% url 'tournament_edit' tournament.id %}" class="btn btn-secondary" style="padding: 5px 10px; font-size: 13px;">Редагувати ✏️</a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         {% else %}
-            <p>У вас ще немає створених турнірів.</p>
+            <p>Ще немає жодного турніру.</p>
+        {% endif %}
+    </div>
+
+
+    <div class="card" style="padding: 20px; margin-top: 20px;">
+        <h3>Роботи на перевірку</h3>
+        {% if my_evaluations %}
+            {% for eval in my_evaluations %}
+                <div class="card" style="border-left: 5px solid #007bff; margin-bottom: 15px; padding: 15px;">
+                    <h4>Команда: {{ eval.submission.team.name }}</h4>
+                    <p><strong>Раунд:</strong> {{ eval.submission.round.title|default:eval.submission.round.name }}</p>
+                    <p><strong>Опис:</strong> {{ eval.submission.description|truncatewords:20 }}</p>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>Наразі у вас немає призначених робіт для оцінювання.</p>
         {% endif %}
     </div>
 </div>

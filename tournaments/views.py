@@ -249,6 +249,9 @@ def dashboard(request):
     # 2. ОРГАНІЗАТОР
     elif user.role == UserRole.ORGANIZER:
         context['my_tournaments'] = Tournament.objects.filter(creator=user).annotate(teams_count=Count('teams'))
+        context['total_users'] = User.objects.count()
+        context['tournaments'] = Tournament.objects.all().annotate(teams_count=Count('teams'))
+        context['my_evaluations'] = Evaluation.objects.filter(jury=user).select_related('submission__team', 'submission__round')
         return render(request, 'dashboards/organizer_dashboard.html', context)
 
     # 3. ЖУРІ
@@ -427,7 +430,7 @@ def team_dashboard(request):
 
 @login_required
 def round_create(request, tournament_id):
-    if request.user.role != 'ADMIN' and not request.user.is_superuser:
+    if not request.user.is_admin_like and not request.user.is_superuser:
         messages.error(request, "У вас немає прав для створення турнірів.")
         return redirect('home')
 
@@ -606,7 +609,7 @@ def add_team_member(request, team_id):
     
 @login_required
 def tournament_create(request):
-    if request.user.role != 'ADMIN' and not request.user.is_superuser:
+    if not request.user.is_admin_like and not request.user.is_superuser:
         messages.error(request, "У вас немає прав для створення турнірів.")
         return redirect('home')
     
@@ -628,7 +631,7 @@ def tournament_create(request):
 
 @login_required
 def tournament_edit(request, pk):
-    if request.user.role != UserRole.ADMIN:
+    if not request.user.is_admin_like:
         return redirect('home')
     
     tournament = get_object_or_404(Tournament, pk=pk)

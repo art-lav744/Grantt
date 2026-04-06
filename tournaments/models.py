@@ -61,6 +61,14 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    @property
+    def is_admin_like(self):
+        return self.role in {UserRole.ADMIN, UserRole.ORGANIZER}
+
+    @property
+    def is_jury_like(self):
+        return self.role in {UserRole.JURY, UserRole.ORGANIZER}
+
     def __str__(self):
         return self.email
 
@@ -190,6 +198,7 @@ class Round(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
     requirements = models.TextField()
+    evaluation_criteria = models.TextField(verbose_name="Критерії оцінювання", blank=True, null=True)  # НОВЕ ПОЛЕ
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     status = models.CharField(max_length=20, default='Draft')
