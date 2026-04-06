@@ -1,12 +1,16 @@
 import random
 import string
 import secrets
+import json
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.db.models import Avg, Count
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.mail import send_mail
 from django.conf import settings
@@ -193,13 +197,32 @@ def profile_view(request):
  
     # Всі submission для команд користувача
     team_ids = [t.id for t in all_teams]
-    submissions = (
+    submissions_queryset = (
         Submission.objects
         .filter(team__id__in=team_ids)
         .select_related('team', 'round', 'team__tournament')
         .prefetch_related('evaluations')
         .order_by('-created_at')
     )
+    
+    # Додати середні оцінки до кожного submission
+    submissions = []
+    for sub in submissions_queryset:
+        evals = sub.evaluations.all()
+        if evals:
+            tech_avg = sum(e.tech_score for e in evals) / len(evals)
+            func_avg = sum(e.func_score for e in evals) / len(evals)
+            total_avg = (tech_avg + func_avg) / 2
+            sub.tech_avg = round(tech_avg, 1)
+            sub.func_avg = round(func_avg, 1)
+            sub.total_avg = round(total_avg, 1)
+            sub.eval_count = len(evals)
+        else:
+            sub.tech_avg = None
+            sub.func_avg = None
+            sub.total_avg = None
+            sub.eval_count = 0
+        submissions.append(sub)
  
     context = {
         'form': form,
@@ -230,7 +253,21 @@ def dashboard(request):
 
     # 3. ЖУРІ
     elif user.role == UserRole.JURY:
-        context['my_evaluations'] = Evaluation.objects.filter(jury=user).select_related('submission__team', 'submission__round')
+        evals = (
+            Evaluation.objects
+            .filter(jury=user)
+            .select_related('submission__team', 'submission__round')
+            .order_by('submission__round__title', 'submission__team__name')
+        )
+        done_count = sum(1 for e in evals if e.tech_score > 0 or e.func_score > 0)
+        total_count = evals.count()
+        pending_count = total_count - done_count
+        context.update({
+            'my_evaluations': evals,
+            'total_count': total_count,
+            'done_count': done_count,
+            'pending_count': pending_count,
+        })
         return render(request, 'dashboards/jury_dashboard.html', context)
 
     # 4. УЧАСНИК
@@ -366,8 +403,27 @@ def team_dashboard(request):
     if not team:
         messages.info(request, "Ви ще не створили команду.")
         return redirect('home')
-        
-    return render(request, 'tournaments/team_dashboard.html', {'team': team})
+    
+    # Додати середні оцінки до submissions
+    submissions = []
+    for sub in team.submissions.all().select_related('round').prefetch_related('evaluations'):
+        evals = sub.evaluations.all()
+        if evals:
+            tech_avg = sum(e.tech_score for e in evals) / len(evals)
+            func_avg = sum(e.func_score for e in evals) / len(evals)
+            total_avg = (tech_avg + func_avg) / 2
+            sub.tech_avg = round(tech_avg, 1)
+            sub.func_avg = round(func_avg, 1)
+            sub.total_avg = round(total_avg, 1)
+            sub.eval_count = len(evals)
+        else:
+            sub.tech_avg = None
+            sub.func_avg = None
+            sub.total_avg = None
+            sub.eval_count = 0
+        submissions.append(sub)
+    
+    return render(request, 'tournaments/team_dashboard.html', {'team': team, 'submissions': submissions})
 
 @login_required
 def round_create(request, tournament_id):
@@ -807,12 +863,14 @@ class DistributeWorksView(APIView):
         if not round_obj:
             return Response({'detail': 'Round not found'}, status=status.HTTP_404_NOT_FOUND)
         submissions = list(Submission.objects.filter(round=round_obj))
-        jury_members = list(User.objects.filter(role=UserRole.JURY))
+        jury_members = list(User.objects.filter(role=UserRole.JURY, jury_tournaments=round_obj.tournament))
         if not jury_members:
             return Response({'detail': 'Немає зареєстрованих членів журі'}, status=status.HTTP_400_BAD_REQUEST)
+        K = int(request.data.get('k', 3))
+        k_actual = min(K, len(jury_members))
         created = 0
         for submission in submissions:
-            chosen = random.sample(jury_members, k=min(2, len(jury_members)))
+            chosen = random.sample(jury_members, k=k_actual)
             for jury in chosen:
                 _, was_created = Evaluation.objects.get_or_create(
                     submission=submission,
@@ -820,7 +878,7 @@ class DistributeWorksView(APIView):
                     defaults={'tech_score': 0, 'func_score': 0},
                 )
                 created += int(was_created)
-        return Response({'status': 'Роботи розподілено між журі', 'created_assignments': created})
+        return Response({'status': 'Роботи розподілено між журі', 'k_per_submission': k_actual, 'created_assignments': created})
 
 
 class SubmissionCreateView(APIView):
@@ -831,3 +889,43 @@ class SubmissionCreateView(APIView):
         serializer.is_valid(raise_exception=True)
         submission = serializer.save()
         return Response(serializer.to_representation(submission), status=status.HTTP_201_CREATED)
+
+@login_required
+def evaluation_detail(request, eval_id):
+    if request.user.role != UserRole.JURY:
+        return redirect('dashboard')
+
+    evaluation = get_object_or_404(
+        Evaluation.objects.select_related('submission__team', 'submission__round'),
+        pk=eval_id,
+        jury=request.user,
+    )
+
+    if request.method == 'POST':
+        tech  = request.POST.get('tech_score', '').strip()
+        func  = request.POST.get('func_score', '').strip()
+        comment = request.POST.get('comment', '').strip()
+
+        errors = []
+        try:
+            tech_val = float(tech)
+            func_val = float(func)
+        except ValueError:
+            errors.append('Введіть числові значення оцінок.')
+
+        if not errors:
+            if not (0 <= tech_val <= 100) or not (0 <= func_val <= 100):
+                errors.append('Оцінки мають бути від 0 до 100.')
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+        else:
+            evaluation.tech_score = tech_val
+            evaluation.func_score = func_val
+            evaluation.comment    = comment
+            evaluation.save()
+            messages.success(request, 'Оцінку збережено!')
+            return redirect('dashboard')
+
+    return render(request, 'tournaments/evaluation_detail.html', {'evaluation': evaluation})
