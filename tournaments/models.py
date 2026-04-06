@@ -218,6 +218,30 @@ class Submission(models.Model):
     class Meta:
         unique_together = [('team', 'round')]
 
+    def calculate_final_score(self):
+        """
+        Обчислює агреговані оцінки журі для submission:
+        tech_avg = середнє tech_score
+        func_avg = середнє func_score
+        total = (tech_avg + func_avg) / 2
+        """
+        evaluations = list(self.evaluations.all())
+        if not evaluations:
+            return {
+                'tech_avg': None,
+                'func_avg': None,
+                'total': None,
+            }
+
+        tech_avg = sum(e.tech_score for e in evaluations) / len(evaluations)
+        func_avg = sum(e.func_score for e in evaluations) / len(evaluations)
+        total = (tech_avg + func_avg) / 2
+        return {
+            'tech_avg': tech_avg,
+            'func_avg': func_avg,
+            'total': total,
+        }
+
 
 class Evaluation(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name='evaluations')
