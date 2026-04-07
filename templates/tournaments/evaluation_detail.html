@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Оцінювання роботи{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div style="margin-bottom: 24px;">
+        <h2>Оцінювання роботи</h2>
+        <p>Команда: <strong>{{ evaluation.submission.team.name }}</strong></p>
+        <p>Раунд: <strong>{{ evaluation.submission.round.title }}</strong></p>
+    </div>
+
+    <div class="card" style="max-width: 800px;">
+        <h3>Опис роботи</h3>
+        <p>{{ evaluation.submission.description }}</p>
+
+        {% if evaluation.submission.github_link %}
+        <p><a href="{{ evaluation.submission.github_link }}" target="_blank">GitHub репозиторій</a></p>
+        {% endif %}
+        {% if evaluation.submission.video_link %}
+        <p><a href="{{ evaluation.submission.video_link }}" target="_blank">Відео презентація</a></p>
+        {% endif %}
+    </div>
+
+    <form method="post" style="max-width: 800px; margin-top: 24px;">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="tech_score">Технічна оцінка (0-100)</label>
+            <input type="number" id="tech_score" name="tech_score" min="0" max="100" step="0.1"
+                   value="{{ evaluation.tech_score }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="func_score">Функціональна оцінка (0-100)</label>
+            <input type="number" id="func_score" name="func_score" min="0" max="100" step="0.1"
+                   value="{{ evaluation.func_score }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="comment">Коментар</label>
+            <textarea id="comment" name="comment" rows="4">{{ evaluation.comment }}</textarea>
+        </div>
+
+        <button type="submit" class="btn">Зберегти оцінку</button>
+        <a href="{% url 'dashboard' %}" class="btn secondary">Назад</a>
+    </form>
+
+</div>
+{% endblock %}

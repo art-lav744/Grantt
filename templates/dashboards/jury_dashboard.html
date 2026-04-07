@@ -4,26 +4,46 @@
 
 {% block content %}
 <div class="container">
-    <h2>Роботи на перевірку</h2>
-    <p>Ви увійшли як: <strong>{{ request.user.nickname }}</strong></p>
 
+    <div style="margin-bottom: 24px;">
+        <h2>Кабінет Журі</h2>
+        <p>Ви увійшли як: <strong>{{ request.user.nickname }}</strong></p>
+    </div>
+
+    {# Статистика #}
+    <div style="display: flex; gap: 16px; margin-bottom: 28px; flex-wrap: wrap;">
+        <div class="card" style="flex: 1; min-width: 130px; text-align: center; padding: 18px;">
+            <div style="font-size: 2rem; font-weight: 700;">{{ total_count }}</div>
+            <div style="color: #666; font-size: 0.9rem;">Всього робіт</div>
+        </div>
+        <div class="card" style="flex: 1; min-width: 130px; text-align: center; padding: 18px;">
+            <div style="font-size: 2rem; font-weight: 700; color: #28a745;">{{ done_count }}</div>
+            <div style="color: #666; font-size: 0.9rem;">Оцінено</div>
+        </div>
+        <div class="card" style="flex: 1; min-width: 130px; text-align: center; padding: 18px;">
+            <div style="font-size: 2rem; font-weight: 700; color: #ffc107;">{{ pending_count }}</div>
+            <div style="color: #666; font-size: 0.9rem;">Очікують</div>
+        </div>
+    </div>
+
+    {# Список #}
     <div class="evaluations-list">
         {% for eval in my_evaluations %}
-            <div class="card" style="border-left: 5px solid #007bff; margin-bottom: 15px; padding: 15px;">
-                <h4>Команда: {{ eval.submission.team.name }}</h4>
-                <p><strong>Раунд:</strong> {{ eval.submission.round.name }}</p>
-                <p><strong>Опис:</strong> {{ eval.submission.description|truncatewords:20 }}</p>
-                
-                <div style="margin-top: 10px;">
-                    <a href="{{ eval.submission.github_link }}" target="_blank" class="btn small">GitHub</a>
-                    <a href="{% url 'evaluation_detail' eval.id %}" class="btn">Оцінити роботу</a>
-                </div>
-            </div>
+            {% if eval.tech_score == 0 and eval.func_score == 0 %}
+                {% with border="#ffc107" label="Не оцінено" btn_label="Оцінити" %}
+                    {% include "tournaments/jury_card.html" %}
+                {% endwith %}
+            {% else %}
+                {% with border="#28a745" label="Оцінено" btn_label="Редагувати" %}
+                    {% include "tournaments/jury_card.html" %}
+                {% endwith %}
+            {% endif %}
         {% empty %}
             <div class="alert shadow">
                 <p>Наразі у вас немає призначених робіт для оцінювання.</p>
             </div>
         {% endfor %}
     </div>
+
 </div>
 {% endblock %}

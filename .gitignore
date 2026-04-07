@@ -25,3 +25,6 @@ Thumbs.db
 
 # Migrations
 tournaments/migrations/
+
+#AI
+.cursorignore

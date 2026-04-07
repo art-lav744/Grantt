@@ -12,6 +12,11 @@ py manage.py seed_data
 py manage.py runserver
 ```
 
+## Test
+```bash
+py manage.py test
+```
+
 ## Admin panel
 ```
 http://localhost:8000/admin/
