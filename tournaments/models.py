@@ -3,7 +3,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-
+from .choices import TASK_TYPES
 
 class UserRole(models.TextChoices):
     ADMIN = 'admin', 'Адміністратор'
@@ -110,6 +110,8 @@ class Tournament(models.Model):
     min_team_members = models.PositiveIntegerField(default=2)
     cover_image = models.ImageField(upload_to='tournaments/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    task_type = models.CharField(max_length=100, blank=True, null=True)
+    max_rounds = models.PositiveIntegerField(default=4, verbose_name="Максимальна кількість раундів")
 
     @property
     def logical_status(self):
@@ -193,7 +195,12 @@ class TeamMember(models.Model):
         return f'{self.full_name} ({self.email})'
 
 
+
 class Round(models.Model):
+    class TaskType(models.TextChoices):
+        SINGLE = 'single', 'Одне завдання'
+        MULTIPLE = 'multiple', 'Кілька завдань'
+
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='rounds')
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -202,6 +209,11 @@ class Round(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     status = models.CharField(max_length=20, default='Draft')
+    task_type = models.CharField(
+            max_length=20, 
+            choices=TaskType.choices, 
+            default=TaskType.SINGLE
+        )
 
     def __str__(self):
         return f'{self.tournament.title}: {self.title}'

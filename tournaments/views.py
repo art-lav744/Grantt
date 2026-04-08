@@ -556,7 +556,11 @@ def round_create(request, tournament_id):
     if not request.user.is_admin_like and not request.user.is_superuser:
         messages.error(request, "У вас немає прав для створення турнірів.")
         return redirect('home')
-
+    
+    if tournament.rounds.count() >= 4: # Або tournament.max_rounds, якщо воно динамічне
+        messages.error(request, "Досягнуто ліміт раундів для цього турніру (макс. 4).")
+        return redirect('tournament_detail', pk=tournament.id)
+    
     tournament = get_object_or_404(Tournament, id=tournament_id)
 
     if request.method == 'POST':
@@ -610,10 +614,7 @@ def submission_create(request, team_id):
         form = SubmissionForm()
 
     # Якщо це GET-запит, показуємо форму (виправлений шлях до шаблону)
-    return render(request, 'tournaments/submission_form.html', {
-        'form': form, 
-        'team': team
-    })
+    return render(request, 'tournaments/submission_form.html', {'form': form, 'team': team})
 
 
 # ===================USER / STAFF====================
