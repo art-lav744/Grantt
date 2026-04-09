@@ -82,6 +82,9 @@ class TournamentStatus(models.TextChoices):
 
 
 class Tournament(models.Model):
+    class TaskType(models.TextChoices):
+        SINGLE = 'single', 'Одне завдання'
+        MULTIPLE = 'multiple', 'Кілька завдань'
     title = models.CharField(max_length=255)
     description = models.TextField()
     status = models.CharField(
@@ -110,7 +113,11 @@ class Tournament(models.Model):
     min_team_members = models.PositiveIntegerField(default=2)
     cover_image = models.ImageField(upload_to='tournaments/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    task_type = models.CharField(max_length=100, blank=True, null=True)
+    task_type = models.CharField(
+        max_length=20,
+        choices=TaskType.choices,
+        default=TaskType.SINGLE
+    )
     max_rounds = models.PositiveIntegerField(default=4, verbose_name="Максимальна кількість раундів")
 
     @property

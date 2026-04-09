@@ -207,7 +207,7 @@ class TeamMemberForm(forms.ModelForm):
 class TournamentForm(forms.ModelForm):
     class Meta:
         model = Tournament
-        fields = ['title', 'description', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'task_type', 'cover_image']
+        fields = ['title', 'description', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'task_type', 'max_rounds', 'cover_image']
         widgets = {
             'reg_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
             'reg_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
@@ -226,6 +226,8 @@ class TournamentForm(forms.ModelForm):
 
     def clean(self):
         cd = super().clean()
+        task_type = cd.get('task_type')
+        max_rounds = cd.get('max_rounds')
         # Логічна перевірка ланцюжка дат
         if cd.get('reg_end') <= cd.get('reg_start'):
             self.add_error('reg_end', "Реєстрація не може закінчитися раніше початку")
@@ -233,4 +235,6 @@ class TournamentForm(forms.ModelForm):
             self.add_error('start_time', "Турнір не може початися раніше реєстрації")
         if cd.get('end_time') <= cd.get('start_time'):
             self.add_error('end_time', "Турнір не може закінчитися раніше свого початку")
+        if task_type == 'single' and max_rounds and max_rounds > 1:
+            self.add_error('max_rounds', "Для типу 'Одне завдання' кількість раундів має бути 1.")
         return cd
