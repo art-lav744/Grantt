@@ -54,6 +54,7 @@ class User(AbstractUser):
     is_verified = models.BooleanField(default=False)
     full_name = models.CharField(max_length=255, verbose_name="ПІБ", blank=True, null=True)
     discord_tag = models.CharField(max_length=255, blank=True, null=True, verbose_name="Discord тег")
+    jury_tournaments = models.ManyToManyField('Tournament', related_name='jury_members', blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['nickname', 'full_name']
@@ -247,10 +248,35 @@ class Submission(models.Model):
     class Meta:
         unique_together = [('team', 'round')]
 
+    def calculate_final_score(self):
+        """
+        Обчислює агреговані оцінки журі для submission:
+        tech_avg = середнє tech_score
+        func_avg = середнє func_score
+        total = (tech_avg + func_avg) / 2
+        """
+        evaluations = list(self.evaluations.all())
+        if not evaluations:
+            return {
+                'tech_avg': None,
+                'func_avg': None,
+                'total': None,
+            }
+
+        tech_avg = sum(e.tech_score for e in evaluations) / len(evaluations)
+        func_avg = sum(e.func_score for e in evaluations) / len(evaluations)
+        total = (tech_avg + func_avg) / 2
+        return {
+            'tech_avg': tech_avg,
+            'func_avg': func_avg,
+            'total': total,
+        }
+
 
 class Evaluation(models.Model):
     submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name='evaluations')
     jury = models.ForeignKey(User, on_delete=models.CASCADE, related_name='evaluations')
+    comment = models.TextField(blank=True, default='', verbose_name='Коментар')
     tech_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
     func_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
     created_at = models.DateTimeField(auto_now_add=True)

@@ -1,12 +1,16 @@
 import random
 import string
 import secrets
+import json
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.db.models import Avg, Count
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.mail import send_mail
 from django.conf import settings
@@ -36,7 +40,6 @@ from .serializers import (
 )
 from .utils import process_square_image, validate_raw_image
 
-
 def home(request):
     now = timezone.now()
     
@@ -48,6 +51,7 @@ def home(request):
         'upcoming': Tournament.objects.filter(reg_start__gt=now),
     }
     return render(request, 'home.html', context)
+
 
 def index(request):
     now = timezone.now()
@@ -65,6 +69,8 @@ def index(request):
     }
     return render(request, 'index.html', context)
 
+# ===================AUTH====================
+
 def verify_email(request, uidb64, token):
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
@@ -81,10 +87,12 @@ def verify_email(request, uidb64, token):
         messages.error(request, 'Посилання недійсне або застаріле.')
         return redirect('home')
 
+
 def logout_view(request):
     django_logout(request)
     messages.success(request, 'Ви успішно вийшли з акаунта.')
     return redirect('home')
+
 
 def register_view(request):
     if request.user.is_authenticated:
@@ -112,38 +120,7 @@ def register_view(request):
 
     return render(request, 'registration/register.html', {'form': form})
 
-
-def tournament_list(request):
-    tournaments = Tournament.objects.all().order_by('-created_at', '-id')
-    return render(request, 'tournaments/tournament_list.html', {'tournaments': tournaments})
-
-
-def tournament_detail(request, tournament_id):
-    # Використовуємо id=tournament_id, як передано в аргументах
-    tournament = get_object_or_404(Tournament, id=tournament_id)
-    
-    # Оптимізуємо запит до команд, щоб не було проблем з капітанами
-    teams = tournament.teams.all().select_related('captain')
-    rounds = tournament.rounds.all()
-    
-    user_team = None
-    if request.user.is_authenticated:
-        # Перевіряємо, чи є юзер капітаном
-        user_team = Team.objects.filter(tournament=tournament, captain=request.user).first()
-        
-        # Якщо не капітан, перевіряємо, чи є він учасником через модель TeamMember
-        if not user_team:
-            user_team = Team.objects.filter(
-                tournament=tournament, 
-                members__user=request.user # звертаємось через related_name або модель TeamMember
-            ).first()
-
-    return render(request, 'tournaments/tournament_detail.html', { 
-        'tournament': tournament,
-        'teams': teams,
-        'rounds': rounds,
-        'user_team': user_team,
-    })
+# ===================USER====================
 
 # У views.py для сторінки керування користувачами
 def user_management(request):
@@ -193,13 +170,32 @@ def profile_view(request):
  
     # Всі submission для команд користувача
     team_ids = [t.id for t in all_teams]
-    submissions = (
+    submissions_queryset = (
         Submission.objects
         .filter(team__id__in=team_ids)
         .select_related('team', 'round', 'team__tournament')
         .prefetch_related('evaluations')
         .order_by('-created_at')
     )
+    
+    # Додати середні оцінки до кожного submission
+    submissions = []
+    for sub in submissions_queryset:
+        evals = sub.evaluations.all()
+        if evals:
+            tech_avg = sum(e.tech_score for e in evals) / len(evals)
+            func_avg = sum(e.func_score for e in evals) / len(evals)
+            total_avg = (tech_avg + func_avg) / 2
+            sub.tech_avg = round(tech_avg, 1)
+            sub.func_avg = round(func_avg, 1)
+            sub.total_avg = round(total_avg, 1)
+            sub.eval_count = len(evals)
+        else:
+            sub.tech_avg = None
+            sub.func_avg = None
+            sub.total_avg = None
+            sub.eval_count = 0
+        submissions.append(sub)
  
     context = {
         'form': form,
@@ -233,7 +229,21 @@ def dashboard(request):
 
     # 3. ЖУРІ
     elif user.role == UserRole.JURY:
-        context['my_evaluations'] = Evaluation.objects.filter(jury=user).select_related('submission__team', 'submission__round')
+        evals = (
+            Evaluation.objects
+            .filter(jury=user)
+            .select_related('submission__team', 'submission__round')
+            .order_by('submission__round__title', 'submission__team__name')
+        )
+        done_count = sum(1 for e in evals if e.tech_score > 0 or e.func_score > 0)
+        total_count = evals.count()
+        pending_count = total_count - done_count
+        context.update({
+            'my_evaluations': evals,
+            'total_count': total_count,
+            'done_count': done_count,
+            'pending_count': pending_count,
+        })
         return render(request, 'dashboards/jury_dashboard.html', context)
 
     # 4. УЧАСНИК
@@ -265,30 +275,121 @@ def dashboard(request):
                 })
 
         return render(request, 'dashboards/team_dashboard.html', context)
+
+# ===================TOUR====================
+
+def tournament_list(request):
+    tournaments = Tournament.objects.all().order_by('-created_at', '-id')
+    return render(request, 'tournaments/tournament_list.html', {'tournaments': tournaments})
+
+
+def tournament_detail(request, tournament_id):
+    # Використовуємо id=tournament_id, як передано в аргументах
+    tournament = get_object_or_404(Tournament, id=tournament_id)
     
+    # Оптимізуємо запит до команд, щоб не було проблем з капітанами
+    teams = tournament.teams.all().select_related('captain')
+    rounds = tournament.rounds.all()
+    
+    user_team = None
+    if request.user.is_authenticated:
+        # Перевіряємо, чи є юзер капітаном
+        user_team = Team.objects.filter(tournament=tournament, captain=request.user).first()
+        
+        # Якщо не капітан, перевіряємо, чи є він учасником через модель TeamMember
+        if not user_team:
+            user_team = Team.objects.filter(
+                tournament=tournament, 
+                members__user=request.user # звертаємось через related_name або модель TeamMember
+            ).first()
+
+    return render(request, 'tournaments/tournament_detail.html', { 
+        'tournament': tournament,
+        'teams': teams,
+        'rounds': rounds,
+        'user_team': user_team,
+    })
+
+
+def tournament_detail(request, tournament_id):
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    # Перевіряємо, чи користувач уже в команді на цей турнір
+    user_team = Team.objects.filter(tournament=tournament, members=request.user).first() or \
+                Team.objects.filter(tournament=tournament, captain=request.user).first()
+    
+    # Отримуємо команди та раунди турніру
+    teams = Team.objects.filter(tournament=tournament).select_related('captain')
+    rounds = Round.objects.filter(tournament=tournament).order_by('start_time')
+    
+    return render(request, 'tournaments/tournament_detail.html', {
+        'tournament': tournament,
+        'user_team': user_team,
+        'teams': teams,
+        'rounds': rounds,
+    })
+
 @login_required
-def team_detail(request, pk):
-# Використовуємо оптимізований запит з main (select_related економить ресурси)
-    team = get_object_or_404(Team.objects.select_related('captain', 'tournament'), pk=pk)
-
-    # Використовуємо правильну фільтрацію учасників та поданих робіт з main
-    members = TeamMember.objects.filter(team=team).order_by('full_name')
-    submissions = Submission.objects.filter(team=team).select_related('round').prefetch_related('evaluations').order_by('-created_at')
+def tournament_dashboard(request):
+    # Шукаємо команду, де користувач є капітаном
+    managed_team = Team.objects.filter(captain=request.user).first()
+    # Шукаємо команду, де користувач є звичайним учасником
+    joined_team = Team.objects.filter(members=request.user).first()
     
-    #  логіка перевірки капітана 
-    is_captain = team.captain == request.user
+    # Отримуємо список доступних турнірів для запису
+    available_tournaments = Tournament.objects.all().order_by('-created_at')
 
-    # Повертаємо рендер, який містить усі необхідні для шаблону змінні
-    return render(
-        request,
-        'tournaments/team_detail.html',
-        {
-            'team': team,
-            'members': members,
-            'submissions': submissions,
-            'is_captain': is_captain,  
-        },
-    )
+    context = {
+        'managed_team': managed_team,
+        'joined_team': joined_team,
+        'available_tournaments': available_tournaments,
+    }
+    return render(request, 'tournaments/dashboard.html', context)
+
+@login_required
+def tournament_create(request):
+    if not request.user.is_admin_like and not request.user.is_superuser:
+        messages.error(request, "У вас немає прав для створення турнірів.")
+        return redirect('home')
+    
+    if request.method == 'POST':
+        form = TournamentForm(request.POST, request.FILES)
+        if form.is_valid():
+            tournament = form.save(commit=False)
+            tournament.creator = request.user
+            tournament.save()
+            messages.success(request, f"Турнір '{tournament.title}' створено!")
+            return redirect('dashboard')
+    else:
+        form = TournamentForm()
+    
+    return render(request, 'tournaments/tournament_form.html', {
+        'form': form, 
+        'title': 'Створення турніру'
+    })
+
+@login_required
+def tournament_edit(request, pk):
+    if not request.user.is_admin_like:
+        return redirect('home')
+    
+    tournament = get_object_or_404(Tournament, pk=pk)
+    if request.method == 'POST':
+        form = TournamentForm(request.POST, request.FILES, instance=tournament)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Параметри турніру оновлено")
+            return redirect('dashboard')
+    else:
+        form = TournamentForm(instance=tournament)
+    
+    return render(request, 'tournaments/tournament_form.html', {
+        'form': form, 
+        'title': 'Редагування турніру',
+        'tournament': tournament
+    })
+
+# ===================TEAM====================
+
 @login_required
 def create_team(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
@@ -360,7 +461,6 @@ def register_for_tournament(request, tournament_id):
     # Якщо все ок — відправляємо на створення команди
     return redirect('create_team', tournament_id=tournament.id)
 
-
 @login_required
 def team_dashboard(request):
     # Шукаємо команду, де поточний юзер є капітаном
@@ -369,8 +469,87 @@ def team_dashboard(request):
     if not team:
         messages.info(request, "Ви ще не створили команду.")
         return redirect('home')
+    
+    # Додати середні оцінки до submissions
+    submissions = []
+    for sub in team.submissions.all().select_related('round').prefetch_related('evaluations'):
+        evals = sub.evaluations.all()
+        if evals:
+            tech_avg = sum(e.tech_score for e in evals) / len(evals)
+            func_avg = sum(e.func_score for e in evals) / len(evals)
+            total_avg = (tech_avg + func_avg) / 2
+            sub.tech_avg = round(tech_avg, 1)
+            sub.func_avg = round(func_avg, 1)
+            sub.total_avg = round(total_avg, 1)
+            sub.eval_count = len(evals)
+        else:
+            sub.tech_avg = None
+            sub.func_avg = None
+            sub.total_avg = None
+            sub.eval_count = 0
+        submissions.append(sub)
+    
+    return render(request, 'tournaments/team_dashboard.html', {'team': team, 'submissions': submissions})
+
+@login_required
+def add_team_member(request, team_id):
+    team = get_object_or_404(Team, id=team_id)
+    
+    # ПЕРЕВІРКА №1: Тільки капітан може зайти сюди
+    if request.user != team.captain:
+        messages.error(request, "Тільки капітан команди може додавати учасників.")
+        # ОБОВ'ЯЗКОВО має бути return перед redirect
+        return redirect('team_detail', pk=team.id)
+
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        user_to_add = User.objects.filter(email=email).first()
         
-    return render(request, 'tournaments/team_dashboard.html', {'team': team})
+        if user_to_add:
+            TeamMember.objects.get_or_create(
+                team=team,
+                email=email,
+                defaults={
+                    'user': user_to_add,
+                    'full_name': getattr(user_to_add, 'full_name', email)
+                }
+            )
+            messages.success(request, f"Учасника {email} додано!")
+        else:
+            messages.error(request, "Користувача з таким email не знайдено.")
+            
+        # ОБОВ'ЯЗКОВО return після обробки форми
+        return redirect('team_detail', pk=team.id)
+
+    # ПЕРЕВІРКА №2: Рендер форми для GET запиту
+    # Цей рядок має бути в самому кінці функції без жодних відступів зліва
+    return render(request, 'tournaments/add_member.html', {'team': team})
+
+@login_required
+def team_detail(request, pk):
+# Використовуємо оптимізований запит з main (select_related економить ресурси)
+    team = get_object_or_404(Team.objects.select_related('captain', 'tournament'), pk=pk)
+
+    # Використовуємо правильну фільтрацію учасників та поданих робіт з main
+    members = TeamMember.objects.filter(team=team).order_by('full_name')
+    submissions = Submission.objects.filter(team=team).select_related('round').prefetch_related('evaluations').order_by('-created_at')
+    
+    #  логіка перевірки капітана 
+    is_captain = team.captain == request.user
+
+    # Повертаємо рендер, який містить усі необхідні для шаблону змінні
+    return render(
+        request,
+        'tournaments/team_detail.html',
+        {
+            'team': team,
+            'members': members,
+            'submissions': submissions,
+            'is_captain': is_captain,  
+        },
+    )
+
+# ===================ROUND====================
 
 @login_required
 def round_create(request, tournament_id):
@@ -438,6 +617,9 @@ def submission_create(request, team_id):
         'form': form, 
         'team': team
     })
+
+
+# ===================USER / STAFF====================
 
 @login_required
 def create_staff(request):
@@ -615,6 +797,7 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
 
+
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -652,6 +835,7 @@ class MyEvaluationsView(APIView):
         evaluations = Evaluation.objects.filter(jury=request.user).order_by('-created_at')
         return Response(EvaluationOutSerializer(evaluations, many=True).data)
 
+
 class AdminTeamDetailView(APIView):
     permission_classes = [IsAdmin]
 
@@ -660,6 +844,7 @@ class AdminTeamDetailView(APIView):
         team = get_object_or_404(Team, pk=team_id)
         team.delete()
         return Response({"detail": "Команду видалено з турніру"}, status=status.HTTP_204_NO_CONTENT)
+
 
 class AdminMemberDeleteView(APIView):
     permission_classes = [IsAdmin]
@@ -672,6 +857,7 @@ class AdminMemberDeleteView(APIView):
         member.delete()
         return Response({"detail": "Учасника видалено"}, status=status.HTTP_204_NO_CONTENT)
     
+
 class TournamentListCreateView(APIView):
     permission_classes = [AllowAny]
 
@@ -812,31 +998,19 @@ class DistributeWorksView(APIView):
         round_obj = Round.objects.filter(pk=round_id).first()
         if not round_obj:
             return Response({'detail': 'Round not found'}, status=status.HTTP_404_NOT_FOUND)
-        submissions = list(Submission.objects.filter(round=round_obj))
-        jury_members = list(User.objects.filter(role=UserRole.JURY))
-        if not jury_members:
+
+        K = int(request.data.get('k', 3))
+        try:
+            result = _distribute_round_assignments(round_obj, k=K)
+        except ValueError:
             return Response({'detail': 'Немає зареєстрованих членів журі'}, status=status.HTTP_400_BAD_REQUEST)
-        created = 0
-        for submission in submissions:
-            chosen = random.sample(jury_members, k=min(2, len(jury_members)))
-            for jury in chosen:
-                _, was_created = Evaluation.objects.get_or_create(
-                    submission=submission,
-                    jury=jury,
-                    defaults={'tech_score': 0, 'func_score': 0},
-                )
-                created += int(was_created)
-        return Response({'status': 'Роботи розподілено між журі', 'created_assignments': created})
 
+        return Response({
+            'status': 'Роботи розподілено між журі',
+            'k_per_submission': result['k_per_submission'],
+            'created_assignments': result['created_assignments'],
+        })
 
-class SubmissionCreateView(APIView):
-    permission_classes = [IsAuthenticatedJWT]
-
-    def post(self, request):
-        serializer = SubmissionCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        submission = serializer.save()
-        return Response(serializer.to_representation(submission), status=status.HTTP_201_CREATED)
 
 class ActiveTaskView(APIView):
     permission_classes = [IsAuthenticatedJWT]
@@ -861,3 +1035,96 @@ class ActiveTaskView(APIView):
 
         serializer = RoundCreateSerializer(active_round)
         return Response(serializer.data)
+
+# ===================SUBMISSION / JURY====================
+
+def _distribute_round_assignments(round_obj, k=3):
+    submissions = list(Submission.objects.filter(round=round_obj))
+    jury_members = list(User.objects.filter(role=UserRole.JURY, jury_tournaments=round_obj.tournament))
+    if not jury_members:
+        raise ValueError('Немає зареєстрованих членів журі')
+
+    k_actual = min(k, len(jury_members))
+    created = 0
+    for submission in submissions:
+        chosen = random.sample(jury_members, k=k_actual)
+        for jury in chosen:
+            _, was_created = Evaluation.objects.get_or_create(
+                submission=submission,
+                jury=jury,
+                defaults={'tech_score': 0, 'func_score': 0},
+            )
+            created += int(was_created)
+
+    return {
+        'k_per_submission': k_actual,
+        'created_assignments': created,
+        'submissions_count': len(submissions),
+    }
+
+
+def _auto_distribute_if_round_started(round_obj, k=3):
+    if round_obj.start_time > timezone.now():
+        return None
+
+    return _distribute_round_assignments(round_obj, k=k)
+
+class SubmissionCreateView(APIView):
+    permission_classes = [IsAuthenticatedJWT]
+
+    def post(self, request):
+        serializer = SubmissionCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        submission = serializer.save()
+
+        # Якщо раунд уже стартував, одразу запускаємо той самий алгоритм,
+        # що і в POST /api/rounds/<id>/distribute.
+        try:
+            _auto_distribute_if_round_started(submission.round, k=3)
+        except ValueError:
+            # Якщо журі ще не призначене - ігноруєм
+            pass
+
+        return Response(serializer.to_representation(submission), status=status.HTTP_201_CREATED)
+
+@login_required
+def evaluation_detail(request, eval_id):
+    if request.user.role != UserRole.JURY:
+        return redirect('dashboard')
+
+    evaluation = get_object_or_404(
+        Evaluation.objects.select_related('submission__team', 'submission__round'),
+        pk=eval_id,
+        jury=request.user,
+    )
+
+    if request.method == 'POST':
+        tech  = request.POST.get('tech_score', '').strip()
+        func  = request.POST.get('func_score', '').strip()
+        comment = request.POST.get('comment', '').strip()
+
+        errors = []
+        try:
+            tech_val = float(tech)
+            func_val = float(func)
+        except ValueError:
+            errors.append('Введіть числові значення оцінок.')
+
+        if not errors:
+            if not (0 <= tech_val <= 100) or not (0 <= func_val <= 100):
+                errors.append('Оцінки мають бути від 0 до 100.')
+
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+        else:
+            evaluation.tech_score = tech_val
+            evaluation.func_score = func_val
+            evaluation.comment    = comment
+            evaluation.save()
+            messages.success(request, 'Оцінку збережено!')
+            return redirect('dashboard')
+
+    return render(request, 'tournaments/evaluation_detail.html', {'evaluation': evaluation})
+
+

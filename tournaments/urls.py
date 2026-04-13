@@ -29,4 +29,6 @@ urlpatterns = [
     
     # Подача роботи (для капітана)
     path('team/<int:team_id>/submit/', views.submission_create, name='submission_create'),
+    
+    path('evaluation/<int:eval_id>/', views.evaluation_detail, name='evaluation_detail'),
 ]

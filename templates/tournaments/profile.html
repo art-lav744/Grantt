@@ -383,10 +383,11 @@
                     <td style="font-size:14px;">{{ sub.team.name }}</td>
                     <td style="font-size:13px; color:#6b7280;">{{ sub.created_at|date:"d.m.Y H:i" }}</td>
                     <td>
-                      {% if evals %}
-                        {% with count=evals|length %}
-                          <span class="sub-status scored">Оцінено ({{ count }})</span>
-                        {% endwith %}
+                      {% if sub.eval_count > 0 %}
+                        <div style="font-size:12px; color:#374151;">
+                          <strong>{{ sub.total_avg }}/100</strong><br>
+                          <span style="color:#6b7280;">Тех: {{ sub.tech_avg }} | Функ: {{ sub.func_avg }}</span>
+                        </div>
                       {% else %}
                         <span class="sub-status pending">На розгляді</span>
                       {% endif %}
