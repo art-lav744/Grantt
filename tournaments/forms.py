@@ -5,7 +5,9 @@ from django.conf import settings
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from .models import Submission, TeamMember, Tournament, User, UserRole, Round, Team
+from .utils import normalize_email_value, validate_allowed_email_domain, validate_password_complexity
 
 
 class RegisterForm(UserCreationForm):
@@ -25,14 +27,11 @@ class RegisterForm(UserCreationForm):
         self.fields['password2'].widget = forms.PasswordInput(render_value=True)
 
     def clean_email(self):
-        email = self.cleaned_data['email'].strip().lower()
-        domain = email.split('@')[-1]
-
-        if domain not in settings.ALLOWED_EMAIL_DOMAINS:
-            raise ValidationError(
-                'Дозволені лише email на: gmail.com, outlook.com, hotmail.com, '
-                'live.com, yahoo.com, icloud.com, ukr.net'
-            )
+        email = normalize_email_value(self.cleaned_data['email'])
+        try:
+            validate_allowed_email_domain(email)
+        except ValueError as exc:
+            raise ValidationError(exc.args[0])
 
         if User.objects.filter(email__iexact=email).exists():
             raise ValidationError('Користувач з таким email вже існує.')
@@ -47,21 +46,10 @@ class RegisterForm(UserCreationForm):
     def clean_password1(self):
         password = self.cleaned_data.get('password1')
         if password:
-            error_list = []
-            if len(password) < 8:
-                error_list.append('Пароль має містити щонайменше 8 символів.')
-            if not re.search(r'[A-Z]', password):
-                error_list.append('Додайте хоча б одну велику літеру.')
-            if not re.search(r'[a-z]', password):
-                error_list.append('Додайте хоча б одну малу літеру.')
-            if not re.search(r'[0-9]', password):
-                error_list.append('Додайте хоча б одну цифру.')
-            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-                error_list.append('Додайте хоча б один спеціальний символ.')
-
-            if error_list:
-                raise ValidationError(error_list)
-
+            try:
+                validate_password_complexity(password)
+            except ValueError as exc:
+                raise ValidationError(exc.args[0])
         return password
 
     def save(self, commit=True):
@@ -117,6 +105,10 @@ class TeamForm(forms.ModelForm):
         }
 
 class RoundForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.tournament = kwargs.pop('tournament', None)
+        super().__init__(*args, **kwargs)
+
     class Meta:
         model = Round
         fields = ['title', 'description', 'requirements', 'start_time', 'end_time']
@@ -127,6 +119,20 @@ class RoundForm(forms.ModelForm):
             'requirements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+
+        if start_time and end_time and end_time <= start_time:
+            self.add_error('end_time', 'Раунд не може завершитися раніше свого початку.')
+
+        if self.tournament is not None:
+            if self.tournament.max_rounds and self.tournament.rounds.count() >= self.tournament.max_rounds:
+                raise ValidationError(f'Досягнуто ліміту раундів для цього турніру ({self.tournament.max_rounds}).')
+
+        return cleaned_data
 
 class SubmissionForm(forms.ModelForm):
     class Meta:
@@ -160,7 +166,7 @@ class AddMemberForm(forms.Form):
         super().__init__(*args, **kwargs)
 
     def clean_email(self):
-        email = self.cleaned_data.get('email').lower().strip()
+        email = normalize_email_value(self.cleaned_data.get('email'))
         
         # 1. Перевірка, чи не намагається капітан додати самого себе
         if email == self.request_user.email.lower():
@@ -170,6 +176,7 @@ class AddMemberForm(forms.Form):
         user_to_add = User.objects.filter(email__iexact=email).first()
         if not user_to_add:
             raise ValidationError("Користувача з таким email не знайдено.")
+        self.user_instance = user_to_add
 
         # 2. Перевірка: чи цей користувач вже є в ЯКІЙСЬ команді ЦЬОГО турніру?
         tournament = self.team.tournament
@@ -201,13 +208,13 @@ class TeamMemberForm(forms.ModelForm):
         }
 
     def clean_email(self):
-        return self.cleaned_data['email'].strip().lower()
+        return normalize_email_value(self.cleaned_data['email'])
 
 
 class TournamentForm(forms.ModelForm):
     class Meta:
         model = Tournament
-        fields = ['title', 'description', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'cover_image']
+        fields = ['title', 'description', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'max_rounds', 'cover_image']
         widgets = {
             'reg_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
             'reg_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
@@ -217,19 +224,31 @@ class TournamentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Примусове форматування для коректного відображення при редагуванні
+        self.fields['max_rounds'].required = False
+        self.fields['cover_image'].required = False
+        if 'max_rounds' not in self.initial or self.initial.get('max_rounds') in (None, ''):
+            self.initial['max_rounds'] = 1
         date_fields = ['reg_start', 'reg_end', 'start_time', 'end_time']
         for field in date_fields:
             if self.instance and getattr(self.instance, field):
                 self.initial[field] = getattr(self.instance, field).strftime('%Y-%m-%dT%H:%M')
 
+    def clean_max_rounds(self):
+        value = self.cleaned_data.get('max_rounds') or 1
+        if value < 1:
+            raise ValidationError('Має бути щонайменше 1 раунд.')
+        return value
+
     def clean(self):
         cd = super().clean()
-        # Логічна перевірка ланцюжка дат
-        if cd.get('reg_end') <= cd.get('reg_start'):
+        reg_start = cd.get('reg_start')
+        reg_end = cd.get('reg_end')
+        start_time = cd.get('start_time')
+        end_time = cd.get('end_time')
+        if reg_start and reg_end and reg_end <= reg_start:
             self.add_error('reg_end', "Реєстрація не може закінчитися раніше початку")
-        if cd.get('start_time') < cd.get('reg_start'):
+        if reg_start and start_time and start_time < reg_start:
             self.add_error('start_time', "Турнір не може початися раніше реєстрації")
-        if cd.get('end_time') <= cd.get('start_time'):
+        if start_time and end_time and end_time <= start_time:
             self.add_error('end_time', "Турнір не може закінчитися раніше свого початку")
         return cd

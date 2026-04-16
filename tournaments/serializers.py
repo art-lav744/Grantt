@@ -11,7 +11,14 @@ from rest_framework import serializers
 from email_validator import EmailNotValidError, validate_email
 
 from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
-from .utils import contains_cyrillic, create_access_token, validate_password_complexity
+from .utils import (
+    contains_cyrillic,
+    create_access_token,
+    normalize_email_value,
+    tournament_registration_error,
+    validate_allowed_email_domain,
+    validate_password_complexity,
+)
 
 
 
@@ -46,16 +53,15 @@ class RegisterSerializer(serializers.ModelSerializer):
         if contains_cyrillic(value):
             raise serializers.ValidationError('Електронна адреса не повинна містити кирилиці.')
         
-        value = value.strip().lower()
+        value = normalize_email_value(value)
         # Django Validation
         django_validate_email(value)
 
         # Check - Email Domain
-        domain = value.split('@')[-1]
-        if domain not in settings.ALLOWED_EMAIL_DOMAINS:
-            raise serializers.ValidationError(
-                'Дозволені лише email на: gmail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, ukr.net'
-            )
+        try:
+            validate_allowed_email_domain(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(exc.args[0])
 
         # Check - Every email must be unique
         if User.objects.filter(email__iexact=value).exists():
@@ -77,7 +83,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, value):
-        return validate_password_complexity(value)
+        try:
+            return validate_password_complexity(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(exc.args[0])
 
     def create(self, validated_data):
         password = validated_data.pop('password')
@@ -128,7 +137,9 @@ class TournamentCreateSerializer(serializers.ModelSerializer):
             
         if data['end_time'] <= data['start_time']:
             raise serializers.ValidationError("Турнір не може завершитися раніше, ніж почнеться.")
-            
+        if data.get('max_rounds', 1) < 1:
+            raise serializers.ValidationError({'max_rounds': 'Має бути щонайменше 1 раунд.'})
+
         return data
 
 
@@ -140,7 +151,7 @@ class TournamentOutSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Tournament
-        fields = ('id', 'title', 'description', 'status', 'creator_id', 'reg_start', 'reg_end', 'max_teams', 'cover_image_path', 'teams_count')
+        fields = ('id', 'title', 'description', 'status', 'logical_status', 'creator_id', 'reg_start', 'reg_end', 'max_teams', 'max_rounds', 'cover_image_path', 'teams_count')
 
     def get_cover_image_path(self, obj):
         return obj.cover_image.url if obj.cover_image else None
@@ -159,7 +170,8 @@ class TeamOutSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'tournament_id', 'captain_email', 'captain_name', 'image_path')
 
     def get_image_path(self, obj):
-        return obj.image.url if obj.image else None
+        image = getattr(obj, 'image', None)
+        return image.url if image else None
 
 
 class TeamCreateSerializer(serializers.Serializer):
@@ -176,18 +188,16 @@ class TeamCreateSerializer(serializers.Serializer):
         except Tournament.DoesNotExist as exc:
             raise serializers.ValidationError('Турнір не знайдено') from exc
 #status
-        if tournament.status != TournamentStatus.REGISTRATION:
-            raise serializers.ValidationError('Реєстрація на цей турнір закрита або ще не почалася')
-#time
         now = timezone.now()
-        if tournament.reg_start and tournament.reg_end and not (tournament.reg_start <= now <= tournament.reg_end):
-            raise serializers.ValidationError('Ви поза межами реєстраційного вікна')
+        registration_error = tournament_registration_error(tournament, now=now)
+        if registration_error:
+            raise serializers.ValidationError(registration_error)
 #enough room
         current_teams_count = Team.objects.filter(tournament=tournament).count()
         if tournament.max_teams and current_teams_count >= tournament.max_teams:
             raise serializers.ValidationError(f'Усі місця на турнір зайняті (макс. {tournament.max_teams})')
 #captain email check
-        captain_email = attrs['captain_email'].lower()
+        captain_email = normalize_email_value(attrs['captain_email'])
         if Team.objects.filter(tournament=tournament, captain_email=captain_email).exists():
             raise serializers.ValidationError('Капітан з таким email вже має команду на цей турнір.')
 # Перевірка по User об'єкту для автентифікованих користувачів
@@ -200,7 +210,7 @@ class TeamCreateSerializer(serializers.Serializer):
         if total_people > tournament.max_team_members or total_people < tournament.min_team_members:
             raise serializers.ValidationError(f'Кількість учасників не відповідає вимогам (від {tournament.min_team_members} до {tournament.max_team_members}), зараз: {total_people}')
 #members count
-        all_emails = [captain_email] + [member['email'].lower() for member in members]
+        all_emails = [captain_email] + [normalize_email_value(member['email']) for member in members]
         duplicates = [email for email, count in Counter(all_emails).items() if count > 1]
         if duplicates:
             raise serializers.ValidationError('Один і той самий email вказано кілька разів')
@@ -220,14 +230,14 @@ class TeamCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         members_data = validated_data.pop('members', [])
         tournament = validated_data.pop('tournament')
-        validated_data['captain_email'] = validated_data['captain_email'].lower()
+        validated_data['captain_email'] = normalize_email_value(validated_data['captain_email'])
         team = Team.objects.create(
             tournament=tournament,
             captain=self.context['request'].user if self.context['request'].user.is_authenticated else None,
             **validated_data,
         )
         TeamMember.objects.bulk_create([
-            TeamMember(team=team, email=member['email'].lower(), full_name=member['full_name']) 
+            TeamMember(team=team, email=normalize_email_value(member['email']), full_name=member['full_name']) 
             for member in members_data
         ])
         return team
@@ -241,6 +251,9 @@ class RoundCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['end_time'] <= attrs['start_time']:
             raise serializers.ValidationError('Час завершення має бути пізніше за час початку')
+        tournament = attrs['tournament']
+        if tournament.max_rounds and tournament.rounds.count() >= tournament.max_rounds:
+            raise serializers.ValidationError({'tournament': f'Досягнуто ліміту раундів для цього турніру ({tournament.max_rounds}).'})
         return attrs
 
 

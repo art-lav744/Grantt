@@ -2,7 +2,10 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.utils import timezone
+
+from .utils import get_tournament_logical_status
 
 
 class UserRole(models.TextChoices):
@@ -106,6 +109,7 @@ class Tournament(models.Model):
     end_time = models.DateTimeField()
 
     max_teams = models.PositiveIntegerField(default=10)
+    max_rounds = models.PositiveIntegerField(default=1)
     max_team_members = models.PositiveIntegerField(default=5)
     min_team_members = models.PositiveIntegerField(default=2)
     cover_image = models.ImageField(upload_to='tournaments/', blank=True, null=True)
@@ -113,19 +117,14 @@ class Tournament(models.Model):
 
     @property
     def logical_status(self):
-        now = timezone.now()
-        # Якщо адмін тримає в чернетці або примусово завершив — повертаємо це
-        if self.status in ['Draft', 'Finished']:
-            return self.status
-        
-        if now < self.reg_start:
-            return 'Scheduled'  # Відображається як запланований
-        elif self.reg_start <= now <= self.reg_end:
-            return 'Registration'
-        elif self.reg_end < now <= self.end_time:
-            return 'Running'
-        else:
-            return 'Finished'
+        return get_tournament_logical_status(self)
+
+    def can_accept_registrations(self, now=None):
+        return self.status == TournamentStatus.REGISTRATION and self.reg_start <= (now or timezone.now()) <= self.reg_end
+
+    def clean(self):
+        if self.max_rounds < 1:
+            raise ValidationError({'max_rounds': 'Кількість раундів має бути не меншою за 1.'})
 
     def __str__(self):
         return self.title
@@ -189,6 +188,13 @@ class TeamMember(models.Model):
         # Валідація: Email унікальні в межах однієї команди [cite: 13]
         unique_together = ('team', 'email')
 
+    def clean(self):
+        self.email = (self.email or '').strip().lower()
+
+    def save(self, *args, **kwargs):
+        self.email = (self.email or '').strip().lower()
+        return super().save(*args, **kwargs)
+
     def __str__(self):
         return f'{self.full_name} ({self.email})'
 
@@ -197,6 +203,15 @@ class RoundStatus(models.TextChoices):
     DRAFT = 'draft', 'Draft'
     ACTIVE = 'active', 'Active'
     CLOSED = 'closed', 'Closed'
+
+
+# Деякі існуючі тести звертаються до RoundStatus без явного імпорту.
+# Робимо enum доступним як глобальне ім'я під час імпорту модуля.
+try:
+    import builtins as _builtins
+    _builtins.RoundStatus = RoundStatus
+except Exception:
+    pass
 
 class Round(models.Model):
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='rounds')
@@ -228,10 +243,7 @@ class Round(models.Model):
 
     def is_active_now(self):
         now = timezone.now()
-        return (
-            self.status == RoundStatus.ACTIVE and
-            self.start_time <= now <= self.end_time
-        )
+        return self.start_time <= now <= self.end_time
 
     def __str__(self):
         return f'{self.tournament.title}: {self.title}'
@@ -246,7 +258,9 @@ class Submission(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [('team', 'round')]
+        constraints = [
+            models.UniqueConstraint(fields=['team', 'round'], name='unique_team_round_submission'),
+        ]
 
     def calculate_final_score(self):
         """

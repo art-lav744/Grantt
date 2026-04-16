@@ -6,6 +6,7 @@ from datetime import datetime, timezone as dt_timezone
 import jwt
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.utils import timezone
 from PIL import Image
 from rest_framework import exceptions
 
@@ -16,8 +17,38 @@ PASSWORD_REQUIRE_NUMBER = True
 PASSWORD_REQUIRE_SPECIAL = True
 
 
+TOURNAMENT_MANUAL_STATUSES = {'draft', 'registration', 'open', 'closed', 'archived'}
+TOURNAMENT_LOGICAL_STATUS_LABELS = {
+    'draft': 'Draft',
+    'registration': 'Registration',
+    'open': 'Running',
+    'closed': 'Finished',
+    'archived': 'Archived',
+    'scheduled': 'Scheduled',
+    'finished': 'Finished',
+}
+
+
 def contains_cyrillic(value: str) -> bool:
     return bool(re.search(r'[Ѐ-ӿ]', value or ''))
+
+
+
+def normalize_email_value(value: str) -> str:
+    return (value or '').strip().lower()
+
+
+
+def validate_allowed_email_domain(value: str) -> str:
+    email = normalize_email_value(value)
+    domain = email.split('@')[-1]
+    if domain not in settings.ALLOWED_EMAIL_DOMAINS:
+        raise ValueError(
+            'Дозволені лише email на: gmail.com, outlook.com, hotmail.com, '
+            'live.com, yahoo.com, icloud.com, ukr.net'
+        )
+    return email
+
 
 
 def validate_password_complexity(value: str) -> str:
@@ -31,9 +62,72 @@ def validate_password_complexity(value: str) -> str:
         error_list.append('Пароль має містити хоча б один спеціальний символ')
 
     if error_list:
-        raise error_list
-    
+        raise ValueError(error_list)
+
     return value
+
+
+
+def get_tournament_logical_status(tournament, now=None) -> str:
+    now = now or timezone.now()
+
+    if tournament.status == 'draft':
+        return TOURNAMENT_LOGICAL_STATUS_LABELS['draft']
+    if tournament.status == 'archived':
+        return TOURNAMENT_LOGICAL_STATUS_LABELS['archived']
+    if tournament.status == 'closed':
+        return TOURNAMENT_LOGICAL_STATUS_LABELS['closed']
+
+    if now < tournament.reg_start:
+        return TOURNAMENT_LOGICAL_STATUS_LABELS['scheduled']
+    if tournament.reg_start <= now <= tournament.reg_end and tournament.status == 'registration':
+        return TOURNAMENT_LOGICAL_STATUS_LABELS['registration']
+    if tournament.start_time <= now <= tournament.end_time and tournament.status in {'registration', 'open'}:
+        return TOURNAMENT_LOGICAL_STATUS_LABELS['open']
+    if now > tournament.end_time:
+        return TOURNAMENT_LOGICAL_STATUS_LABELS['finished']
+
+    return TOURNAMENT_LOGICAL_STATUS_LABELS.get(tournament.status, tournament.status)
+
+
+
+def tournament_registration_error(tournament, now=None):
+    now = now or timezone.now()
+    if tournament.status != 'registration':
+        return 'Реєстрація на цей турнір закрита або ще не почалася.'
+    if not (tournament.reg_start <= now <= tournament.reg_end):
+        return 'Реєстрація на цей турнір поза межами реєстраційного вікна.'
+    return None
+
+
+
+def tournament_registration_is_open(tournament, now=None) -> bool:
+    return tournament_registration_error(tournament, now=now) is None
+
+
+
+def get_submission_score_summary(submission):
+    score_data = submission.calculate_final_score()
+    return {
+        'tech_avg': round(score_data['tech_avg'], 1) if score_data['tech_avg'] is not None else None,
+        'func_avg': round(score_data['func_avg'], 1) if score_data['func_avg'] is not None else None,
+        'total_avg': round(score_data['total'], 1) if score_data['total'] is not None else None,
+        'eval_count': submission.evaluations.count(),
+    }
+
+
+
+def attach_submission_score_summaries(submissions):
+    result = []
+    for submission in submissions:
+        summary = get_submission_score_summary(submission)
+        submission.tech_avg = summary['tech_avg']
+        submission.func_avg = summary['func_avg']
+        submission.total_avg = summary['total_avg']
+        submission.eval_count = summary['eval_count']
+        result.append(submission)
+    return result
+
 
 
 def create_access_token(user):
@@ -46,11 +140,13 @@ def create_access_token(user):
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
+
 def decode_access_token(token: str) -> dict:
     try:
         return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
     except jwt.PyJWTError as exc:
         raise exceptions.AuthenticationFailed('Invalid token') from exc
+
 
 
 def process_square_image(uploaded_file, target_size=400):
@@ -78,6 +174,7 @@ def process_square_image(uploaded_file, target_size=400):
     buffer = io.BytesIO()
     image.save(buffer, format='JPEG', quality=85)
     return ContentFile(buffer.getvalue(), name=f'{uuid.uuid4().hex}.jpg')
+
 
 
 def validate_raw_image(uploaded_file):
