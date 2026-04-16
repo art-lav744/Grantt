@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db.models import Q
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -118,7 +119,7 @@ class Tournament(models.Model):
         choices=TaskType.choices,
         default=TaskType.SINGLE
     )
-    max_rounds = models.PositiveIntegerField(default=4, verbose_name="Максимальна кількість раундів")
+    max_rounds = models.PositiveIntegerField(default=4, validators=[MinValueValidator(1)], verbose_name="Максимальна кількість раундів")
 
     @property
     def logical_status(self):
@@ -197,6 +198,32 @@ class TeamMember(models.Model):
     class Meta:
         # Валідація: Email унікальні в межах однієї команди [cite: 13]
         unique_together = ('team', 'email')
+
+    def clean(self):
+        if not self.team_id or not self.email:
+            return
+
+        normalized_email = self.email.strip().lower()
+        self.email = normalized_email
+
+        duplicate_in_other_team = TeamMember.objects.filter(
+            team__tournament=self.team.tournament,
+            email__iexact=normalized_email,
+        ).exclude(pk=self.pk).exists()
+
+        duplicate_as_captain = Team.objects.filter(
+            tournament=self.team.tournament,
+        ).filter(
+            Q(captain__email__iexact=normalized_email) | Q(captain_email__iexact=normalized_email)
+        ).exclude(pk=self.team_id).exists()
+
+        if duplicate_in_other_team or duplicate_as_captain:
+            from django.core.exceptions import ValidationError
+            raise ValidationError('Цей користувач уже перебуває в іншій команді цього турніру.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f'{self.full_name} ({self.email})'

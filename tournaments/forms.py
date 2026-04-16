@@ -160,7 +160,7 @@ class AddMemberForm(forms.Form):
         super().__init__(*args, **kwargs)
 
     def clean_email(self):
-        email = self.cleaned_data.get('email').lower().strip()
+        email = (self.cleaned_data.get('email') or '').lower().strip()
         
         # 1. Перевірка, чи не намагається капітан додати самого себе
         if email == self.request_user.email.lower():
@@ -218,6 +218,11 @@ class TournamentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['task_type'].required = False
+        self.fields['task_type'].initial = Tournament.TaskType.SINGLE
+        self.fields['max_rounds'].required = False
+        self.fields['max_rounds'].initial = 1
+
         # Примусове форматування для коректного відображення при редагуванні
         date_fields = ['reg_start', 'reg_end', 'start_time', 'end_time']
         for field in date_fields:
@@ -226,8 +231,13 @@ class TournamentForm(forms.ModelForm):
 
     def clean(self):
         cd = super().clean()
-        task_type = cd.get('task_type')
-        max_rounds = cd.get('max_rounds')
+        task_type = cd.get('task_type') or Tournament.TaskType.SINGLE
+        max_rounds = cd.get('max_rounds') or 1
+        cd['task_type'] = task_type
+        cd['max_rounds'] = max_rounds
+
+        if max_rounds is not None and max_rounds < 1:
+            self.add_error('max_rounds', 'Кількість раундів має бути не меншою за 1.')
         # Логічна перевірка ланцюжка дат
         if cd.get('reg_end') <= cd.get('reg_start'):
             self.add_error('reg_end', "Реєстрація не може закінчитися раніше початку")

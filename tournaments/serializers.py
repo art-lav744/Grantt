@@ -192,8 +192,9 @@ class TeamCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError('Капітан з таким email вже має команду на цей турнір.')
 # Перевірка по User об'єкту для автентифікованих користувачів
         if self.context.get('request') and self.context['request'].user.is_authenticated:
-            if Team.objects.filter(tournament=tournament, captain=self.context['request'].user).exists():
-                raise serializers.ValidationError('Ви вже маєте команду на цей турнір.')
+            request_user = self.context['request'].user
+            if Team.objects.filter(tournament=tournament, captain=request_user).exists() or TeamMember.objects.filter(team__tournament=tournament, user=request_user).exists() or TeamMember.objects.filter(team__tournament=tournament, email__iexact=request_user.email).exists():
+                raise serializers.ValidationError('Ви вже зареєстровані у команді на цей турнір.')
 #members email check
         members = attrs.get('members', [])
         total_people = len(members) + 1  # капітан + члени
@@ -227,7 +228,7 @@ class TeamCreateSerializer(serializers.Serializer):
             **validated_data,
         )
         TeamMember.objects.bulk_create([
-            TeamMember(team=team, email=member['email'].lower(), full_name=member['full_name']) 
+            TeamMember(team=team, email=member['email'].lower(), full_name=member['full_name'])
             for member in members_data
         ])
         return team
@@ -254,6 +255,18 @@ class SubmissionCreateSerializer(serializers.ModelSerializer):
         if round_obj.end_time < timezone.now():
             raise serializers.ValidationError('Час подачі робіт вичерпано або раунд не знайдено')
         return attrs
+
+    def create(self, validated_data):
+        submission, _ = Submission.objects.update_or_create(
+            team=validated_data['team'],
+            round=validated_data['round'],
+            defaults={
+                'github_link': validated_data['github_link'],
+                'video_link': validated_data['video_link'],
+                'description': validated_data['description'],
+            },
+        )
+        return submission
 
 
 class EvaluationOutSerializer(serializers.ModelSerializer):
