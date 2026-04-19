@@ -90,10 +90,17 @@ def get_tournament_logical_status(tournament, now=None) -> str:
     return TOURNAMENT_LOGICAL_STATUS_LABELS.get(tournament.status, tournament.status)
 
 
+def ensure_registration_open(tournament, raise_exception=True):
+    if tournament.status != TournamentStatus.REGISTRATION:
+        if raise_exception:
+            raise serializers.ValidationError('Реєстрація на цей турнір закрита або ще не почалася.')
+        return False
+    return True
+
 
 def tournament_registration_error(tournament, now=None):
     now = now or timezone.now()
-    if tournament.status != 'registration':
+    if tournament.status != TournamentStatus.REGISTRATION:
         return 'Реєстрація на цей турнір закрита або ще не почалася.'
     if not (tournament.reg_start <= now <= tournament.reg_end):
         return 'Реєстрація на цей турнір поза межами реєстраційного вікна.'
