@@ -4,14 +4,35 @@
 
 {% block content %}
 <div class="card">
-    <h1>Список турнірів</h1>
+
+    <h1>🏆 Турніри</h1>
+
+    <!-- 🔎 Filters -->
+    <div style="margin-bottom: 15px;">
+        <a href="?" class="btn">Всі</a>
+
+        <a href="?status=registration"
+           class="btn {% if status == 'registration' %}active{% endif %}">
+           🟢 Реєстрація
+        </a>
+
+        <a href="?status=running"
+           class="btn {% if status == 'running' %}active{% endif %}">
+           🔥 Активні
+        </a>
+
+        <a href="?status=finished"
+           class="btn {% if status == 'finished' %}active{% endif %}">
+           ⚫ Завершені
+        </a>
+    </div>
+
     {% if tournaments %}
         <table>
             <thead>
                 <tr>
                     <th>Назва</th>
-                    <th>Початок реєстрації</th>
-                    <th>Кінець реєстрації</th>
+                    <th>Реєстрація</th>
                     <th>Статус</th>
                     <th></th>
                 </tr>
@@ -20,16 +41,33 @@
                 {% for tournament in tournaments %}
                 <tr>
                     <td>{{ tournament.title }}</td>
-                    <td>{{ tournament.reg_start|default:"—" }}</td>
-                    <td>{{ tournament.reg_end|default:"—" }}</td>
-                    <td>{{ tournament.status }}</td>
-                    <td><a class="btn" href="{% url 'tournament_detail' tournament.id %}">Детальніше</a></td>
+
+                    <td>
+                        {{ tournament.reg_start|date:"d.m.Y" }} —
+                        {{ tournament.reg_end|date:"d.m.Y" }}
+                    </td>
+
+                    <td>
+                        {% if tournament.status == 'registration' %}
+                            🟢 Відкрита
+                        {% elif tournament.status == 'running' %}
+                            🔥 Йде
+                        {% else %}
+                            ⚫ Завершено
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <a class="btn" href="{% url 'tournament_detail' tournament.id %}">
+                            Детальніше
+                        </a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <p>Турнірів поки немає.</p>
+        <p>Нічого не знайдено.</p>
     {% endif %}
 </div>
 {% endblock %}

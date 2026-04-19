@@ -56,18 +56,6 @@ def home(request):
 
 
 
-def index(request):
-    now = timezone.now()
-    context = {
-        'reg_open': Tournament.objects.filter(reg_start__lte=now, reg_end__gte=now),
-        'running': Tournament.objects.filter(start_time__lte=now, end_time__gte=now),
-        'finished': Tournament.objects.filter(end_time__lt=now),
-        'now': now,
-    }
-    return render(request, 'index.html', context)
-
-
-
 def verify_email(request, uidb64, token):
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
@@ -217,8 +205,29 @@ def dashboard(request):
 
 
 def tournament_list(request):
-    tournaments = Tournament.objects.all().order_by('-created_at', '-id')
-    return render(request, 'tournaments/tournament_list.html', {'tournaments': tournaments})
+    now = timezone.now()
+    tournaments = Tournament.objects.all()
+
+    status = request.GET.get('status')
+
+    if status == 'registration':
+        tournaments = tournaments.filter(reg_start__lte=now, reg_end__gte=now)
+
+    elif status == 'running':
+        tournaments = tournaments.filter(start_time__lte=now, end_time__gte=now)
+
+    elif status == 'finished':
+        tournaments = tournaments.filter(end_time__lt=now)
+
+    elif status == 'upcoming':
+        tournaments = tournaments.filter(reg_start__gt=now)
+
+    tournaments = tournaments.order_by('-created_at', '-id')
+
+    return render(request, 'tournaments/tournament_list.html', {
+        'tournaments': tournaments,
+        'status': status
+    })
 
 
 
