@@ -25,6 +25,9 @@ urlpatterns = [
     path('teams/<int:team_id>/add-member/', views.add_team_member, name='add_member'),
     path('tournament/create/', views.tournament_create, name='tournament_create'),
     path('tournament/<int:pk>/edit/', views.tournament_edit, name='tournament_edit'),
+    path('tournament/<int:tournament_id>/files/upload/', views.tournament_file_upload, name='tournament_file_upload'),
+    path('tournament-files/<int:file_id>/open/', views.tournament_file_open, name='tournament_file_open'),
+    path('tournament-files/<int:file_id>/download/', views.tournament_file_download, name='tournament_file_download'),
     path('tournament/<int:tournament_id>/round/create/', views.round_create, name='round_create'),
     
     # Подача роботи (для капітана)

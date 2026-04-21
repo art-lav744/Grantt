@@ -1,5 +1,5 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -130,6 +130,33 @@ class Tournament(models.Model):
         return self.title
 
 
+
+
+class TournamentFileType(models.TextChoices):
+    GENERAL = 'general', 'Загальний файл'
+    RULES = 'rules', 'Регламент'
+    RESULTS = 'results', 'Результати'
+    OTHER = 'other', 'Інше'
+
+
+class TournamentFile(models.Model):
+    tournament = models.ForeignKey('Tournament', on_delete=models.CASCADE, related_name='files')
+    title = models.CharField(max_length=255)
+    file = models.FileField(
+        upload_to='tournament_files/',
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', '7z', 'png', 'jpg', 'jpeg'])],
+    )
+    file_type = models.CharField(max_length=20, choices=TournamentFileType.choices, default=TournamentFileType.GENERAL)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='uploaded_tournament_files')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-uploaded_at', '-id']
+
+    def __str__(self):
+        return f'{self.tournament.title}: {self.title}'
+
+
 class Team(models.Model):
     name = models.CharField(max_length=100)  # Перевірка унікальності імені в межах турніру буде через unique_together
     tournament = models.ForeignKey(
@@ -245,6 +272,9 @@ class Round(models.Model):
         now = timezone.now()
         return self.start_time <= now <= self.end_time
 
+    def accepts_submissions(self):
+        return self.start_time <= timezone.now() <= self.end_time
+
     def __str__(self):
         return f'{self.tournament.title}: {self.title}'
 
@@ -262,13 +292,15 @@ class Submission(models.Model):
             models.UniqueConstraint(fields=['team', 'round'], name='unique_team_round_submission'),
         ]
 
+    def clean(self):
+        super().clean()
+        if self.pk:  # тільки UPDATE
+            if self.round and not self.round.accepts_submissions():
+                raise ValidationError({
+                    'round': 'Подання або оновлення відповіді для цього раунду вже недоступне.'
+                })
+
     def calculate_final_score(self):
-        """
-        Обчислює агреговані оцінки журі для submission:
-        tech_avg = середнє tech_score
-        func_avg = середнє func_score
-        total = (tech_avg + func_avg) / 2
-        """
         evaluations = list(self.evaluations.all())
         if not evaluations:
             return {
@@ -280,6 +312,7 @@ class Submission(models.Model):
         tech_avg = sum(e.tech_score for e in evaluations) / len(evaluations)
         func_avg = sum(e.func_score for e in evaluations) / len(evaluations)
         total = (tech_avg + func_avg) / 2
+
         return {
             'tech_avg': tech_avg,
             'func_avg': func_avg,

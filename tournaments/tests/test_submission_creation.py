@@ -140,24 +140,13 @@ class SubmissionCreateViewTest(TestCase):
         self.assertEqual(sub.github_link, 'https://github.com/user/updated')
 
     def test_cannot_edit_after_deadline(self):
-
-
-
-
-
-        # TODO ОЧІКУЄТЬСЯ ПОМИЛКА — у view відсутня перевірка дедлайну
-
-
-
-
-        
         # (перевірка є лише в серіалайзері, але не у form view)
         closed_round = make_round(
-            self.tournament,# TODO
-            title='Закритий раунд',# TODO
-            start_time=timezone.now() - timedelta(hours=4),# TODO
-            end_time=timezone.now() - timedelta(hours=1),# TODO
-        )# TODO
+            self.tournament,
+            title='Закритий раунд',
+            start_time=timezone.now() - timedelta(hours=4),
+            end_time=timezone.now() - timedelta(hours=1),
+        )
         Submission.objects.create(
             team=self.team,
             round=closed_round,

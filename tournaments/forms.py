@@ -6,7 +6,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from .models import Submission, TeamMember, Tournament, User, UserRole, Round, Team
+from .models import Submission, TeamMember, Tournament, TournamentFile, TournamentFileType, User, UserRole, Round, Team
 from .utils import normalize_email_value, validate_allowed_email_domain, validate_password_complexity
 
 
@@ -108,6 +108,11 @@ class RoundForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.tournament = kwargs.pop('tournament', None)
         super().__init__(*args, **kwargs)
+
+        for field_name in ('start_time', 'end_time'):
+            value = getattr(self.instance, field_name, None)
+            if value:
+                self.initial[field_name] = timezone.localtime(value).strftime('%Y-%m-%dT%H:%M')
 
     class Meta:
         model = Round
@@ -231,7 +236,7 @@ class TournamentForm(forms.ModelForm):
         date_fields = ['reg_start', 'reg_end', 'start_time', 'end_time']
         for field in date_fields:
             if self.instance and getattr(self.instance, field):
-                self.initial[field] = getattr(self.instance, field).strftime('%Y-%m-%dT%H:%M')
+                self.initial[field] = timezone.localtime(getattr(self.instance, field)).strftime('%Y-%m-%dT%H:%M')
 
     def clean_max_rounds(self):
         value = self.cleaned_data.get('max_rounds') or 1
@@ -252,3 +257,25 @@ class TournamentForm(forms.ModelForm):
         if start_time and end_time and end_time <= start_time:
             self.add_error('end_time', "Турнір не може закінчитися раніше свого початку")
         return cd
+
+
+
+class TournamentFileForm(forms.ModelForm):
+    class Meta:
+        model = TournamentFile
+        fields = ['title', 'file_type', 'file']
+        labels = {
+            'title': 'Назва файлу',
+            'file_type': 'Тип файлу',
+            'file': 'Файл',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['file_type'].initial = TournamentFileType.GENERAL
+
+    def clean_file(self):
+        uploaded = self.cleaned_data.get('file')
+        if uploaded and uploaded.size > 20 * 1024 * 1024:
+            raise ValidationError('Максимальний розмір файлу — 20 МБ.')
+        return uploaded

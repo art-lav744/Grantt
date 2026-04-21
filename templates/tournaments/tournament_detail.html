@@ -103,3 +103,39 @@
     {% endif %}
 </div>
 {% endblock %}
+
+
+<div class="card">
+    <h2>📎 Файли турніру</h2>
+    {% if can_access_files %}
+        {% if files %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Назва</th>
+                        <th>Тип</th>
+                        <th>Дата</th>
+                        <th>Дії</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in files %}
+                    <tr>
+                        <td>{{ item.title }}</td>
+                        <td>{{ item.get_file_type_display }}</td>
+                        <td>{{ item.uploaded_at|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <a class="btn btn-secondary" style="padding: 5px 10px; font-size: 13px; width:auto; display:inline-block;" href="{% url 'tournament_file_open' item.id %}" target="_blank">Відкрити</a>
+                            <a class="btn" style="padding: 5px 10px; font-size: 13px; width:auto; display:inline-block;" href="{% url 'tournament_file_download' item.id %}">Завантажити</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Організатор ще не додав файли для цього турніру.</p>
+        {% endif %}
+    {% else %}
+        <p>Файли турніру доступні лише зареєстрованим командам під час активного раунду.</p>
+    {% endif %}
+</div>
