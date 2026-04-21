@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db.models import Avg, Count
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
@@ -20,8 +21,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .forms import AddMemberForm, ProfileEditForm, RegisterForm, RoundForm, SubmissionForm, TournamentForm
-from .models import Evaluation, Round, RoundStatus, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
+from .forms import AddMemberForm, ProfileEditForm, RegisterForm, RoundForm, SubmissionForm, TournamentFileForm, TournamentForm
+from .models import Evaluation, Round, RoundStatus, Submission, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole
 from .permissions import IsAdmin, IsAuthenticatedJWT, IsJury, IsOrganizerOrAdmin
 from .serializers import (
     EvaluationOutSerializer,
@@ -31,6 +32,7 @@ from .serializers import (
     SubmissionCreateSerializer,
     TeamCreateSerializer,
     TeamOutSerializer,
+    TournamentFileOutSerializer,
     TournamentCreateSerializer,
     TournamentOutSerializer,
     UserOutSerializer,
@@ -147,6 +149,16 @@ def _get_user_all_teams(user):
     return captain_teams, member_teams
 
 
+def _user_can_access_tournament_files(user, tournament):
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    if getattr(user, 'is_admin_like', False) or getattr(user, 'is_superuser', False):
+        return True
+    if _get_user_tournament_team(user, tournament) is None:
+        return False
+    return tournament.rounds.filter(start_time__lte=timezone.now(), end_time__gte=timezone.now()).exists()
+
+
 @login_required
 def profile_view(request):
     user = request.user
@@ -227,11 +239,14 @@ def tournament_detail(request, tournament_id):
     teams = tournament.teams.select_related('captain').all()
     rounds = tournament.rounds.order_by('start_time')
     user_team = _get_user_tournament_team(request.user, tournament)
+    can_access_files = _user_can_access_tournament_files(request.user, tournament)
     return render(request, 'tournaments/tournament_detail.html', {
         'tournament': tournament,
         'teams': teams,
         'rounds': rounds,
+        'files': tournament.files.select_related('uploaded_by').all() if can_access_files else [],
         'user_team': user_team,
+        'can_access_files': can_access_files,
     })
 
 
@@ -271,12 +286,19 @@ def tournament_edit(request, pk):
 
     tournament = get_object_or_404(Tournament, pk=pk)
     form = TournamentForm(request.POST or None, request.FILES or None, instance=tournament)
+    file_form = TournamentFileForm()
     if request.method == 'POST' and form.is_valid():
         form.save()
         messages.success(request, 'Параметри турніру оновлено')
         return redirect('dashboard')
 
-    return render(request, 'tournaments/tournament_form.html', {'form': form, 'title': 'Редагування турніру', 'tournament': tournament})
+    return render(request, 'tournaments/tournament_form.html', {
+        'form': form,
+        'file_form': file_form,
+        'title': 'Редагування турніру',
+        'tournament': tournament,
+        'files': tournament.files.select_related('uploaded_by').all(),
+    })
 
 
 @login_required
@@ -424,8 +446,8 @@ def submission_create(request, team_id):
         if round_obj.tournament_id != team.tournament_id:
             messages.error(request, 'Цей раунд не належить турніру вашої команди.')
             return redirect('team_detail', pk=team.id)
-        if round_obj.end_time < timezone.now() or timezone.now() < round_obj.start_time:
-            messages.error(request, 'Сабміт для цього раунду вже закритий!')
+        if not round_obj.accepts_submissions():
+            messages.error(request, 'Подання або оновлення відповіді для цього раунду вже недоступне.')
             return redirect('team_detail', pk=team.id)
 
         submission, created = Submission.objects.update_or_create(
@@ -441,6 +463,87 @@ def submission_create(request, team_id):
         return redirect('team_detail', pk=team.id)
 
     return render(request, 'tournaments/submission_form.html', {'form': form, 'team': team})
+
+
+@login_required
+def tournament_file_upload(request, tournament_id):
+    if not request.user.is_admin_like and not request.user.is_superuser:
+        messages.error(request, 'У вас немає прав для завантаження файлів до турніру.')
+        return redirect('home')
+
+    tournament = get_object_or_404(Tournament, pk=tournament_id)
+    if request.method != 'POST':
+        return redirect('dashboard')
+
+    form = TournamentFileForm(request.POST, request.FILES)
+    if form.is_valid():
+        tournament_file = form.save(commit=False)
+        tournament_file.tournament = tournament
+        tournament_file.uploaded_by = request.user
+        tournament_file.save()
+        messages.success(request, 'Файл турніру успішно завантажено.')
+    else:
+        for field_errors in form.errors.values():
+            for error in field_errors:
+                messages.error(request, error)
+
+    return redirect('dashboard')
+
+
+@login_required
+def tournament_file_download(request, file_id):
+    tournament_file = get_object_or_404(TournamentFile.objects.select_related('tournament'), pk=file_id)
+    if not _user_can_access_tournament_files(request.user, tournament_file.tournament):
+        messages.error(request, 'Файли турніру доступні лише зареєстрованим командам під час активного раунду.')
+        return redirect('tournament_detail', tournament_id=tournament_file.tournament_id)
+    if not tournament_file.file:
+        raise Http404('Файл не знайдено.')
+    return FileResponse(tournament_file.file.open('rb'), as_attachment=True, filename=tournament_file.file.name.split('/')[-1])
+
+
+@login_required
+def tournament_file_open(request, file_id):
+    tournament_file = get_object_or_404(TournamentFile.objects.select_related('tournament'), pk=file_id)
+    if not _user_can_access_tournament_files(request.user, tournament_file.tournament):
+        messages.error(request, 'Файли турніру доступні лише зареєстрованим командам під час активного раунду.')
+        return redirect('tournament_detail', tournament_id=tournament_file.tournament_id)
+    if not tournament_file.file:
+        raise Http404('Файл не знайдено.')
+    return FileResponse(tournament_file.file.open('rb'), as_attachment=False, filename=tournament_file.file.name.split('/')[-1])
+
+
+class TournamentFileListCreateView(APIView):
+    permission_classes = [IsAuthenticatedJWT]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsOrganizerOrAdmin()]
+        return [IsAuthenticatedJWT()]
+
+    def get(self, request, tournament_id):
+        tournament = get_object_or_404(Tournament, pk=tournament_id)
+        if not _user_can_access_tournament_files(request.user, tournament):
+            return Response({'detail': 'Файли турніру доступні лише зареєстрованим командам під час активного раунду.'}, status=status.HTTP_403_FORBIDDEN)
+        files = tournament.files.select_related('uploaded_by').all()
+        return Response(TournamentFileOutSerializer(files, many=True, context={'request': request}).data)
+
+    def post(self, request, tournament_id):
+        tournament = get_object_or_404(Tournament, pk=tournament_id)
+        uploaded = request.FILES.get('file')
+        if not uploaded:
+            return Response({'detail': 'File is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        title = (request.data.get('title') or uploaded.name).strip()
+        file_type = (request.data.get('file_type') or 'general').strip()
+        tournament_file = TournamentFile.objects.create(
+            tournament=tournament,
+            title=title,
+            file_type=file_type if file_type else 'general',
+            file=uploaded,
+            uploaded_by=request.user,
+        )
+        return Response(TournamentFileOutSerializer(tournament_file, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
 
 @login_required

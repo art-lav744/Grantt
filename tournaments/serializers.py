@@ -10,7 +10,7 @@ from rest_framework import serializers
 
 from email_validator import EmailNotValidError, validate_email
 
-from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentStatus, User, UserRole
+from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole
 from .utils import (
     contains_cyrillic,
     create_access_token,
@@ -264,8 +264,8 @@ class SubmissionCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         round_obj = attrs['round']
-        if round_obj.end_time < timezone.now():
-            raise serializers.ValidationError('Час подачі робіт вичерпано або раунд не знайдено')
+        if not round_obj.accepts_submissions():
+            raise serializers.ValidationError('Подання або оновлення відповіді для цього раунду вже недоступне')
         return attrs
 
 
@@ -281,3 +281,25 @@ class LeaderboardEntrySerializer(serializers.Serializer):
     tech_avg = serializers.FloatField()
     func_avg = serializers.FloatField()
     submissions_count = serializers.IntegerField()
+
+
+
+class TournamentFileOutSerializer(serializers.ModelSerializer):
+    file_url = serializers.SerializerMethodField()
+    uploaded_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TournamentFile
+        fields = ('id', 'tournament_id', 'title', 'file_type', 'file_url', 'uploaded_by_name', 'uploaded_at')
+
+    def get_file_url(self, obj):
+        request = self.context.get('request')
+        if not obj.file:
+            return None
+        url = obj.file.url
+        return request.build_absolute_uri(url) if request else url
+
+    def get_uploaded_by_name(self, obj):
+        if not obj.uploaded_by:
+            return None
+        return obj.uploaded_by.full_name or obj.uploaded_by.nickname or obj.uploaded_by.email

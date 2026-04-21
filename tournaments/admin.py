@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
-from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, User
+from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentFile, User
 
 
 @admin.register(User)
@@ -29,3 +29,5 @@ admin.site.register(TeamMember)
 admin.site.register(Round)
 admin.site.register(Submission)
 admin.site.register(Evaluation)
+
+admin.site.register(TournamentFile)
