@@ -65,4 +65,22 @@
 </div>
 {% endif %}
 </div>
+<script>
+    const taskTypeSelect = document.querySelector('select[name="task_type"]');
+    const maxRoundsInput = document.querySelector('input[name="max_rounds"]');
+
+    function adjustRounds() {
+        if (taskTypeSelect.value === 'single') {
+            maxRoundsInput.value = 1;
+            maxRoundsInput.readOnly = true; // Забороняємо змінювати
+            maxRoundsInput.style.backgroundColor = '#e9ecef';
+        } else {
+            maxRoundsInput.readOnly = false;
+            maxRoundsInput.style.backgroundColor = '#fff';
+        }
+    }
+
+    taskTypeSelect.addEventListener('change', adjustRounds);
+    window.addEventListener('load', adjustRounds); // Перевірка при завантаженні
+</script>
 {% endblock %}

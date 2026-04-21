@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
+from django.db.models import Q
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -7,6 +8,7 @@ from django.utils import timezone
 
 from .utils import get_tournament_logical_status
 
+from .choices import TASK_TYPES
 
 class UserRole(models.TextChoices):
     ADMIN = 'admin', 'Адміністратор'
@@ -85,6 +87,9 @@ class TournamentStatus(models.TextChoices):
 
 
 class Tournament(models.Model):
+    class TaskType(models.TextChoices):
+        SINGLE = 'single', 'Одне завдання'
+        MULTIPLE = 'multiple', 'Кілька завдань'
     title = models.CharField(max_length=255)
     description = models.TextField()
     status = models.CharField(
@@ -114,6 +119,12 @@ class Tournament(models.Model):
     min_team_members = models.PositiveIntegerField(default=2)
     cover_image = models.ImageField(upload_to='tournaments/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    task_type = models.CharField(
+        max_length=20,
+        choices=TaskType.choices,
+        default=TaskType.SINGLE
+    )
+    max_rounds = models.PositiveIntegerField(default=4, validators=[MinValueValidator(1)], verbose_name="Максимальна кількість раундів")
 
     @property
     def logical_status(self):
@@ -216,10 +227,29 @@ class TeamMember(models.Model):
         unique_together = ('team', 'email')
 
     def clean(self):
-        self.email = (self.email or '').strip().lower()
+        if not self.team_id or not self.email:
+            return
+
+        normalized_email = self.email.strip().lower()
+        self.email = normalized_email
+
+        duplicate_in_other_team = TeamMember.objects.filter(
+            team__tournament=self.team.tournament,
+            email__iexact=normalized_email,
+        ).exclude(pk=self.pk).exists()
+
+        duplicate_as_captain = Team.objects.filter(
+            tournament=self.team.tournament,
+        ).filter(
+            Q(captain__email__iexact=normalized_email) | Q(captain_email__iexact=normalized_email)
+        ).exclude(pk=self.team_id).exists()
+
+        if duplicate_in_other_team or duplicate_as_captain:
+            from django.core.exceptions import ValidationError
+            raise ValidationError('Цей користувач уже перебуває в іншій команді цього турніру.')
 
     def save(self, *args, **kwargs):
-        self.email = (self.email or '').strip().lower()
+        self.full_clean()
         return super().save(*args, **kwargs)
 
     def __str__(self):
@@ -240,7 +270,12 @@ try:
 except Exception:
     pass
 
+
 class Round(models.Model):
+    class TaskType(models.TextChoices):
+        SINGLE = 'single', 'Одне завдання'
+        MULTIPLE = 'multiple', 'Кілька завдань'
+
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='rounds')
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -274,6 +309,11 @@ class Round(models.Model):
 
     def accepts_submissions(self):
         return self.start_time <= timezone.now() <= self.end_time
+    task_type = models.CharField(
+            max_length=20, 
+            choices=TaskType.choices, 
+            default=TaskType.SINGLE
+        )
 
     def __str__(self):
         return f'{self.tournament.title}: {self.title}'

@@ -12,7 +12,7 @@
         
         <p style="color: #6b7280; margin-bottom: 25px;">
             Введіть <strong>Email</strong> користувача, якого ви хочете додати. 
-            <br><small>⚠️ Користувач вже має бути зареєстрований на платформі.</small>
+            <br><small>⚠️ Користувач вже має бути зареєстрований на платформі. Можна додавати і адміністраторів/журі, якщо вони не перебувають в іншій команді цього турніру.</small>
         </p>
 
         <form method="post">
@@ -25,7 +25,7 @@
                 <input 
                     type="email" 
                     id="id_email" 
-                    name="email"  placeholder="example@gmail.com" 
+                    name="email" value="{{ form.email.value|default:'' }}" placeholder="example@gmail.com" 
                     required 
                     style="width: 100%; padding: 12px; border: 2px solid #d1d5db; border-radius: 8px; font-size: 16px; transition: border-color 0.2s;"
                     onfocus="this.style.borderColor='#3b82f6'"

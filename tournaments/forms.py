@@ -171,7 +171,9 @@ class AddMemberForm(forms.Form):
         super().__init__(*args, **kwargs)
 
     def clean_email(self):
+
         email = normalize_email_value(self.cleaned_data.get('email'))
+
         
         # 1. Перевірка, чи не намагається капітан додати самого себе
         if email == self.request_user.email.lower():
@@ -219,20 +221,27 @@ class TeamMemberForm(forms.ModelForm):
 class TournamentForm(forms.ModelForm):
     class Meta:
         model = Tournament
-        fields = ['title', 'description', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'max_rounds', 'cover_image']
+        fields = ['title', 'description', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'task_type', 'max_rounds', 'cover_image']
         widgets = {
             'reg_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
             'reg_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
             'start_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
             'end_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
+            'max_rounds': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '10'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.fields['max_rounds'].required = False
         self.fields['cover_image'].required = False
         if 'max_rounds' not in self.initial or self.initial.get('max_rounds') in (None, ''):
             self.initial['max_rounds'] = 1
+        self.fields['task_type'].required = False
+        self.fields['task_type'].initial = Tournament.TaskType.SINGLE
+        self.fields['max_rounds'].initial = 1
+
+        # Примусове форматування для коректного відображення при редагуванні
         date_fields = ['reg_start', 'reg_end', 'start_time', 'end_time']
         for field in date_fields:
             if self.instance and getattr(self.instance, field):
@@ -251,6 +260,15 @@ class TournamentForm(forms.ModelForm):
         start_time = cd.get('start_time')
         end_time = cd.get('end_time')
         if reg_start and reg_end and reg_end <= reg_start:
+        task_type = cd.get('task_type') or Tournament.TaskType.SINGLE
+        max_rounds = cd.get('max_rounds') or 1
+        cd['task_type'] = task_type
+        cd['max_rounds'] = max_rounds
+
+        if max_rounds is not None and max_rounds < 1:
+            self.add_error('max_rounds', 'Кількість раундів має бути не меншою за 1.')
+        # Логічна перевірка ланцюжка дат
+        if cd.get('reg_end') <= cd.get('reg_start'):
             self.add_error('reg_end', "Реєстрація не може закінчитися раніше початку")
         if reg_start and start_time and start_time < reg_start:
             self.add_error('start_time', "Турнір не може початися раніше реєстрації")
@@ -279,3 +297,6 @@ class TournamentFileForm(forms.ModelForm):
         if uploaded and uploaded.size > 20 * 1024 * 1024:
             raise ValidationError('Максимальний розмір файлу — 20 МБ.')
         return uploaded
+        if task_type == 'single' and max_rounds and max_rounds > 1:
+            self.add_error('max_rounds', "Для типу 'Одне завдання' кількість раундів має бути 1.")
+        return cd
