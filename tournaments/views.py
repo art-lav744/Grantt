@@ -386,6 +386,10 @@ def add_team_member(request, team_id):
         messages.error(request, 'Тільки капітан команди може додавати учасників.')
         return redirect('team_detail', pk=team.id)
 
+    if not ensure_registration_open(team.tournament, raise_exception=False):
+        messages.error(request, 'Реєстрація на турнір вже закінчилася. Ви не можете додавати нових учасників.')
+        return redirect('team_detail', pk=team.id)
+
     form = AddMemberForm(request.POST or None, team=team, user=request.user)
     if request.method == 'POST':
         if form.is_valid():
