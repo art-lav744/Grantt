@@ -10,7 +10,7 @@ from rest_framework import serializers
 
 from email_validator import EmailNotValidError, validate_email
 
-from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole
+from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole, UserNotification, TeamInvite
 from .utils import (
     contains_cyrillic,
     create_access_token,
@@ -303,3 +303,8 @@ class TournamentFileOutSerializer(serializers.ModelSerializer):
         if not obj.uploaded_by:
             return None
         return obj.uploaded_by.full_name or obj.uploaded_by.nickname or obj.uploaded_by.email
+
+class UserNotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserNotification
+        fields = ['id', 'title', 'message', 'link', 'is_read', 'created_at']
