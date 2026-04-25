@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Успішне приєднання{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 80px auto; text-align: center;">
+    <div class="card" style="padding: 40px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: none; background: white;">
+        <div style="font-size: 60px; margin-bottom: 20px;">🎉</div>
+        
+        <h2 style="color: #28a745; margin-bottom: 15px;">Вітаємо!</h2>
+        
+        <p style="font-size: 1.2em; color: #333; line-height: 1.6;">
+            Тепер ви офіційний учасник команди <br>
+            <strong style="color: #007bff; font-size: 1.3em;">"{{ team.name }}"</strong>
+        </p>
+
+        <p style="color: #666; margin-bottom: 30px;">
+            Ви можете переглядати завдання, спілкуватися з капітаном та брати участь у турнірах цієї команди.
+        </p>
+
+        <a href="{% url 'team_dashboard' %}" class="btn" style="
+            display: inline-block;
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 14px 30px;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        ">
+            🚀 Перейти в кабінет
+        </a>
+    </div>
+</div>
+
+<style>
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+    }
+</style>
+{% endblock %}
