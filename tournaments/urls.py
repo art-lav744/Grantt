@@ -34,4 +34,7 @@ urlpatterns = [
     path('team/<int:team_id>/submit/', views.submission_create, name='submission_create'),
     
     path('evaluation/<int:eval_id>/', views.evaluation_detail, name='evaluation_detail'),
+
+    path('teams/<int:team_id>/send-invite/', views.send_invite_action, name='send_invite_action'),
+    path('invite/accept/<uuid:invite_id>/', views.process_invite_link, name='process_invite_link'),
 ]
