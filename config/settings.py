@@ -119,3 +119,5 @@ ALLOWED_EMAIL_DOMAINS = [
     'icloud.com',
     'ukr.net',
 ]
+
+SITE_URL = 'http://127.0.0.1:8000'
