@@ -1,7 +1,7 @@
 import random
 import secrets
 import string
-
+#new_one
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
@@ -20,9 +20,9 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+#new_one
 from .forms import AddMemberForm, ProfileEditForm, RegisterForm, RoundForm, SubmissionForm, TournamentFileForm, TournamentForm
-from .models import Evaluation, Round, RoundStatus, Submission, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole
+from .models import Evaluation, Round, RoundStatus, Submission, Team, TeamMember, TeamInvite, UserNotification, Tournament, TournamentFile, TournamentStatus, User, UserRole
 from .permissions import IsAdmin, IsAuthenticatedJWT, IsJury, IsOrganizerOrAdmin
 from .serializers import (
     EvaluationOutSerializer,
@@ -43,6 +43,7 @@ from .utils import (
     process_square_image,
     tournament_registration_error,
     validate_raw_image,
+    send_membership_invite_email,
 )
 
 
@@ -364,7 +365,7 @@ def register_for_tournament(request, tournament_id):
 
     return redirect('create_team', tournament_id=tournament.id)
 
-
+#new_one
 @login_required
 def team_dashboard(request):
     team = Team.objects.filter(captain=request.user).select_related('tournament').first()
@@ -376,7 +377,8 @@ def team_dashboard(request):
 
     submissions = team.submissions.select_related('round').prefetch_related('evaluations').order_by('-created_at')
     submissions = attach_submission_score_summaries(submissions)
-    return render(request, 'tournaments/team_dashboard.html', {'team': team, 'submissions': submissions})
+    notifications = request.user.notifications.all()[:10] # останні 10 сповіщень
+    return render(request, 'tournaments/team_dashboard.html', {'user_notifications': notifications, 'team': team, 'submissions': submissions})
 
 
 @login_required
@@ -519,6 +521,60 @@ def tournament_file_open(request, file_id):
     if not tournament_file.file:
         raise Http404('Файл не знайдено.')
     return FileResponse(tournament_file.file.open('rb'), as_attachment=False, filename=tournament_file.file.name.split('/')[-1])
+
+
+#new_one
+# 1. Створення запрошення
+def send_invite_action(request, team_id):
+    team = get_object_or_404(Team, id=team_id)
+    email = request.POST.get('email')
+    
+    # Створюємо об'єкт запрошення
+    invite = TeamInvite.objects.create(
+        team=team,
+        email=email,
+        inviter=request.user
+    )
+    
+    # Відправляємо Email
+    send_membership_invite_email(invite)
+    
+    # Якщо користувач з таким email вже є в системі, створюємо внутрішнє сповіщення
+    invited_user = User.objects.filter(email=email).first()
+    if invited_user:
+        UserNotification.objects.create(
+            user=invited_user,
+            title="Нове запрошення",
+            message=f"Вас запрошено до команди {team.name}",
+            link=f"/invite/accept/{invite.id}/"
+        )
+    
+    messages.success(request, "Запрошення надіслано!")
+    return redirect('team_detail', pk=team_id)
+
+# 2. Прийняття запрошення (те, що відкриється з Gmail)
+def process_invite_link(request, invite_id):
+    invite = get_object_or_404(TeamInvite, id=invite_id, is_active=True)
+    
+    # Перевіряємо, чи користувач залогінений під тим самим email
+    if request.user.is_authenticated:
+        if request.user.email.lower() != invite.email.lower():
+            messages.error(request, "Цей інвайт призначений для іншої пошти.")
+            return redirect('home')
+        
+        # Додаємо в команду (використовуємо вашу існуючу модель TeamMember)
+        TeamMember.objects.get_or_create(team=invite.team, user=request.user)
+        
+        # Деактивуємо запрошення
+        invite.is_active = False
+        invite.save()
+        
+        messages.success(request, f"Ви приєдналися до команди {invite.team.name}!")
+        return redirect('team_dashboard')
+    else:
+        # Якщо не залогінений — відправляємо на реєстрацію/логін
+        messages.info(request, "Будь ласка, увійдіть в акаунт, щоб прийняти запрошення.")
+        return redirect('login')
 
 
 class TournamentFileListCreateView(APIView):
