@@ -1,3 +1,5 @@
+#new_import_uuid
+import uuid
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
 from django.db import models
@@ -71,6 +73,10 @@ class User(AbstractUser):
     @property
     def is_jury_like(self):
         return self.role in {UserRole.JURY, UserRole.ORGANIZER}
+
+    @property
+    def unread_notifications_count(self):
+        return self.notifications.filter(is_read=False).count()
 
     def __str__(self):
         return self.email
@@ -330,3 +336,28 @@ class Evaluation(models.Model):
 
     class Meta:
         unique_together = [('submission', 'jury')]
+
+#new_one
+# Модель для запрошень
+class TeamInvite(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    team = models.ForeignKey('Team', on_delete=models.CASCADE, related_name='sent_invites')
+    email = models.EmailField()
+    inviter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Invite to {self.email} for {self.team.name}"
+
+# Модель для внутрішніх сповіщень
+class UserNotification(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    link = models.CharField(max_length=255, blank=True, null=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at'][('submission', 'jury')]
