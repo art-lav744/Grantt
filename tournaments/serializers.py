@@ -161,12 +161,6 @@ class TeamMemberCreateSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=255)
     email = serializers.EmailField()
 
-    def validate(self, attrs):
-        team = self.context.get('team')
-
-        ensure_registration_open(team.tournament)
-
-        return attrs
 
 
 class TeamOutSerializer(serializers.ModelSerializer):
