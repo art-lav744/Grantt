@@ -383,29 +383,40 @@ def team_dashboard(request):
 
 @login_required
 def add_team_member(request, team_id):
-    team = get_object_or_404(Team, id=team_id)
-    if request.user != team.captain:
-        messages.error(request, 'Тільки капітан команди може додавати учасників.')
-        return redirect('team_detail', pk=team.id)
-
-    form = AddMemberForm(request.POST or None, team=team, user=request.user)
+    team = get_object_or_404(Team, id=team_id, captain=request.user)
+    
     if request.method == 'POST':
-        if form.is_valid():
-            email = form.cleaned_data['email']
-            user_to_add = getattr(form, 'user_instance', None)
-            TeamMember.objects.get_or_create(
+        email = request.POST.get('email', '').strip().lower()
+        
+        if email:
+            # 1. Створюємо об'єкт запрошення (TeamInvite)
+            invite, created = TeamInvite.objects.get_or_create(
                 team=team,
                 email=email,
-                defaults={'user': user_to_add, 'full_name': getattr(user_to_add, 'full_name', '') or getattr(user_to_add, 'nickname', '') or email},
+                inviter=request.user,
+                is_active=True
             )
-            messages.success(request, f'Учасника {email} додано!')
-            return redirect('team_detail', pk=team.id)
-        for errors in form.errors.values():
-            for error in errors:
-                messages.error(request, error)
-            return redirect('team_detail', pk=team.id)
+            
+            # 2. Відправляємо Email (функція з вашого utils.py)
+            try:
+                send_membership_invite_email(invite)
+                messages.success(request, f"Запрошення для {email} надіслано!")
+            except Exception as e:
+                messages.error(request, f"Помилка при відправці пошти: {e}")
 
-    return render(request, 'tournaments/add_member.html', {'team': team, 'form': form})
+            # 3. Якщо користувач вже є в системі, створюємо внутрішнє сповіщення
+            target_user = User.objects.filter(email=email).first()
+            if target_user:
+                UserNotification.objects.create(
+                    user=target_user,
+                    title="Нове запрошення до команди",
+                    message=f"Вас запросили приєднатися до команди {team.name}",
+                    link=reverse('process_invite_link', args=[invite.id])
+                )
+            
+            return redirect('team_detail', pk=team.id)
+            
+    return render(request, 'add_member.html', {'team': team})
 
 
 @login_required
