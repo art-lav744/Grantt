@@ -11,11 +11,15 @@
 
                 <form method="post" action="{% url 'send_invite_action' team.id %}">
                     {% csrf_token %}
+                    <div class="form-group">
+                        <label for="email">Email учасника:</label>
+                        <input type="email" name="email" id="email" class="form-control" required placeholder="example@gmail.com">
+                    </div>
                     <div class="mt-4">
                         <button type="submit" class="btn btn-success">Надіслати запрошення</button>
                         <a href="{% url 'team_detail' team.id %}" class="btn btn-link text-secondary">Скасувати</a>
                     </div>
-                </form>
+                </form>>
 
                 <div style="margin-top: 20px; padding: 15px; background: #eef7ff; border-radius: 8px;">
                     <small>ℹ️ Учасник отримає лист на Gmail із посиланням для вступу в команду.</small>
