@@ -10,6 +10,7 @@ from django.utils import timezone
 from PIL import Image
 from rest_framework import exceptions
 
+
 ALLOWED_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
 MAX_FILE_SIZE_MB = 5
 PASSWORD_MIN_LENGTH = 8
@@ -90,7 +91,10 @@ def get_tournament_logical_status(tournament, now=None) -> str:
     return TOURNAMENT_LOGICAL_STATUS_LABELS.get(tournament.status, tournament.status)
 
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 def tournament_registration_error(tournament, now=None):
     now = now or timezone.now()
     if tournament.status != 'registration':
@@ -109,10 +113,19 @@ def tournament_registration_is_open(tournament, now=None) -> bool:
 def get_submission_score_summary(submission):
     score_data = submission.calculate_final_score()
     return {
-        'tech_avg': round(score_data['tech_avg'], 1) if score_data['tech_avg'] is not None else None,
-        'func_avg': round(score_data['func_avg'], 1) if score_data['func_avg'] is not None else None,
+        'criteria': [
+            {
+                'id': item['id'],
+                'name': item['name'],
+                'max_score': item['max_score'],
+                'average': round(item['average'], 1),
+            }
+            for item in score_data['criteria']
+        ],
         'total_avg': round(score_data['total'], 1) if score_data['total'] is not None else None,
-        'eval_count': submission.evaluations.count(),
+        'raw_total': round(score_data['raw_total'], 1) if score_data['raw_total'] is not None else None,
+        'max_total': round(score_data['max_total'], 1) if score_data['max_total'] is not None else None,
+        'eval_count': 1 if hasattr(submission, 'evaluation') else 0,
     }
 
 
@@ -121,9 +134,14 @@ def attach_submission_score_summaries(submissions):
     result = []
     for submission in submissions:
         summary = get_submission_score_summary(submission)
-        submission.tech_avg = summary['tech_avg']
-        submission.func_avg = summary['func_avg']
+        submission.criteria_summary = summary['criteria']
+        submission.criteria_preview = ', '.join(
+            f"{item['name']}: {item['average']}/{item['max_score']}"
+            for item in summary['criteria']
+        )
         submission.total_avg = summary['total_avg']
+        submission.raw_total = summary['raw_total']
+        submission.max_total = summary['max_total']
         submission.eval_count = summary['eval_count']
         result.append(submission)
     return result

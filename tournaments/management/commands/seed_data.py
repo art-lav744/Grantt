@@ -153,6 +153,10 @@ class Command(BaseCommand):
                 },
             )
             round1.save()
+            round1.set_scoring_criteria([
+                {'name': 'Technical', 'max_score': 100},
+                {'name': 'Functionality', 'max_score': 100},
+            ])
 
             # Submissions for each team
             submissions = []
@@ -169,24 +173,84 @@ class Command(BaseCommand):
                 submission.save()
                 submissions.append(submission)
 
-            # Distribute works to jury: create Evaluation rows
+            # Distribute works to jury: create Evaluation rows (one jury per submission)
             jury_members = list(User.objects.filter(role=UserRole.JURY, jury_tournaments=tournament))
             if jury_members:
-                k_actual = min(3, len(jury_members))
                 for s_idx, submission in enumerate(submissions):
-                    chosen = random.sample(jury_members, k=k_actual)
-                    for jury in chosen:
-                        Evaluation.objects.get_or_create(
-                            submission=submission,
-                            jury=jury,
-                            defaults={'tech_score': 0, 'func_score': 0},
-                        )
+                    chosen_jury = random.choice(jury_members)
+                    evaluation, _ = Evaluation.objects.get_or_create(
+                        submission=submission,
+                        defaults={
+                            'jury': chosen_jury,
+                        },
+                    )
+                    evaluation.ensure_score_entries()
 
-                    # No null score
-                    if t_idx == 0 and s_idx == 0 and chosen:
-                        Evaluation.objects.filter(submission=submission, jury=chosen[0]).update(
-                            tech_score=80, func_score=70
+                    # No null score - only for first tournament and first submission
+                    if t_idx == 0 and s_idx == 0:
+                        evaluation = Evaluation.objects.get(submission=submission)
+                        score_map = {'Technical': 80, 'Functionality': 70}
+                        for item in evaluation.ensure_score_entries():
+                            item.score = score_map.get(item.criterion.name, 0)
+                            item.save(update_fields=['score'])
+
+            # === FOR TOURNAMENT #3: Add a second round with different criteria ===
+            if t_idx == 2:
+                round2, _ = Round.objects.get_or_create(
+                    tournament=tournament,
+                    title='Round 2 - Final',
+                    defaults={
+                        'description': 'Final Round - Advanced Features',
+                        'requirements': 'Implement advanced features and optimizations',
+                        'start_time': now - timedelta(days=1),
+                        'end_time': now - timedelta(hours=1),  # Finished
+                        'status': 'closed',
+                    },
+                )
+                round2.save()
+                round2.set_scoring_criteria([
+                    {'name': 'Code Quality', 'max_score': 100},
+                    {'name': 'Innovation', 'max_score': 100},
+                    {'name': 'Performance', 'max_score': 100},
+                ])
+
+                # Submissions for round 2
+                round2_submissions = []
+                for (team, label) in [(team1, '1'), (team2, '2')]:
+                    submission, _ = Submission.objects.get_or_create(
+                        team=team,
+                        round=round2,
+                        defaults={
+                            'github_link': f'https://github.com/example/final-submission-{t_idx + 1}-{label}',
+                            'video_link': f'https://www.youtube.com/watch?v=final{t_idx + 1}{label}',
+                            'description': f'Final Submission {t_idx + 1}-{label} with advanced features',
+                        },
+                    )
+                    submission.save()
+                    round2_submissions.append(submission)
+
+                # Evaluate round 2 submissions with scores
+                if jury_members:
+                    for s_idx, submission in enumerate(round2_submissions):
+                        chosen_jury = random.choice(jury_members)
+                        evaluation, _ = Evaluation.objects.get_or_create(
+                            submission=submission,
+                            defaults={
+                                'jury': chosen_jury,
+                            },
                         )
+                        evaluation.ensure_score_entries()
+                        
+                        # Add scores for round 2
+                        evaluation = Evaluation.objects.get(submission=submission)
+                        score_map = {
+                            'Code Quality': 85 + (s_idx * 5),
+                            'Innovation': 75 + (s_idx * 8),
+                            'Performance': 90 + (s_idx * 3),
+                        }
+                        for item in evaluation.ensure_score_entries():
+                            item.score = score_map.get(item.criterion.name, 0)
+                            item.save(update_fields=['score'])
 
         # === Final message ===
         self.stdout.write(self.style.SUCCESS('Seed data created successfully!'))
@@ -200,6 +264,8 @@ class Command(BaseCommand):
             self.stdout.write(f'    Participant {idx}: {spec[0]} / {password}')
 
         self.stdout.write('\n  Tournaments:')
-        for t in created_tournaments:
+        for idx, t in enumerate(created_tournaments, start=1):
             teams = list(Team.objects.filter(tournament=t).values_list('name', flat=True))
-            self.stdout.write(f'    {t.title} | Teams: {", ".join(teams)}')
+            rounds_count = t.rounds.count()
+            extra_note = ' ⭐ (Completed leaderboard with 2 rounds!)' if idx == 3 else ''
+            self.stdout.write(f'    {t.title} | Teams: {", ".join(teams)} | Rounds: {rounds_count}{extra_note}')

@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tournament.title }} - Таблиця лідерів{% endblock %}
+
+{% block content %}
+<style>
+    .leaderboard-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .leaderboard-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .leaderboard-header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        color: #333;
+    }
+    
+    .tournament-status {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        margin-bottom: 20px;
+    }
+    
+    .status-final {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .status-live {
+        background-color: #ffc107;
+        color: #333;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .leaderboard-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 20px;
+    }
+    
+    .leaderboard-table thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .leaderboard-table th {
+        padding: 16px;
+        text-align: left;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    
+    .leaderboard-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .leaderboard-table tbody tr {
+        transition: background-color 0.3s ease;
+    }
+    
+    .leaderboard-table tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .rank-cell {
+        font-weight: 700;
+        font-size: 1.1em;
+        width: 50px;
+        text-align: center;
+    }
+    
+    .rank-1 { color: #ffd700; }
+    .rank-2 { color: #c0c0c0; }
+    .rank-3 { color: #cd7f32; }
+    
+    .medal {
+        margin-right: 8px;
+    }
+    
+    .team-name {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .team-name-link {
+        color: #667eea;
+        text-decoration: none;
+    }
+    
+    .team-name-link:hover {
+        text-decoration: underline;
+    }
+    
+    .score-cell {
+        text-align: center;
+        font-weight: 600;
+        font-size: 1.05em;
+    }
+    
+    .score-high {
+        color: #28a745;
+    }
+    
+    .score-medium {
+        color: #ffc107;
+    }
+    
+    .score-low {
+        color: #dc3545;
+    }
+    
+    .criteria-breakdown {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        font-size: 0.85em;
+    }
+    
+    .criterion-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        color: #555;
+        font-size: 0.8em;
+    }
+    
+    .stats-cell {
+        text-align: center;
+        font-size: 0.9em;
+        color: #666;
+    }
+    
+    .empty-leaderboard {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+    
+    .empty-leaderboard-icon {
+        font-size: 3em;
+        margin-bottom: 20px;
+    }
+    
+    .back-button {
+        display: inline-block;
+        margin-bottom: 20px;
+        padding: 10px 20px;
+        background-color: #f0f0f0;
+        color: #333;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+    }
+    
+    .back-button:hover {
+        background-color: #e0e0e0;
+    }
+</style>
+
+<div class="leaderboard-container">
+    <a href="{% url 'tournament_detail' tournament.id %}" class="back-button">← Назад до турніру</a>
+    
+    <div class="leaderboard-header">
+        <h1>{{ tournament.title }}</h1>
+        <span class="tournament-status {% if is_final %}status-final{% else %}status-live{% endif %}">
+            {% if is_final %}
+                ✓ Турнір завершено
+            {% else %}
+                🔴 Живе оновлення
+            {% endif %}
+        </span>
+        <p style="color: #666; margin-top: 10px;">Таблиця лідерів оновлюється в реальному часі</p>
+    </div>
+    
+    {% if leaderboard %}
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Місце</th>
+                    <th>Команда</th>
+                    <th>Середній бал</th>
+                    <th>Загальний результат</th>
+                    <th>Критерії оцінювання</th>
+                    <th>Статистика</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in leaderboard %}
+                <tr>
+                    <td class="rank-cell">
+                        {% if entry.rank == 1 %}
+                            <span class="medal rank-1">🥇</span>
+                        {% elif entry.rank == 2 %}
+                            <span class="medal rank-2">🥈</span>
+                        {% elif entry.rank == 3 %}
+                            <span class="medal rank-3">🥉</span>
+                        {% else %}
+                            <span class="rank-{{ entry.rank }}">{{ entry.rank }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'team_detail' entry.team.id %}" class="team-name-link team-name">
+                            {{ entry.team_name }}
+                        </a>
+                    </td>
+                    <td class="score-cell">
+                        {% if entry.average_score >= 80 %}
+                            <span class="score-high">{{ entry.average_score }}%</span>
+                        {% elif entry.average_score >= 60 %}
+                            <span class="score-medium">{{ entry.average_score }}%</span>
+                        {% else %}
+                            <span class="score-low">{{ entry.average_score }}%</span>
+                        {% endif %}
+                    </td>
+                    <td class="score-cell" title="Сума всіх раундів: {{ entry.round_scores|join:', ' }}">
+                        <strong>{{ entry.total_raw_score }}</strong> / {{ entry.rounds_scored|add:1 }} раунди
+                    </td>
+                    <td>
+                        <div class="criteria-breakdown">
+                            {% for criterion in entry.criteria_summary %}
+                                <span class="criterion-badge" title="Раунди: {% for score in criterion.round_scores %}{{ score }}{{ forloop.last|yesno:', ' }}{% endfor %}">
+                                    <strong>{{ criterion.name }}</strong><br/>
+                                    Сер.: {{ criterion.average }}/100
+                                </span>
+                            {% empty %}
+                                <span style="color: #999;">Немає оцінок</span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td class="stats-cell">
+                        📝 {{ entry.submissions_count }} роб. | ✓ {{ entry.evaluations_count }} оцін.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty-leaderboard">
+            <div class="empty-leaderboard-icon">📊</div>
+            <h3>Таблиця лідерів ще порожня</h3>
+            <p>Команди мають подати роботи і отримати оцінки для появи в таблиці.</p>
+        </div>
+    {% endif %}
+    
+    <div style="margin-top: 40px; padding: 20px; background-color: #f9f9f9; border-radius: 8px; color: #666;">
+        <h4>📌 Як розраховується рейтинг:</h4>
+        <ul>
+            <li><strong>Середній бал:</strong> Середнє значення всіх раундів (кожен раунд = 100%)</li>
+            <li><strong>Загальний результат:</strong> Сума всіх раундів. Наприклад: 85 + 90 = 175</li>
+            <li><strong>Критерії:</strong> Показує середній бал для кожного критерію (підтримує різні критерії у різних раундах)</li>
+            <li><strong>Сортування:</strong> За середнім балом → за першим критерієм → за кількістю оцінених раундів</li>
+            <li><strong>Живе оновлення:</strong> Таблиця оновлюється при кожній новій оцінці</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

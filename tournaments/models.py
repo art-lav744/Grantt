@@ -1,6 +1,6 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.validators import FileExtensionValidator, MaxValueValidator, MinValueValidator
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -253,6 +253,10 @@ class Round(models.Model):
         choices=RoundStatus.choices,
         default=RoundStatus.DRAFT
     )
+    DEFAULT_CRITERIA = (
+        {'name': 'Technical', 'max_score': 100},
+        {'name': 'Functionality', 'max_score': 100},
+    )
 
     def set_status(self, new_status):
         allowed_transitions = {
@@ -275,8 +279,144 @@ class Round(models.Model):
     def accepts_submissions(self):
         return self.start_time <= timezone.now() <= self.end_time
 
+    @classmethod
+    def parse_criteria_definition(cls, raw_value):
+        if raw_value in (None, ''):
+            return []
+
+        if isinstance(raw_value, str):
+            parsed = []
+            for line in raw_value.splitlines():
+                normalized = line.strip()
+                if not normalized:
+                    continue
+                if '|' in normalized:
+                    name_part, max_part = normalized.rsplit('|', 1)
+                else:
+                    name_part, max_part = normalized, '100'
+                name = name_part.strip(' -:\t')
+                if not name:
+                    raise ValidationError('Назва критерію не може бути порожньою.')
+                try:
+                    max_score = float(max_part.strip())
+                except (TypeError, ValueError) as exc:
+                    raise ValidationError(f'Некоректний максимум для критерію "{name}".') from exc
+                parsed.append({'name': name, 'max_score': max_score})
+            return parsed
+
+        if isinstance(raw_value, (list, tuple)):
+            parsed = []
+            for item in raw_value:
+                if isinstance(item, dict):
+                    name = str(item.get('name', '')).strip()
+                    max_score = item.get('max_score', 100)
+                else:
+                    name = str(item).strip()
+                    max_score = 100
+                if not name:
+                    raise ValidationError('Назва критерію не може бути порожньою.')
+                try:
+                    max_score = float(max_score)
+                except (TypeError, ValueError) as exc:
+                    raise ValidationError(f'Некоректний максимум для критерію "{name}".') from exc
+                parsed.append({'name': name, 'max_score': max_score})
+            return parsed
+
+        raise ValidationError('Непідтримуваний формат критеріїв оцінювання.')
+
+    @classmethod
+    def validate_criteria_payload(cls, criteria):
+        if not criteria:
+            raise ValidationError('Додайте щонайменше один критерій оцінювання.')
+
+        normalized = []
+        seen = set()
+        for item in criteria:
+            name = str(item['name']).strip()
+            max_score = float(item['max_score'])
+            if not name:
+                raise ValidationError('Назва критерію не може бути порожньою.')
+            if name.lower() in seen:
+                raise ValidationError(f'Критерій "{name}" дублюється.')
+            if max_score <= 0:
+                raise ValidationError(f'Максимальний бал для "{name}" має бути більшим за 0.')
+            seen.add(name.lower())
+            normalized.append({'name': name, 'max_score': max_score})
+        return normalized
+
+    @classmethod
+    def format_criteria_definition(cls, criteria):
+        lines = []
+        for item in criteria:
+            max_score = float(item['max_score'])
+            rendered_max = int(max_score) if max_score.is_integer() else max_score
+            lines.append(f"{item['name']} | {rendered_max}")
+        return '\n'.join(lines)
+
+    def get_or_create_scoring_criteria(self):
+        existing = list(self.criteria.order_by('order', 'id'))
+        if existing:
+            return existing
+
+        parsed = self.parse_criteria_definition(self.evaluation_criteria)
+        if not parsed:
+            parsed = list(self.DEFAULT_CRITERIA)
+            self.evaluation_criteria = self.format_criteria_definition(parsed)
+            self.save(update_fields=['evaluation_criteria'])
+
+        normalized = self.validate_criteria_payload(parsed)
+        with transaction.atomic():
+            created = []
+            for index, item in enumerate(normalized):
+                created.append(RoundCriterion.objects.create(
+                    round=self,
+                    name=item['name'],
+                    max_score=item['max_score'],
+                    order=index,
+                ))
+        return created
+
+    def set_scoring_criteria(self, raw_criteria):
+        parsed = self.parse_criteria_definition(raw_criteria)
+        normalized = self.validate_criteria_payload(parsed)
+        self.evaluation_criteria = self.format_criteria_definition(normalized)
+        if not self.pk:
+            return normalized
+
+        self.save(update_fields=['evaluation_criteria'])
+        with transaction.atomic():
+            self.criteria.all().delete()
+            created = []
+            for index, item in enumerate(normalized):
+                created.append(RoundCriterion.objects.create(
+                    round=self,
+                    name=item['name'],
+                    max_score=item['max_score'],
+                    order=index,
+                ))
+        return created
+
+    def total_max_score(self):
+        return sum(criterion.max_score for criterion in self.get_or_create_scoring_criteria())
+
     def __str__(self):
         return f'{self.tournament.title}: {self.title}'
+
+
+class RoundCriterion(models.Model):
+    round = models.ForeignKey(Round, on_delete=models.CASCADE, related_name='criteria')
+    name = models.CharField(max_length=255)
+    max_score = models.FloatField(validators=[MinValueValidator(0.01)])
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'id']
+        constraints = [
+            models.UniqueConstraint(fields=['round', 'name'], name='unique_round_criterion_name'),
+        ]
+
+    def __str__(self):
+        return f'{self.round.title}: {self.name}'
 
 
 class Submission(models.Model):
@@ -301,32 +441,132 @@ class Submission(models.Model):
                 })
 
     def calculate_final_score(self):
-        evaluations = list(self.evaluations.all())
-        if not evaluations:
+        try:
+            evaluation = self.evaluation
+        except Evaluation.DoesNotExist:
+            evaluation = None
+
+        if not evaluation:
             return {
-                'tech_avg': None,
-                'func_avg': None,
+                'criteria': [],
+                'criteria_avg_map': {},
+                'raw_total': None,
+                'max_total': self.round.total_max_score(),
                 'total': None,
             }
 
-        tech_avg = sum(e.tech_score for e in evaluations) / len(evaluations)
-        func_avg = sum(e.func_score for e in evaluations) / len(evaluations)
-        total = (tech_avg + func_avg) / 2
+        criteria = self.round.get_or_create_scoring_criteria()
+        evaluation.ensure_score_entries(criteria)
+
+        criteria_avg_map = {}
+        criteria_payload = []
+        for criterion in criteria:
+            criterion_score = evaluation.criteria_scores.filter(criterion=criterion).first()
+            score = criterion_score.score if criterion_score else 0.0
+            criteria_avg_map[criterion.name] = score
+            criteria_payload.append({
+                'id': criterion.id,
+                'name': criterion.name,
+                'max_score': criterion.max_score,
+                'average': score,
+            })
+
+        max_total = sum(criterion.max_score for criterion in criteria)
+        raw_total = evaluation.total_score()
+        total = (raw_total / max_total * 100) if max_total else 0.0
 
         return {
-            'tech_avg': tech_avg,
-            'func_avg': func_avg,
+            'criteria': criteria_payload,
+            'criteria_avg_map': criteria_avg_map,
+            'raw_total': raw_total,
+            'max_total': max_total,
             'total': total,
         }
 
 
 class Evaluation(models.Model):
-    submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name='evaluations')
+    submission = models.OneToOneField(Submission, on_delete=models.CASCADE, related_name='evaluation')
     jury = models.ForeignKey(User, on_delete=models.CASCADE, related_name='evaluations')
     comment = models.TextField(blank=True, default='', verbose_name='Коментар')
-    tech_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
-    func_score = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(100)])
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [('submission', 'jury')]
+        unique_together = [('submission',)]
+
+    def ensure_score_entries(self, criteria=None):
+        criteria = criteria or self.submission.round.get_or_create_scoring_criteria()
+        existing_ids = set(self.criteria_scores.values_list('criterion_id', flat=True))
+        missing = [
+            EvaluationCriterionScore(evaluation=self, criterion=criterion, score=0)
+            for criterion in criteria
+            if criterion.id not in existing_ids
+        ]
+        if missing:
+            EvaluationCriterionScore.objects.bulk_create(missing)
+        return list(self.criteria_scores.select_related('criterion').order_by('criterion__order', 'criterion__id'))
+
+    def total_score(self):
+        return sum(item.score for item in self.ensure_score_entries())
+
+    def is_scored(self):
+        return any(item.score > 0 for item in self.ensure_score_entries())
+
+
+class EvaluationCriterionScore(models.Model):
+    evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE, related_name='criteria_scores')
+    criterion = models.ForeignKey(RoundCriterion, on_delete=models.CASCADE, related_name='evaluation_scores')
+    score = models.FloatField(default=0, validators=[MinValueValidator(0)])
+
+    class Meta:
+        ordering = ['criterion__order', 'criterion__id', 'id']
+        constraints = [
+            models.UniqueConstraint(fields=['evaluation', 'criterion'], name='unique_evaluation_criterion_score'),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.criterion and self.evaluation and self.criterion.round_id != self.evaluation.submission.round_id:
+            raise ValidationError('Критерій має належати раунду цієї оцінки.')
+        if self.criterion and self.score > self.criterion.max_score:
+            raise ValidationError({'score': f'Оцінка не може перевищувати {self.criterion.max_score}.'})
+
+
+class JuryRegistrationStatus(models.TextChoices):
+    PENDING = 'pending', 'Pending'
+    APPROVED = 'approved', 'Approved'
+    REJECTED = 'rejected', 'Rejected'
+
+
+class JuryTournamentRegistration(models.Model):
+    jury = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='jury_registration_requests',
+    )
+    tournament = models.ForeignKey(
+        Tournament,
+        on_delete=models.CASCADE,
+        related_name='jury_registration_requests',
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=JuryRegistrationStatus.choices,
+        default=JuryRegistrationStatus.PENDING,
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_jury_requests',
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [('jury', 'tournament')]
+        ordering = ['-created_at', '-id']
+
+    def __str__(self):
+        return f'{self.jury.email} -> {self.tournament.title} ({self.status})'

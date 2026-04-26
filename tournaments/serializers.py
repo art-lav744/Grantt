@@ -2,6 +2,7 @@ from collections import Counter
 
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.core.exceptions import ValidationError
 from django.core.validators import validate_email as django_validate_email
 from django.db import transaction
 from django.db.models import Avg, Count, Q
@@ -10,7 +11,7 @@ from rest_framework import serializers
 
 from email_validator import EmailNotValidError, validate_email
 
-from .models import Evaluation, Round, Submission, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole
+from .models import Evaluation, JuryTournamentRegistration, Round, Submission, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole
 from .utils import (
     contains_cyrillic,
     create_access_token,
@@ -161,7 +162,10 @@ class TeamMemberCreateSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=255)
     email = serializers.EmailField()
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 
 class TeamOutSerializer(serializers.ModelSerializer):
     image_path = serializers.SerializerMethodField()
@@ -245,9 +249,25 @@ class TeamCreateSerializer(serializers.Serializer):
 
 
 class RoundCreateSerializer(serializers.ModelSerializer):
+    criteria = serializers.ListField(child=serializers.DictField(), write_only=True, required=False)
+    criteria_definition = serializers.CharField(write_only=True, required=False, allow_blank=False)
+
     class Meta:
         model = Round
-        fields = ('id', 'title', 'description', 'requirements', 'evaluation_criteria', 'start_time', 'end_time', 'tournament')
+        fields = ('id', 'title', 'description', 'requirements', 'evaluation_criteria', 'criteria', 'criteria_definition', 'start_time', 'end_time', 'tournament')
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        criteria = instance.get_or_create_scoring_criteria()
+        data['criteria'] = [
+            {'id': criterion.id, 'name': criterion.name, 'max_score': criterion.max_score, 'order': criterion.order}
+            for criterion in criteria
+        ]
+        data['evaluation_criteria'] = instance.format_criteria_definition([
+            {'name': criterion.name, 'max_score': criterion.max_score}
+            for criterion in criteria
+        ])
+        return data
 
     def validate(self, attrs):
         if attrs['end_time'] <= attrs['start_time']:
@@ -255,7 +275,25 @@ class RoundCreateSerializer(serializers.ModelSerializer):
         tournament = attrs['tournament']
         if tournament.max_rounds and tournament.rounds.count() >= tournament.max_rounds:
             raise serializers.ValidationError({'tournament': f'Досягнуто ліміту раундів для цього турніру ({tournament.max_rounds}).'})
+        raw_criteria = attrs.get('criteria')
+        if raw_criteria is None:
+            raw_criteria = attrs.get('criteria_definition', attrs.get('evaluation_criteria'))
+        try:
+            attrs['parsed_criteria'] = Round.validate_criteria_payload(
+                Round.parse_criteria_definition(raw_criteria or list(Round.DEFAULT_CRITERIA))
+            )
+        except ValidationError as exc:
+            raise serializers.ValidationError({'criteria': exc.messages})
         return attrs
+
+    def create(self, validated_data):
+        parsed_criteria = validated_data.pop('parsed_criteria')
+        validated_data.pop('criteria', None)
+        validated_data.pop('criteria_definition', None)
+        validated_data['evaluation_criteria'] = Round.format_criteria_definition(parsed_criteria)
+        round_obj = super().create(validated_data)
+        round_obj.set_scoring_criteria(parsed_criteria)
+        return round_obj
 
 
 class SubmissionCreateSerializer(serializers.ModelSerializer):
@@ -271,16 +309,39 @@ class SubmissionCreateSerializer(serializers.ModelSerializer):
 
 
 class EvaluationOutSerializer(serializers.ModelSerializer):
+    criteria_scores = serializers.SerializerMethodField()
+    total_score = serializers.SerializerMethodField()
+    total_percentage = serializers.SerializerMethodField()
+
     class Meta:
         model = Evaluation
-        fields = ('id', 'submission_id', 'jury_id', 'tech_score', 'func_score', 'created_at')
+        fields = ('id', 'submission_id', 'jury_id', 'criteria_scores', 'total_score', 'total_percentage', 'created_at')
+
+    def get_criteria_scores(self, obj):
+        scores = obj.ensure_score_entries()
+        return [
+            {
+                'criterion_id': item.criterion_id,
+                'name': item.criterion.name,
+                'max_score': item.criterion.max_score,
+                'score': item.score,
+            }
+            for item in scores
+        ]
+
+    def get_total_score(self, obj):
+        return obj.total_score()
+
+    def get_total_percentage(self, obj):
+        max_total = obj.submission.round.total_max_score()
+        return (obj.total_score() / max_total * 100) if max_total else 0.0
 
 
 class LeaderboardEntrySerializer(serializers.Serializer):
     team_name = serializers.CharField()
     total_score = serializers.FloatField()
-    tech_avg = serializers.FloatField()
-    func_avg = serializers.FloatField()
+    average_score = serializers.FloatField()
+    criteria_summary = serializers.ListField()
     submissions_count = serializers.IntegerField()
 
 
@@ -304,3 +365,27 @@ class TournamentFileOutSerializer(serializers.ModelSerializer):
         if not obj.uploaded_by:
             return None
         return obj.uploaded_by.full_name or obj.uploaded_by.nickname or obj.uploaded_by.email
+
+
+class JuryTournamentRegistrationOutSerializer(serializers.ModelSerializer):
+    jury_email = serializers.EmailField(source='jury.email', read_only=True)
+    jury_nickname = serializers.CharField(source='jury.nickname', read_only=True)
+    tournament_title = serializers.CharField(source='tournament.title', read_only=True)
+    reviewed_by_email = serializers.EmailField(source='reviewed_by.email', read_only=True, allow_null=True)
+
+    class Meta:
+        model = JuryTournamentRegistration
+        fields = (
+            'id',
+            'jury',
+            'jury_email',
+            'jury_nickname',
+            'tournament',
+            'tournament_title',
+            'status',
+            'reviewed_by',
+            'reviewed_by_email',
+            'reviewed_at',
+            'created_at',
+            'updated_at',
+        )
