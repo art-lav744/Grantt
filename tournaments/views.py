@@ -567,25 +567,24 @@ def send_invite_action(request, team_id):
 def process_invite_link(request, invite_id):
     invite = get_object_or_404(TeamInvite, id=invite_id, is_active=True)
     
-    # Перевіряємо, чи користувач залогінений під тим самим email
-    if request.user.is_authenticated:
-        if request.user.email.lower() != invite.email.lower():
-            messages.error(request, "Цей інвайт призначений для іншої пошти.")
-            return redirect('home')
-        
-        # Додаємо в команду (використовуємо вашу існуючу модель TeamMember)
-        TeamMember.objects.get_or_create(team=invite.team, user=request.user)
-        
-        # Деактивуємо запрошення
-        invite.is_active = False
-        invite.save()
-        
-        messages.success(request, f"Ви приєдналися до команди {invite.team.name}!")
-        return redirect('team_dashboard')
-    else:
-        # Якщо не залогінений — відправляємо на реєстрацію/логін
+    # Якщо користувач не залогінений, відправляємо на реєстрацію/логін
+    if not request.user.is_authenticated:
         messages.info(request, "Будь ласка, увійдіть в акаунт, щоб прийняти запрошення.")
-        return redirect('login')
+        return redirect(f"{reverse('login')}?next={request.path}")
+
+    # Перевіряємо, чи email запрошення збігається з поштою поточного користувача
+    if request.user.email.lower() != invite.email.lower():
+        messages.error(request, "Це запрошення призначене для іншої поштової скриньки.")
+        return redirect('dashboard')
+
+    # Додаємо користувача до команди
+    TeamMember.objects.get_or_create(team=invite.team, user=request.user)
+    
+    # Деактивуємо запрошення, щоб ним не скористалися двічі
+    invite.is_active = False
+    invite.save()
+
+    return render(request, 'invite_success.html', {'team': invite.team})
 
 
 class TournamentFileListCreateView(APIView):
