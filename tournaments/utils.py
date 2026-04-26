@@ -222,4 +222,4 @@ def send_membership_invite_email(invite_obj):
 
     msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
     msg.attach_alternative(html_content, "text/html")
-    msg.send()aded_file.read(), name=f'{uuid.uuid4().hex}.{ext}')
+    msg.send()
