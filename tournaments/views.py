@@ -585,7 +585,7 @@ def process_invite_link(request, invite_id):
     invite.is_active = False
     invite.save()
 
-    return render(request, 'tournaments/invite_success.html', {'team': invite.team})
+    return render(request, 'registration/invite_success.html', {'team': invite.team})
 
 
 class TournamentFileListCreateView(APIView):
