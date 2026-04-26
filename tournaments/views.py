@@ -416,7 +416,7 @@ def add_team_member(request, team_id):
             
             return redirect('team_detail', pk=team.id)
             
-    return render(request, 'add_member.html', {'team': team})
+    return render(request, 'tournaments/add_member.html', {'team': team})
 
 
 @login_required
