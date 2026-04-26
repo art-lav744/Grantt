@@ -12,6 +12,7 @@ from django.core.mail import send_mail
 from django.db.models import Avg, Count
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
