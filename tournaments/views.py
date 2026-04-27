@@ -292,8 +292,36 @@ def manage_access_and_jury(request):
     if request.user.role != UserRole.ADMIN:
         return redirect('dashboard')
 
-    # 1. Керування доступами (всі крім адмінів та організаторів)
-    # Тобто учасники та журі
+    # Обробка дій над користувачами
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        action = request.POST.get('action')
+        
+        if user_id and action:
+            target_user = get_object_or_404(User, id=user_id)
+            
+            # Захист: не даємо адміну випадково змінити себе або іншого адміна/організатора через цю форму
+            if target_user.role in [UserRole.ADMIN, UserRole.ORGANIZER]:
+                messages.error(request, "Не можна редагувати адміністраторів через цю панель.")
+            else:
+                if action == 'toggle_status':
+                    target_user.is_active = not target_user.is_active
+                    target_user.save()
+                    status_text = "активовано" if target_user.is_active else "заблоковано"
+                    messages.success(request, f"Користувача {target_user.email} {status_text}.")
+                
+                elif action == 'make_jury':
+                    target_user.role = UserRole.JURY
+                    target_user.save()
+                    messages.success(request, f"{target_user.email} тепер має роль Журі.")
+                
+                elif action == 'make_participant':
+                    target_user.role = UserRole.PARTICIPANT
+                    target_user.save()
+                    messages.success(request, f"{target_user.email} тепер має роль Учасника.")
+
+            return redirect('manage_access')
+        
     users_to_manage = User.objects.exclude(role__in=[UserRole.ADMIN, UserRole.ORGANIZER])
 
     # 2. Призначення робіт
