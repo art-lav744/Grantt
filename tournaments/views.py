@@ -21,7 +21,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .forms import AddMemberForm, ProfileEditForm, RegisterForm, RoundForm, SubmissionForm, TournamentFileForm, TournamentForm
+from .forms import AddMemberForm, ProfileEditForm, RegisterForm, RoundForm, SubmissionForm, TournamentFileForm, TournamentForm, JuryAssignmentForm
 from .models import Evaluation, JuryRegistrationStatus, JuryTournamentRegistration, Round, RoundStatus, Submission, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole
 from .permissions import IsAdmin, IsAuthenticatedJWT, IsJury, IsOrganizerOrAdmin
 from .serializers import (
@@ -348,6 +348,69 @@ def tournament_create(request):
 
     return render(request, 'tournaments/tournament_form.html', {'form': form, 'title': 'Створення турніру'})
 
+@login_required
+def manage_access_and_jury(request):
+    if request.user.role != UserRole.ADMIN:
+        return redirect('dashboard')
+
+    # Обробка дій над користувачами
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        action = request.POST.get('action')
+        
+        if user_id and action:
+            target_user = get_object_or_404(User, id=user_id)
+            
+            # Захист: не даємо адміну випадково змінити себе або іншого адміна/організатора через цю форму
+            if target_user.role in [UserRole.ADMIN, UserRole.ORGANIZER]:
+                messages.error(request, "Не можна редагувати адміністраторів через цю панель.")
+            else:
+                if action == 'toggle_status':
+                    target_user.is_active = not target_user.is_active
+                    target_user.save()
+                    status_text = "активовано" if target_user.is_active else "заблоковано"
+                    messages.success(request, f"Користувача {target_user.email} {status_text}.")
+                
+                elif action == 'make_jury':
+                    target_user.role = UserRole.JURY
+                    target_user.save()
+                    messages.success(request, f"{target_user.email} тепер має роль Журі.")
+                
+                elif action == 'make_participant':
+                    target_user.role = UserRole.PARTICIPANT
+                    target_user.save()
+                    messages.success(request, f"{target_user.email} тепер має роль Учасника.")
+
+            return redirect('manage_access')
+        
+    users_to_manage = User.objects.exclude(role__in=[UserRole.ADMIN, UserRole.ORGANIZER])
+
+    # 2. Призначення робіт
+    if request.method == 'POST' and 'assign_jury' in request.POST:
+        form = JuryAssignmentForm(request.POST)
+        if form.is_valid():
+            jury = form.cleaned_data['jury']
+            submission = form.cleaned_data['submission']
+            
+            # Створюємо об'єкт оцінки (якщо його ще немає), щоб закріпити роботу за журі
+            evaluation, created = Evaluation.objects.get_or_create(
+                submission=submission,
+                jury=jury
+            )
+            if created:
+                messages.success(request, f"Роботу #{submission.id} призначено журі {jury.email}")
+            else:
+                messages.warning(request, "Цю роботу вже призначено цьому журі.")
+            return redirect('manage_access')
+    else:
+        form = JuryAssignmentForm()
+
+    context = {
+        'users': users_to_manage,
+        'jury_form': form,
+        'assignments': Evaluation.objects.select_related('submission', 'jury').all()
+    }
+    return render(request, 'tournaments/manage_access.html', context)
 
 @login_required
 def tournament_edit(request, pk):

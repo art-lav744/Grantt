@@ -31,7 +31,7 @@ urlpatterns = [
     path('tournament-files/<int:file_id>/open/', views.tournament_file_open, name='tournament_file_open'),
     path('tournament-files/<int:file_id>/download/', views.tournament_file_download, name='tournament_file_download'),
     path('tournament/<int:tournament_id>/round/create/', views.round_create, name='round_create'),
-    
+    path('admin-panel/manage-access/', views.manage_access_and_jury, name='manage_access'),
     # Подача роботи (для капітана)
     path('team/<int:team_id>/submit/', views.submission_create, name='submission_create'),
     
