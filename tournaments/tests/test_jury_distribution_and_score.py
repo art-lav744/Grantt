@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from tournaments.models import Evaluation, Round, Submission, Team, Tournament, User, UserRole
+from tournaments.models import Evaluation, EvaluationCriterionScore, Round, Submission, Team, Tournament, User, UserRole
 
 
 def make_tournament(**kwargs):
@@ -42,7 +42,24 @@ def make_round(tournament, **kwargs):
         end_time=now + timedelta(hours=6),
     )
     defaults.update(kwargs)
-    return Round.objects.create(**defaults)
+    round_obj = Round.objects.create(**defaults)
+    round_obj.set_scoring_criteria([
+        {'name': 'Technical', 'max_score': 100},
+        {'name': 'Functionality', 'max_score': 100},
+    ])
+    return round_obj
+
+
+def make_evaluation(submission, jury, **scores):
+    # Since we now have a OneToOneField, each submission can only have one evaluation
+    # Delete any existing evaluation first
+    Evaluation.objects.filter(submission=submission).delete()
+    evaluation = Evaluation.objects.create(submission=submission, jury=jury)
+    for score_entry in evaluation.ensure_score_entries():
+        if score_entry.criterion.name in scores:
+            score_entry.score = scores[score_entry.criterion.name]
+            score_entry.save(update_fields=['score'])
+    return evaluation
 
 
 def make_user(email, nickname, role, password='Password123!', is_verified=True):
@@ -69,26 +86,15 @@ class SubmissionFinalScoreTest(TestCase):
         )
 
         jury1 = make_user('jury1@test.com', 'jury1', UserRole.JURY)
-        jury2 = make_user('jury2@test.com', 'jury2', UserRole.JURY)
 
-        Evaluation.objects.create(
-            submission=submission,
-            jury=jury1,
-            tech_score=10,
-            func_score=50,
-        )
-        Evaluation.objects.create(
-            submission=submission,
-            jury=jury2,
-            tech_score=30,
-            func_score=70,
-        )
+        make_evaluation(submission, jury1, Technical=10, Functionality=50)
 
         result = submission.calculate_final_score()
 
-        self.assertAlmostEqual(result['tech_avg'], 20)
-        self.assertAlmostEqual(result['func_avg'], 60)
-        self.assertAlmostEqual(result['total'], 40)
+        self.assertAlmostEqual(result['criteria_avg_map']['Technical'], 10)
+        self.assertAlmostEqual(result['criteria_avg_map']['Functionality'], 50)
+        self.assertAlmostEqual(result['raw_total'], 60)
+        self.assertAlmostEqual(result['total'], 30)
 
 
 class JuryDistributionAPITests(APITestCase):
@@ -132,20 +138,19 @@ class JuryDistributionAPITests(APITestCase):
         )
 
     def test_distribute_endpoint_creates_evaluations_for_each_submission(self):
+        self.round_started.end_time = timezone.now() - timedelta(minutes=1)
+        self.round_started.save(update_fields=['end_time'])
         url = f'/api/rounds/{self.round_started.id}/distribute/'
         response = self.client.post(url, {'k': 2}, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(Evaluation.objects.count(), 2 * 2)  # 2 submissions * k_actual(2)
+        self.assertEqual(Evaluation.objects.count(), 2)  # 2 submissions, 1 jury each
+        self.assertEqual(EvaluationCriterionScore.objects.count(), 2 * 2)  # 2 submissions * 2 criteria
 
-        self.assertEqual(Evaluation.objects.filter(submission=self.sub1).count(), 2)
-        self.assertEqual(Evaluation.objects.filter(submission=self.sub2).count(), 2)
+        self.assertEqual(Evaluation.objects.filter(submission=self.sub1).count(), 1)
+        self.assertEqual(Evaluation.objects.filter(submission=self.sub2).count(), 1)
 
-    def test_auto_distribution_on_submission_create_if_round_started(self):
-        """
-        ЧАС ТОМУ МОЖЕ БУТИ НЕ ПРАВИЛЬНИЙ ТЕСТ ПРОВАЛИТЬСЯ
-        створення Evaluation для цього раунду.
-        """
+    def test_submission_create_does_not_auto_distribute_before_round_end(self):
         Evaluation.objects.all().delete()
 
         team3 = Team.objects.create(name='Team 3', tournament=self.tournament)
@@ -159,5 +164,5 @@ class JuryDistributionAPITests(APITestCase):
         }
         response = self.client.post(url, payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Evaluation.objects.count(), 3 * 3)
+        self.assertEqual(Evaluation.objects.count(), 0)
 

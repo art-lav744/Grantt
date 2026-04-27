@@ -69,7 +69,7 @@
                     <td><a href="{{ submission.github_link }}" target="_blank">Відкрити</a></td>
                     <td>{% if submission.video_link %}<a href="{{ submission.video_link }}" target="_blank">Відкрити</a>{% else %}—{% endif %}</td>
                     <td>{{ submission.description|default:"—" }}</td>
-                    <td>{% if submission.evaluations.all %}{{ submission.evaluations.all|length }} оцінок{% else %}—{% endif %}</td>
+                    <td>{% if submission.evaluation %}Оцінена{% else %}—{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -10,6 +10,12 @@
     <p><strong>Кінець реєстрації:</strong> {{ tournament.reg_end|default:"—" }}</p>
     <p><strong>Статус:</strong> {{ tournament.status }}</p>
     
+    <div style="margin-top: 15px;">
+        <a href="{% url 'tournament_leaderboard' tournament.id %}" class="btn" style="background: #6f42c1; color: white; padding: 10px 20px; display: inline-block;">
+            📊 Таблиця лідерів
+        </a>
+    </div>
+    
     {% if user.is_authenticated and not user_team and tournament.status == 'registration' and user.role == 'participant' %}
         <a href="{% url 'create_team' tournament.id %}" class="btn" style="background: #28a745; color: white; padding: 10px 20px; margin-top: 15px;">
             🛡️ Зареєструвати команду
@@ -18,6 +24,19 @@
         <p style="color: #28a745; margin-top: 15px;">✅ Ви вже зареєстровані на цей турнір</p>
     {% elif tournament.status != 'registration' %}
         <p style="color: #dc3545; margin-top: 15px;">❌ Реєстрація на цей турнір закрита</p>
+    {% endif %}
+    
+    <!-- Jury Application Button -->
+    {% if user.is_authenticated %}
+        {% if user.role == 'jury' or user.role == 'organizer' %}
+            {% if tournament not in user.jury_tournaments.all %}
+                <a href="{% url 'apply_jury' tournament.id %}" class="btn" style="background: #17a2b8; color: white; padding: 10px 20px; margin-top: 15px;">
+                    👥 Подати заявку як журі
+                </a>
+            {% else %}
+                <p style="color: #17a2b8; margin-top: 15px;">✅ Ви призначені як журі на цей турнір</p>
+            {% endif %}
+        {% endif %}
     {% endif %}
 </div>
 

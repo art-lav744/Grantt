@@ -105,6 +105,13 @@ class TeamForm(forms.ModelForm):
         }
 
 class RoundForm(forms.ModelForm):
+    criteria_definition = forms.CharField(
+        label='Критерії оцінювання',
+        widget=forms.Textarea(attrs={'rows': 5, 'class': 'form-control', 'placeholder': 'Technical | 40\nUX | 30\nPresentation | 30'}),
+        help_text='Кожен критерій з нового рядка у форматі "Назва | максимум".',
+        required=False,
+    )
+
     def __init__(self, *args, **kwargs):
         self.tournament = kwargs.pop('tournament', None)
         super().__init__(*args, **kwargs)
@@ -113,6 +120,12 @@ class RoundForm(forms.ModelForm):
             value = getattr(self.instance, field_name, None)
             if value:
                 self.initial[field_name] = timezone.localtime(value).strftime('%Y-%m-%dT%H:%M')
+        if self.instance and self.instance.pk:
+            criteria = self.instance.get_or_create_scoring_criteria()
+            self.initial['criteria_definition'] = self.instance.format_criteria_definition([
+                {'name': criterion.name, 'max_score': criterion.max_score}
+                for criterion in criteria
+            ])
 
     class Meta:
         model = Round
@@ -137,7 +150,24 @@ class RoundForm(forms.ModelForm):
             if self.tournament.max_rounds and self.tournament.rounds.count() >= self.tournament.max_rounds:
                 raise ValidationError(f'Досягнуто ліміту раундів для цього турніру ({self.tournament.max_rounds}).')
 
+        criteria_definition = cleaned_data.get('criteria_definition')
+        try:
+            cleaned_data['parsed_criteria'] = Round.validate_criteria_payload(
+                Round.parse_criteria_definition(criteria_definition or list(Round.DEFAULT_CRITERIA))
+            )
+        except ValidationError as exc:
+            self.add_error('criteria_definition', exc)
+
         return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        parsed_criteria = self.cleaned_data['parsed_criteria']
+        instance.evaluation_criteria = Round.format_criteria_definition(parsed_criteria)
+        if commit:
+            instance.save()
+            instance.set_scoring_criteria(parsed_criteria)
+        return instance
 
 class SubmissionForm(forms.ModelForm):
     class Meta:
