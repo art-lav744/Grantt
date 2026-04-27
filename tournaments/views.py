@@ -21,7 +21,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .forms import AddMemberForm, ProfileEditForm, RegisterForm, RoundForm, SubmissionForm, TournamentFileForm, TournamentForm
+from .forms import AddMemberForm, ProfileEditForm, RegisterForm, RoundForm, SubmissionForm, TournamentFileForm, TournamentForm, JuryAssignmentForm
 from .models import Evaluation, Round, RoundStatus, Submission, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole
 from .permissions import IsAdmin, IsAuthenticatedJWT, IsJury, IsOrganizerOrAdmin
 from .serializers import (
@@ -287,6 +287,41 @@ def tournament_create(request):
 
     return render(request, 'tournaments/tournament_form.html', {'form': form, 'title': 'Створення турніру'})
 
+@login_required
+def manage_access_and_jury(request):
+    if request.user.role != UserRole.ADMIN:
+        return redirect('dashboard')
+
+    # 1. Керування доступами (всі крім адмінів та організаторів)
+    # Тобто учасники та журі
+    users_to_manage = User.objects.exclude(role__in=[UserRole.ADMIN, UserRole.ORGANIZER])
+
+    # 2. Призначення робіт
+    if request.method == 'POST' and 'assign_jury' in request.POST:
+        form = JuryAssignmentForm(request.POST)
+        if form.is_valid():
+            jury = form.cleaned_data['jury']
+            submission = form.cleaned_data['submission']
+            
+            # Створюємо об'єкт оцінки (якщо його ще немає), щоб закріпити роботу за журі
+            evaluation, created = Evaluation.objects.get_or_create(
+                submission=submission,
+                jury=jury
+            )
+            if created:
+                messages.success(request, f"Роботу #{submission.id} призначено журі {jury.email}")
+            else:
+                messages.warning(request, "Цю роботу вже призначено цьому журі.")
+            return redirect('manage_access')
+    else:
+        form = JuryAssignmentForm()
+
+    context = {
+        'users': users_to_manage,
+        'jury_form': form,
+        'assignments': Evaluation.objects.select_related('submission', 'jury').all()
+    }
+    return render(request, 'tournaments/manage_access.html', context)
 
 @login_required
 def tournament_edit(request, pk):

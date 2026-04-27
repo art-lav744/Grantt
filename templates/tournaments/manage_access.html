@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">
+    <h2>🔐 Керування доступами та призначеннями</h2>
+
+    <div class="card mt-4">
+        <h3>Учасники та Журі</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Нікнейм</th>
+                    <th>Роль</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.email }}</td>
+                    <td>{{ u.nickname }}</td>
+                    <td><span class="badge bg-info text-dark">{{ u.get_role_display }}</span></td>
+                    <td>
+                        {% if u.is_active %}
+                            <span class="text-success">Активний</span>
+                        {% else %}
+                            <span class="text-danger">Заблокований</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card mt-4">
+        <h3>⚖️ Призначити роботу журі</h3>
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-5">{{ jury_form.jury.label }} {{ jury_form.jury }}</div>
+                <div class="col-md-5">{{ jury_form.submission.label }} {{ jury_form.submission }}</div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" name="assign_jury" class="btn btn-primary w-100">Призначити</button>
+                </div>
+            </div>
+        </form>
+
+        <h4 class="mt-4">Поточні призначення:</h4>
+        <ul class="list-group">
+            {% for assign in assignments %}
+            <li class="list-group-content d-flex justify-content-between p-2 border-bottom">
+                <span>Журі: <strong>{{ assign.jury.email }}</strong></span>
+                <span>Робота: <strong>{{ assign.submission.team.name }}</strong> (Раунд: {{ assign.submission.round.title }})</span>
+            </li>
+            {% empty %}
+                <p>Призначень ще немає.</p>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

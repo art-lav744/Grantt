@@ -203,6 +203,18 @@ class AddMemberForm(forms.Form):
             
         return email
 
+class JuryAssignmentForm(forms.Form):
+    jury = forms.ModelChoiceField(
+        queryset=User.objects.filter(role=UserRole.JURY),
+        label="Виберіть журі",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    submission = forms.ModelChoiceField(
+        queryset=Submission.objects.all(),
+        label="Робота (Submission)",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
 class TeamMemberForm(forms.ModelForm):
     class Meta:
         model = TeamMember

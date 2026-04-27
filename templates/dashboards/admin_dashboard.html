@@ -15,7 +15,7 @@
         <div class="card" style="flex: 1; border-left: 5px solid #28a745;">
             <h3>Користувачі</h3>
             <p style="font-size: 28px; font-weight: bold;">{{ total_users }}</p>
-            <a href="/admin/tournaments/user/" class="btn btn-secondary">Керувати ролями</a>
+            <a href="{% url 'manage_access' %}" class="btn btn-secondary">Керувати доступами</a>
         </div>
     </div>
 
