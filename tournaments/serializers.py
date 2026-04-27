@@ -162,11 +162,6 @@ class TeamMemberCreateSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=255)
     email = serializers.EmailField()
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
-
 class TeamOutSerializer(serializers.ModelSerializer):
     image_path = serializers.SerializerMethodField()
 

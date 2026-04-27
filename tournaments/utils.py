@@ -91,11 +91,8 @@ def get_tournament_logical_status(tournament, now=None) -> str:
     return TOURNAMENT_LOGICAL_STATUS_LABELS.get(tournament.status, tournament.status)
 
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
 def tournament_registration_error(tournament, now=None):
+    
     now = now or timezone.now()
     if tournament.status != 'registration':
         return 'Реєстрація на цей турнір закрита або ще не почалася.'
