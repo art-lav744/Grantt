@@ -112,6 +112,7 @@ class Tournament(models.Model):
     max_rounds = models.PositiveIntegerField(default=1)
     max_team_members = models.PositiveIntegerField(default=5)
     min_team_members = models.PositiveIntegerField(default=2)
+    hide_teams_until_registration_end = models.BooleanField(default=False)
     cover_image = models.ImageField(upload_to='tournaments/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -216,10 +217,33 @@ class TeamMember(models.Model):
         unique_together = ('team', 'email')
 
     def clean(self):
+        super().clean()
         self.email = (self.email or '').strip().lower()
+        if not self.team_id:
+            return
+
+        same_tournament_members = TeamMember.objects.filter(
+            team__tournament_id=self.team.tournament_id,
+            email__iexact=self.email,
+        )
+        if self.pk:
+            same_tournament_members = same_tournament_members.exclude(pk=self.pk)
+        if self.email and same_tournament_members.exists():
+            raise ValidationError({'email': 'Учасник з таким email вже є в іншій команді цього турніру.'})
+
+        if self.user_id:
+            same_tournament_users = TeamMember.objects.filter(
+                team__tournament_id=self.team.tournament_id,
+                user_id=self.user_id,
+            )
+            if self.pk:
+                same_tournament_users = same_tournament_users.exclude(pk=self.pk)
+            if same_tournament_users.exists():
+                raise ValidationError({'user': 'Цей користувач вже є в команді цього турніру.'})
 
     def save(self, *args, **kwargs):
         self.email = (self.email or '').strip().lower()
+        self.full_clean()
         return super().save(*args, **kwargs)
 
     def __str__(self):
@@ -419,6 +443,11 @@ class RoundCriterion(models.Model):
         return f'{self.round.title}: {self.name}'
 
 
+class SubmissionStatus(models.TextChoices):
+    PENDING = 'pending', 'Очікує оцінювання'
+    EVALUATED = 'evaluated', 'Оцінено'
+
+
 class Submission(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='submissions')
     round = models.ForeignKey(Round, on_delete=models.CASCADE, related_name='submissions')
@@ -426,6 +455,10 @@ class Submission(models.Model):
     video_link = models.URLField()
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def status(self):
+        return SubmissionStatus.EVALUATED if hasattr(self, 'evaluation') and self.evaluation.is_scored() else SubmissionStatus.PENDING
 
     class Meta:
         constraints = [
@@ -489,6 +522,10 @@ class Evaluation(models.Model):
     jury = models.ForeignKey(User, on_delete=models.CASCADE, related_name='evaluations')
     comment = models.TextField(blank=True, default='', verbose_name='Коментар')
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def status(self):
+        return SubmissionStatus.EVALUATED if hasattr(self, 'evaluation') and self.evaluation.is_scored() else SubmissionStatus.PENDING
 
     class Meta:
         unique_together = [('submission',)]

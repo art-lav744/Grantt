@@ -1,0 +1,18 @@
+{% if user.role == 'player' %}
+    {% if user.team_participations.exists %}
+        <h2>Ваші команди:</h2>
+        {% for membership in user.team_participations.all %}
+            <div class="card">
+                <h3>{{ membership.team.name }}</h3>
+                <p>Ваша роль: {{ membership.role_in_team|default:"Учасник" }}</p>
+                <a href="{% url 'team_detail' membership.team.id %}" class="btn">Перейти до турніру</a>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            👋 Привіт, {{ user.nickname }}! Ви ще не в команді. 
+            Попросіть свого капітана додати вас за email: <strong>{{ user.email }}</strong> 
+            або <a href="{% url 'tournament_list' %}">оберіть турнір</a>, щоб створити свою.
+        </div>
+    {% endif %}
+{% endif %}
