@@ -11,7 +11,7 @@ from rest_framework import serializers
 
 from email_validator import EmailNotValidError, validate_email
 
-from .models import Evaluation, JuryTournamentRegistration, Round, Submission, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole
+from .models import Evaluation, JuryTournamentRegistration, Round, Submission, SubmissionStatus, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole
 from .utils import (
     contains_cyrillic,
     create_access_token,
@@ -152,7 +152,7 @@ class TournamentOutSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Tournament
-        fields = ('id', 'title', 'description', 'status', 'logical_status', 'creator_id', 'reg_start', 'reg_end', 'max_teams', 'max_rounds', 'cover_image_path', 'teams_count')
+        fields = ('id', 'title', 'description', 'status', 'logical_status', 'creator_id', 'reg_start', 'reg_end', 'max_teams', 'max_rounds', 'max_team_members', 'min_team_members', 'hide_teams_until_registration_end', 'cover_image_path', 'teams_count')
 
     def get_cover_image_path(self, obj):
         return obj.cover_image.url if obj.cover_image else None
@@ -162,12 +162,20 @@ class TeamMemberCreateSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=255)
     email = serializers.EmailField()
 
+class TeamMemberOutSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TeamMember
+        fields = ('id', 'full_name', 'email', 'user_id')
+
+
 class TeamOutSerializer(serializers.ModelSerializer):
     image_path = serializers.SerializerMethodField()
+    members_count = serializers.IntegerField(read_only=True)
+    members = TeamMemberOutSerializer(source='memberships', many=True, read_only=True)
 
     class Meta:
         model = Team
-        fields = ('id', 'name', 'tournament_id', 'captain_email', 'captain_name', 'image_path')
+        fields = ('id', 'name', 'tournament_id', 'captain_email', 'captain_name', 'members_count', 'members', 'image_path')
 
     def get_image_path(self, obj):
         image = getattr(obj, 'image', None)
@@ -222,6 +230,10 @@ class TeamCreateSerializer(serializers.Serializer):
         if already_registered:
             raise serializers.ValidationError(f'Учасники з email {", ".join(already_registered)} вже зареєстровані у цьому турнірі')
 
+        user_ids = list(User.objects.filter(email__in=all_emails).values_list('id', flat=True))
+        if user_ids and TeamMember.objects.filter(team__tournament=tournament, user_id__in=user_ids).exists():
+            raise serializers.ValidationError('Один з користувачів вже є учасником команди у цьому турнірі.')
+
         attrs['tournament'] = tournament
         attrs.pop('tournament_id', None)
         return attrs
@@ -236,10 +248,15 @@ class TeamCreateSerializer(serializers.Serializer):
             captain=self.context['request'].user if self.context['request'].user.is_authenticated else None,
             **validated_data,
         )
-        TeamMember.objects.bulk_create([
-            TeamMember(team=team, email=normalize_email_value(member['email']), full_name=member['full_name']) 
-            for member in members_data
-        ])
+        for member in members_data:
+            email = normalize_email_value(member['email'])
+            linked_user = User.objects.filter(email__iexact=email).first()
+            TeamMember.objects.create(
+                team=team,
+                email=email,
+                full_name=member['full_name'],
+                user=linked_user,
+            )
         return team
 
 
@@ -249,7 +266,7 @@ class RoundCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Round
-        fields = ('id', 'title', 'description', 'requirements', 'evaluation_criteria', 'criteria', 'criteria_definition', 'start_time', 'end_time', 'tournament')
+        fields = ('id', 'title', 'description', 'requirements', 'evaluation_criteria', 'criteria', 'criteria_definition', 'start_time', 'end_time', 'status', 'tournament')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -265,20 +282,25 @@ class RoundCreateSerializer(serializers.ModelSerializer):
         return data
 
     def validate(self, attrs):
-        if attrs['end_time'] <= attrs['start_time']:
+        start_time = attrs.get('start_time', getattr(self.instance, 'start_time', None))
+        end_time = attrs.get('end_time', getattr(self.instance, 'end_time', None))
+        if start_time and end_time and end_time <= start_time:
             raise serializers.ValidationError('Час завершення має бути пізніше за час початку')
-        tournament = attrs['tournament']
-        if tournament.max_rounds and tournament.rounds.count() >= tournament.max_rounds:
+
+        tournament = attrs.get('tournament', getattr(self.instance, 'tournament', None))
+        if self.instance is None and tournament and tournament.max_rounds and tournament.rounds.count() >= tournament.max_rounds:
             raise serializers.ValidationError({'tournament': f'Досягнуто ліміту раундів для цього турніру ({tournament.max_rounds}).'})
+
         raw_criteria = attrs.get('criteria')
         if raw_criteria is None:
             raw_criteria = attrs.get('criteria_definition', attrs.get('evaluation_criteria'))
-        try:
-            attrs['parsed_criteria'] = Round.validate_criteria_payload(
-                Round.parse_criteria_definition(raw_criteria or list(Round.DEFAULT_CRITERIA))
-            )
-        except ValidationError as exc:
-            raise serializers.ValidationError({'criteria': exc.messages})
+        if raw_criteria is not None or self.instance is None:
+            try:
+                attrs['parsed_criteria'] = Round.validate_criteria_payload(
+                    Round.parse_criteria_definition(raw_criteria or list(Round.DEFAULT_CRITERIA))
+                )
+            except ValidationError as exc:
+                raise serializers.ValidationError({'criteria': exc.messages})
         return attrs
 
     def create(self, validated_data):
@@ -290,27 +312,65 @@ class RoundCreateSerializer(serializers.ModelSerializer):
         round_obj.set_scoring_criteria(parsed_criteria)
         return round_obj
 
+    def update(self, instance, validated_data):
+        parsed_criteria = validated_data.pop('parsed_criteria', None)
+        validated_data.pop('criteria', None)
+        validated_data.pop('criteria_definition', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if parsed_criteria is not None:
+            instance.set_scoring_criteria(parsed_criteria)
+        return instance
+
 
 class SubmissionCreateSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+
     class Meta:
         model = Submission
-        fields = ('id', 'team', 'round', 'github_link', 'video_link', 'description', 'created_at')
+        fields = ('id', 'team', 'round', 'github_link', 'video_link', 'description', 'status', 'created_at')
+
+    def get_status(self, obj):
+        return obj.status
 
     def validate(self, attrs):
         round_obj = attrs['round']
+        team = attrs['team']
+        if team.tournament_id != round_obj.tournament_id:
+            raise serializers.ValidationError('Команда і раунд мають належати одному турніру.')
         if not round_obj.accepts_submissions():
             raise serializers.ValidationError('Подання або оновлення відповіді для цього раунду вже недоступне')
         return attrs
+
+    def create(self, validated_data):
+        submission, _ = Submission.objects.update_or_create(
+            team=validated_data['team'],
+            round=validated_data['round'],
+            defaults={
+                'github_link': validated_data['github_link'],
+                'video_link': validated_data['video_link'],
+                'description': validated_data['description'],
+            },
+        )
+        return submission
 
 
 class EvaluationOutSerializer(serializers.ModelSerializer):
     criteria_scores = serializers.SerializerMethodField()
     total_score = serializers.SerializerMethodField()
     total_percentage = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    team_name = serializers.CharField(source='submission.team.name', read_only=True)
+    round_title = serializers.CharField(source='submission.round.title', read_only=True)
+    tournament_id = serializers.IntegerField(source='submission.round.tournament_id', read_only=True)
 
     class Meta:
         model = Evaluation
-        fields = ('id', 'submission_id', 'jury_id', 'criteria_scores', 'total_score', 'total_percentage', 'created_at')
+        fields = ('id', 'submission_id', 'jury_id', 'team_name', 'round_title', 'tournament_id', 'status', 'criteria_scores', 'total_score', 'total_percentage', 'created_at')
+
+    def get_status(self, obj):
+        return SubmissionStatus.EVALUATED if obj.is_scored() else SubmissionStatus.PENDING
 
     def get_criteria_scores(self, obj):
         scores = obj.ensure_score_entries()

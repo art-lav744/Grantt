@@ -10,7 +10,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.db.models import Count
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
@@ -263,8 +263,14 @@ def tournament_list(request):
 
 def tournament_detail(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
-    teams = tournament.teams.select_related('captain').all()
+    teams = tournament.teams.select_related('captain').annotate(members_count=Count('memberships')).prefetch_related('memberships')
+    if tournament.hide_teams_until_registration_end and timezone.now() < tournament.reg_end and not (
+        getattr(request.user, 'is_authenticated', False) and (request.user.is_superuser or getattr(request.user, 'is_admin_like', False))
+    ):
+        teams = Team.objects.none()
     rounds = tournament.rounds.order_by('start_time')
+    if not (getattr(request.user, 'is_authenticated', False) and (request.user.is_superuser or getattr(request.user, 'is_admin_like', False))):
+        rounds = rounds.filter(end_time__lte=timezone.now())
     for round_obj in rounds:
         round_obj.scoring_criteria = round_obj.get_or_create_scoring_criteria()
     user_team = _get_user_tournament_team(request.user, tournament)
@@ -276,6 +282,7 @@ def tournament_detail(request, tournament_id):
         'files': tournament.files.select_related('uploaded_by').all() if can_access_files else [],
         'user_team': user_team,
         'can_access_files': can_access_files,
+        'can_manage_rounds': getattr(request.user, 'is_authenticated', False) and (request.user.is_superuser or getattr(request.user, 'is_admin_like', False)),
     })
 
 
@@ -563,6 +570,28 @@ def round_create(request, tournament_id):
 
 
 @login_required
+def round_edit(request, round_id):
+    if not request.user.is_admin_like and not request.user.is_superuser:
+        messages.error(request, 'У вас немає прав для редагування раундів.')
+        return redirect('home')
+
+    round_obj = get_object_or_404(Round.objects.select_related('tournament'), id=round_id)
+    tournament = round_obj.tournament
+    form = RoundForm(request.POST or None, instance=round_obj, tournament=tournament)
+
+    if request.method == 'POST' and form.is_valid():
+        updated_round = form.save()
+        messages.success(request, f"Раунд '{updated_round.title}' успішно оновлено!")
+        return redirect('tournament_detail', tournament_id=tournament.id)
+
+    return render(request, 'tournaments/round_form.html', {
+        'form': form,
+        'tournament': tournament,
+        'round_obj': round_obj,
+        'is_edit': True,
+    })
+
+@login_required
 def submission_create(request, team_id):
     team = get_object_or_404(Team.objects.select_related('tournament', 'captain'), id=team_id)
     is_allowed = (
@@ -767,7 +796,11 @@ class MyTeamInfoView(APIView):
     permission_classes = [IsAuthenticatedJWT]
 
     def get(self, request):
-        teams = Team.objects.filter(captain=request.user).order_by('name')
+        teams = (
+            Team.objects.filter(captain=request.user)
+            | Team.objects.filter(memberships__user=request.user)
+        )
+        teams = teams.distinct().annotate(members_count=Count('memberships')).prefetch_related('memberships').order_by('name')
         return Response(TeamOutSerializer(teams, many=True).data)
 
 
@@ -775,7 +808,12 @@ class MyEvaluationsView(APIView):
     permission_classes = [IsJury]
 
     def get(self, request):
-        evaluations = Evaluation.objects.filter(jury=request.user).order_by('-created_at')
+        evaluations = (
+            Evaluation.objects.filter(jury=request.user)
+            .select_related('submission__team', 'submission__round', 'submission__round__tournament')
+            .prefetch_related('criteria_scores__criterion')
+            .order_by('submission__round__title', 'submission__team__name', '-created_at')
+        )
         return Response(EvaluationOutSerializer(evaluations, many=True).data)
 
 
@@ -1012,6 +1050,27 @@ class TournamentLeaderboardView(APIView):
         })
 
 
+class TournamentTeamsView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, tournament_id):
+        tournament = get_object_or_404(Tournament, pk=tournament_id)
+        user = request.user
+        can_manage = bool(getattr(user, 'is_authenticated', False) and (user.is_superuser or getattr(user, 'is_admin_like', False)))
+
+        if tournament.hide_teams_until_registration_end and timezone.now() < tournament.reg_end and not can_manage:
+            return Response([])
+
+        teams = (
+            Team.objects.filter(tournament=tournament)
+            .select_related('captain')
+            .annotate(members_count=Count('memberships'))
+            .prefetch_related('memberships')
+            .order_by('name', 'id')
+        )
+        return Response(TeamOutSerializer(teams, many=True).data)
+
+
 class TeamCreateView(APIView):
     permission_classes = [IsAuthenticatedJWT]
 
@@ -1019,6 +1078,7 @@ class TeamCreateView(APIView):
         serializer = TeamCreateSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         team = serializer.save()
+        team = Team.objects.annotate(members_count=Count('memberships')).prefetch_related('memberships').get(pk=team.pk)
         return Response(TeamOutSerializer(team).data, status=status.HTTP_201_CREATED)
 
 
@@ -1060,13 +1120,47 @@ class MemberTournamentsView(APIView):
 
 
 class RoundCreateView(APIView):
-    permission_classes = [IsOrganizerOrAdmin]
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsOrganizerOrAdmin()]
+        return [AllowAny()]
+
+    def get(self, request):
+        tournament_id = request.query_params.get('tournament_id')
+        rounds = Round.objects.select_related('tournament').order_by('start_time', 'id')
+        if tournament_id:
+            rounds = rounds.filter(tournament_id=tournament_id)
+
+        user = request.user
+        can_manage = bool(getattr(user, 'is_authenticated', False) and (user.is_superuser or getattr(user, 'is_admin_like', False)))
+        if not can_manage:
+            rounds = rounds.filter(end_time__lte=timezone.now())
+
+        return Response(RoundCreateSerializer(rounds, many=True).data)
 
     def post(self, request):
         serializer = RoundCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         round_obj = serializer.save()
         return Response(serializer.to_representation(round_obj), status=status.HTTP_201_CREATED)
+
+
+class RoundDetailView(APIView):
+    permission_classes = [IsOrganizerOrAdmin]
+
+    def patch(self, request, round_id):
+        round_obj = get_object_or_404(Round, pk=round_id)
+        serializer = RoundCreateSerializer(round_obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        round_obj = serializer.save()
+        return Response(serializer.to_representation(round_obj))
+
+    def put(self, request, round_id):
+        round_obj = get_object_or_404(Round, pk=round_id)
+        serializer = RoundCreateSerializer(round_obj, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        round_obj = serializer.save()
+        return Response(serializer.to_representation(round_obj))
 
 
 class DistributeWorksView(APIView):

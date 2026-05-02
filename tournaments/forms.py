@@ -6,7 +6,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from .models import Submission, TeamMember, Tournament, TournamentFile, TournamentFileType, User, UserRole, Round, Team
+from .models import Submission, TeamMember, Tournament, TournamentFile, TournamentFileType, User, UserRole, Round, RoundStatus, Team
 from .utils import normalize_email_value, validate_allowed_email_domain, validate_password_complexity
 
 
@@ -111,10 +111,28 @@ class RoundForm(forms.ModelForm):
         help_text='Кожен критерій з нового рядка у форматі "Назва | максимум".',
         required=False,
     )
+    start_time = forms.DateTimeField(
+        input_formats=['%Y-%m-%dT%H:%M'],
+        widget=forms.DateTimeInput(
+            attrs={'type': 'datetime-local', 'class': 'form-control'},
+            format='%Y-%m-%dT%H:%M',
+        ),
+    )
+
+    end_time = forms.DateTimeField(
+        input_formats=['%Y-%m-%dT%H:%M'],
+        widget=forms.DateTimeInput(
+            attrs={'type': 'datetime-local', 'class': 'form-control'},
+            format='%Y-%m-%dT%H:%M',
+        ),
+    )
 
     def __init__(self, *args, **kwargs):
         self.tournament = kwargs.pop('tournament', None)
         super().__init__(*args, **kwargs)
+        self.fields['status'].required = False
+        if not self.instance or not self.instance.pk:
+            self.fields['status'].initial = RoundStatus.DRAFT
 
         for field_name in ('start_time', 'end_time'):
             value = getattr(self.instance, field_name, None)
@@ -129,15 +147,17 @@ class RoundForm(forms.ModelForm):
 
     class Meta:
         model = Round
-        fields = ['title', 'description', 'requirements', 'start_time', 'end_time']
+        fields = ['title', 'description', 'requirements', 'start_time', 'end_time', 'status']
         widgets = {
             'start_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
             'end_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
             'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
             'requirements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
             'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
         }
-
+    def clean_status(self):
+        return self.cleaned_data.get('status') or RoundStatus.DRAFT
     def clean(self):
         cleaned_data = super().clean()
         start_time = cleaned_data.get('start_time')
@@ -146,7 +166,7 @@ class RoundForm(forms.ModelForm):
         if start_time and end_time and end_time <= start_time:
             self.add_error('end_time', 'Раунд не може завершитися раніше свого початку.')
 
-        if self.tournament is not None:
+        if self.tournament is not None and not (self.instance and self.instance.pk):
             if self.tournament.max_rounds and self.tournament.rounds.count() >= self.tournament.max_rounds:
                 raise ValidationError(f'Досягнуто ліміту раундів для цього турніру ({self.tournament.max_rounds}).')
 
@@ -261,7 +281,7 @@ class TeamMemberForm(forms.ModelForm):
 class TournamentForm(forms.ModelForm):
     class Meta:
         model = Tournament
-        fields = ['title', 'description', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'max_rounds', 'cover_image']
+        fields = ['title', 'description', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'max_rounds', 'max_team_members', 'min_team_members', 'hide_teams_until_registration_end', 'cover_image']
         widgets = {
             'reg_start': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
             'reg_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
@@ -272,7 +292,13 @@ class TournamentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['max_rounds'].required = False
+        self.fields['max_team_members'].required = False
+        self.fields['min_team_members'].required = False
         self.fields['cover_image'].required = False
+        if 'max_team_members' not in self.initial or self.initial.get('max_team_members') in (None, ''):
+            self.initial['max_team_members'] = 5
+        if 'min_team_members' not in self.initial or self.initial.get('min_team_members') in (None, ''):
+            self.initial['min_team_members'] = 2
         if 'max_rounds' not in self.initial or self.initial.get('max_rounds') in (None, ''):
             self.initial['max_rounds'] = 1
         date_fields = ['reg_start', 'reg_end', 'start_time', 'end_time']
@@ -284,6 +310,18 @@ class TournamentForm(forms.ModelForm):
         value = self.cleaned_data.get('max_rounds') or 1
         if value < 1:
             raise ValidationError('Має бути щонайменше 1 раунд.')
+        return value
+
+    def clean_min_team_members(self):
+        value = self.cleaned_data.get('min_team_members') or 2
+        if value < 1:
+            raise ValidationError('Має бути щонайменше 1 учасник у команді.')
+        return value
+
+    def clean_max_team_members(self):
+        value = self.cleaned_data.get('max_team_members') or 5
+        if value < 1:
+            raise ValidationError('Має бути щонайменше 1 учасник у команді.')
         return value
 
     def clean(self):
@@ -298,6 +336,10 @@ class TournamentForm(forms.ModelForm):
             self.add_error('start_time', "Турнір не може початися раніше реєстрації")
         if start_time and end_time and end_time <= start_time:
             self.add_error('end_time', "Турнір не може закінчитися раніше свого початку")
+        min_team_members = cd.get('min_team_members')
+        max_team_members = cd.get('max_team_members')
+        if min_team_members and max_team_members and min_team_members > max_team_members:
+            self.add_error('min_team_members', 'Мінімальна кількість учасників не може бути більшою за максимальну.')
         return cd
 
 
