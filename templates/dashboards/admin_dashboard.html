@@ -19,29 +19,48 @@
         </div>
     </div>
 
-    <div class="card">
-        <h3>Активні заходи</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Назва</th>
-                    <th>Команд</th>
-                    <th>Дії</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for tournament in tournaments %}
-                <tr>
-                    <td><strong>{{ tournament.title }}</strong></td>
-                    <td>{{ tournament.teams.count }}</td>
-                    <td>
-                        <a href="{% url 'round_create' tournament.id %}" class="btn" style="background: #6f42c1; padding: 5px 10px; font-size: 13px;">➕ Раунд</a>
+    <!-- Знайти таблицю у файлі admin_dashboard.html і замінити на цей варіант -->
+<div class="card">
+    <h3>Активні заходи та раунди</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Турнір</th>
+                <th>Команд</th>
+                <th>Раунди</th> <!-- Нова колонка -->
+                <th>Дії</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tournament in tournaments %}
+            <tr>
+                <td><strong>{{ tournament.title }}</strong></td>
+                <td>{{ tournament.teams_count }}</td>
+                <td>
+                    {% if tournament.rounds.all %}
+                        <ul style="list-style: none; padding: 0; font-size: 13px;">
+                        {% for round in tournament.rounds.all %}
+                            <li style="margin-bottom: 5px;">
+                                {{ round.title }} 
+                                <a href="{% url 'round_edit' round.id %}" style="color: #2563eb;">(ред.)</a>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <span style="color: #6c757d;">Раундів немає</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <a href="{% url 'round_create' tournament.id %}" class="btn" style="background: #6f42c1; padding: 5px 10px; font-size: 13px;">➕ Додати раунд</a>
                         <a href="{% url 'tournament_edit' tournament.id %}" class="btn btn-secondary" style="padding: 5px 10px; font-size: 13px;">Налаштувати ⚙️</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                        <a href="{% url 'tournament_detail' tournament.id %}" class="btn" style="background: #17a2b8; padding: 5px 10px; font-size: 13px;">Перегляд 👁️</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 </div>
 {% endblock %}
