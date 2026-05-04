@@ -190,7 +190,10 @@ def dashboard(request):
 
     if user.role == UserRole.ADMIN:
         context['total_users'] = User.objects.count()
-        context['tournaments'] = Tournament.objects.all().annotate(teams_count=Count('teams'))
+        # Додаємо prefetch_related('rounds'), щоб уникнути N+1 запитів у циклі шаблону
+        context['tournaments'] = Tournament.objects.all().annotate(
+            teams_count=Count('teams')
+        ).prefetch_related('rounds') 
         return render(request, 'dashboards/admin_dashboard.html', context)
 
     if user.role == UserRole.ORGANIZER:
