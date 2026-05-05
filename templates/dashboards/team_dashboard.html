@@ -84,7 +84,21 @@
                 <form method="post" action="{% url 'submission_create' selected_team.id %}">
                     {% csrf_token %}
                     <div style="display: flex; flex-direction: column; gap: 15px;">
+                        
+                        <!-- Додаємо вибір раунду -->
+                        <div>
+                            <label style="font-weight: 600; display: block; margin-bottom: 5px;">Виберіть раунд:</label>
+                            <select name="round" required style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                                <option value="" disabled selected>-- Оберіть етап --</option>
+                                {% for round in selected_team.tournament.rounds.all %}
+                                    <option value="{{ round.id }}">{{ round.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Решта полів (GitHub, Опис тощо) -->
                         {% for field in form %}
+                            {% if field.name != 'round' %} <!-- Щоб не дублювати, якщо воно є у формі -->
                             <div>
                                 <label style="font-weight: 600; display: block; margin-bottom: 5px;">{{ field.label }}</label>
                                 {{ field }}
@@ -92,7 +106,9 @@
                                     <small style="color: #dc3545;">{{ field.errors.0 }}</small>
                                 {% endif %}
                             </div>
+                            {% endif %}
                         {% endfor %}
+                        
                         <button type="submit" class="btn" style="background: #28a745; font-weight: bold;">Надіслати рішення</button>
                     </div>
                 </form>
@@ -101,19 +117,45 @@
 
         <section>
             <div class="card" style="min-height: 500px;">
-                <h3 style="margin-top: 0;">📝 Історія рішень: {{ selected_team.name }}</h3>
+                <h3 style="margin-top: 0;">📝 Результати та історія рішень: {{ selected_team.name }}</h3>
                 
                 {% if submissions %}
                     <div style="display: flex; flex-direction: column; gap: 15px;">
                     {% for sub in submissions %}
-                        <div style="border: 1px solid #f0f0f0; border-left: 5px solid #007bff; padding: 15px; border-radius: 8px; background: #fafafa;">
-                            <div style="display: flex; justify-content: space-between;">
-                                <strong style="font-size: 1.1em; color: #007bff;">Раунд: {{ sub.round.title }}</strong>
-                                <small style="color: #999;">{{ sub.created_at|date:"d.m.Y H:i" }}</small>
+                        <div style="border: 1px solid #f0f0f0; border-left: 5px solid {% if sub.is_graded %}#28a745{% else %}#007bff{% endif %}; padding: 20px; border-radius: 8px; background: #fafafa;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <strong style="font-size: 1.1em; color: #007bff;">Раунд: {{ sub.round.title }}</strong>
+                                    <br>
+                                    <small style="color: #999;">{{ sub.created_at|date:"d.m.Y H:i" }}</small>
+                                </div>
+                                
+                                <!-- Блок оцінки -->
+                                <div style="text-align: right;">
+                                    {% if sub.is_graded %}
+                                        <div style="background: #e6fffa; border: 1px solid #38a169; color: #2f855a; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9em;">
+                                            Оцінено: {{ sub.score }} / 100
+                                        </div>
+                                    {% else %}
+                                        <div style="background: #fffaf0; border: 1px solid #dd6b20; color: #c05621; padding: 5px 12px; border-radius: 20px; font-size: 0.9em;">
+                                            Очікує перевірки
+                                        </div>
+                                    {% endif %}
+                                </div>
                             </div>
-                            <p style="margin: 10px 0; font-size: 0.95em; color: #444;">{{ sub.description|truncatechars:150 }}</p>
-                            <div style="display: flex; gap: 15px;">
-                                <a href="{{ sub.github_link }}" target="_blank" style="text-decoration: none; font-size: 0.9em; font-weight: 600;">🔗 GitHub</a>
+
+                            <p style="margin: 15px 0; font-size: 0.95em; color: #444; line-height: 1.5;">{{ sub.description }}</p>
+                            
+                            <!-- Коментар судді -->
+                            {% if sub.judge_comment %}
+                                <div style="background: #f8f9fa; border-radius: 6px; padding: 12px; margin-top: 10px; border-left: 3px solid #dee2e6;">
+                                    <small style="font-weight: bold; color: #666; display: block; margin-bottom: 5px;">💬 Відгук судді:</small>
+                                    <p style="margin: 0; font-style: italic; font-size: 0.9em;">"{{ sub.judge_comment }}"</p>
+                                </div>
+                            {% endif %}
+
+                            <div style="display: flex; gap: 15px; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee;">
+                                <a href="{{ sub.github_link }}" target="_blank" style="text-decoration: none; font-size: 0.9em; font-weight: 600;">🔗 GitHub Код</a>
                                 {% if sub.video_link %}
                                     <a href="{{ sub.video_link }}" target="_blank" style="text-decoration: none; color: #d63384; font-size: 0.9em; font-weight: 600;">🎥 Відео-демо</a>
                                 {% endif %}
@@ -123,8 +165,7 @@
                     </div>
                 {% else %}
                     <div style="text-align: center; padding: 80px 20px; color: #bbb;">
-                        <p style="font-size: 1.2em;">Ви ще не подали жодної роботи для цієї команди.</p>
-                        <small>Виберіть раунд та додайте посилання у формі зліва.</small>
+                        <p style="font-size: 1.2em;">Роботи ще не подавалися.</p>
                     </div>
                 {% endif %}
             </div>

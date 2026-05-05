@@ -109,7 +109,11 @@ class Tournament(models.Model):
     end_time = models.DateTimeField()
 
     max_teams = models.PositiveIntegerField(default=10)
-    max_rounds = models.PositiveIntegerField(default=1)
+    max_rounds = models.PositiveIntegerField(
+        default=1, 
+        validators=[MinValueValidator(1)], # Обмежуємо від 1 до 10
+        verbose_name="Максимальна кількість раундів"
+    )
     max_team_members = models.PositiveIntegerField(default=5)
     min_team_members = models.PositiveIntegerField(default=2)
     hide_teams_until_registration_end = models.BooleanField(default=False)
@@ -124,6 +128,7 @@ class Tournament(models.Model):
         return self.status == TournamentStatus.REGISTRATION and self.reg_start <= (now or timezone.now()) <= self.reg_end
 
     def clean(self):
+        super().clean()
         if self.max_rounds < 1:
             raise ValidationError({'max_rounds': 'Кількість раундів має бути не меншою за 1.'})
 

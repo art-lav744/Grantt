@@ -279,6 +279,16 @@ class TeamMemberForm(forms.ModelForm):
 
 
 class TournamentForm(forms.ModelForm):
+    FORMAT_CHOICES = [
+        ('single', 'Один раунд'),
+        ('multi', 'Кілька раундів'),
+    ]
+    tournament_format = forms.ChoiceField(
+        choices=FORMAT_CHOICES, 
+        widget=forms.RadioSelect,
+        label="Формат турніру",
+        initial='single'
+    )
     class Meta:
         model = Tournament
         fields = ['title', 'description', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'max_rounds', 'max_team_members', 'min_team_members', 'hide_teams_until_registration_end', 'cover_image']
@@ -287,8 +297,9 @@ class TournamentForm(forms.ModelForm):
             'reg_end': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
             'start_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
             'end_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
+            'max_rounds': forms.NumberInput(attrs={'min': '1', 'max': '10', 'class': 'form-control'}),
         }
-
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['max_rounds'].required = False
@@ -307,10 +318,14 @@ class TournamentForm(forms.ModelForm):
                 self.initial[field] = timezone.localtime(getattr(self.instance, field)).strftime('%Y-%m-%dT%H:%M')
 
     def clean_max_rounds(self):
-        value = self.cleaned_data.get('max_rounds') or 1
-        if value < 1:
-            raise ValidationError('Має бути щонайменше 1 раунд.')
-        return value
+        fmt = self.cleaned_data.get('tournament_format')
+        rounds = self.cleaned_data.get('max_rounds')
+        
+        if fmt == 'single':
+            return 1
+        if not rounds or rounds < 1:
+            raise ValidationError("Вкажіть кількість раундів для цього формату.")[cite: 21]
+        return rounds
 
     def clean_min_team_members(self):
         value = self.cleaned_data.get('min_team_members') or 2

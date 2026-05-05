@@ -1,68 +1,161 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container" style="max-width: 700px; margin: 40px auto;">
-    <div class="card" style="padding: 30px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+    
+    <!-- Вивід помилок валідації (якщо вони є) -->
+    {% if form.errors %}
+    <div style="background: #fff5f5; border: 1px solid #fc8181; padding: 15px; border-radius: 10px; margin-bottom: 20px; color: #c53030;">
+        <strong>Помилка заповнення форми:</strong>
+        <ul style="margin-top: 5px; font-size: 14px;">
+            {% for field, errors in form.errors.items %}
+                <li>{{ field }}: {{ errors|striptags }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="card" style="padding: 30px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); background: #fff;">
         <h2 style="border-bottom: 2px solid #007bff; padding-bottom: 15px; margin-bottom: 25px;">
             {% if tournament %}⚙️ Налаштування турніру{% else %}➕ Новий турнір{% endif %}
         </h2>
         
+        <style>
+            .format-container { display: flex; gap: 15px; margin-bottom: 20px; }
+            .format-option { flex: 1; position: relative; }
+            .format-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+            .format-card { 
+                display: block; padding: 15px; text-align: center; border: 2px solid #e0e0e0; 
+                border-radius: 10px; cursor: pointer; transition: 0.3s; background: #f9f9f9; 
+            }
+            .format-option input[type="radio"]:checked + .format-card { 
+                border-color: #007bff; background: #e7f1ff; color: #007bff; font-weight: bold;
+            }
+            .rounds-area { 
+                display: none; background: #f8f9fa; padding: 20px; border-radius: 10px; 
+                border: 2px dashed #007bff; margin-bottom: 20px; 
+            }
+            input[type="text"], input[type="number"], textarea, select {
+                width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; margin-top: 5px; box-sizing: border-box;
+            }
+            .btn-main { cursor: pointer; border: none; color: white; padding: 12px 25px; border-radius: 8px; font-weight: bold; text-decoration: none; display: inline-block; }
+        </style>
+
+        <!-- ОСНОВНА ФОРМА ТУРНІРУ -->
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
+            
             {% for field in form %}
-                
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}<small style="color: #666;">{{ field.help_text }}</small>{% endif %}
-                </div>
+                {% if field.name == 'tournament_format' %}
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 700; margin-bottom: 10px;">{{ field.label }}</label>
+                        <div class="format-container">
+                            {% for radio in field %}
+                                <div class="format-option">
+                                    {{ radio.tag }}
+                                    <label for="{{ radio.id_for_label }}" class="format-card">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                {% elif field.name == 'max_rounds' %}
+                    <div id="rounds-logic-wrapper" class="rounds-area">
+                        <label style="display: block; font-weight: 700;">{{ field.label }}</label>
+                        {{ field }}
+                        <small style="color: #666; display: block; margin-top: 5px;">Вкажіть кількість раундів.</small>
+                    </div>
+
+                {% else %}
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-weight: 600;">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}<small style="color: #666;">{{ field.help_text }}</small>{% endif %}
+                    </div>
+                {% endif %}
             {% endfor %}
             
             <div style="display: flex; gap: 15px; margin-top: 30px;">
-                <button type="submit" class="btn" style="flex: 2; background: #28a745;">Зберегти</button>
-                <a href="{% url 'dashboard' %}" class="btn" style="flex: 1; background: #6c757d; text-align: center;">Назад</a>
+                <button type="submit" class="btn-main" style="flex: 2; background: #28a745;">Зберегти</button>
+                <a href="{% url 'dashboard' %}" class="btn-main" style="flex: 1; background: #6c757d; text-align: center;">Назад</a>
             </div>
         </form>
     </div>
 
-{% if tournament %}
-<div class="card" style="padding: 30px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); margin-top: 20px;">
-    <h3 style="margin-top:0;">📎 Файли турніру</h3>
-    <form method="post" enctype="multipart/form-data" action="{% url 'tournament_file_upload' tournament.id %}">
-        {% csrf_token %}
-        {% for field in file_form %}
-            <div style="margin-bottom: 18px;">
-                <label style="display: block; font-weight: 600; margin-bottom: 8px;">{{ field.label }}</label>
-                {{ field }}
-                {% if field.help_text %}<small style="color: #666;">{{ field.help_text }}</small>{% endif %}
-            </div>
-        {% endfor %}
-        <button type="submit" class="btn">Завантажити файл</button>
-    </form>
+    <!-- БЛОК ФАЙЛІВ (ТІЛЬКИ ПРИ РЕДАГУВАННІ) -->
+    {% if tournament %}
+    <div class="card" style="padding: 30px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); margin-top: 20px; background: #fff;">
+        <h3 style="margin-top:0;">📎 Файли турніру</h3>
+        <form method="post" enctype="multipart/form-data" action="{% url 'tournament_file_upload' tournament.id %}">
+            {% csrf_token %}
+            {% for field in file_form %}
+                <div style="margin-bottom: 18px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px;">{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn-main" style="background: #007bff;">Завантажити файл</button>
+        </form>
 
-    <div style="margin-top: 24px;">
-        {% if files %}
-            <table>
-                <thead><tr><th>Назва</th><th>Тип</th><th>Завантажив</th><th>Дата</th><th>Дії</th></tr></thead>
-                <tbody>
-                {% for item in files %}
-                    <tr>
-                        <td>{{ item.title }}</td>
-                        <td>{{ item.get_file_type_display }}</td>
-                        <td>{{ item.uploaded_by.full_name|default:item.uploaded_by.nickname|default:item.uploaded_by.email|default:'—' }}</td>
-                        <td>{{ item.uploaded_at|date:'d.m.Y H:i' }}</td>
-                        <td>
-                            <a class="btn btn-secondary" style="padding:5px 10px; font-size:13px; width:auto; display:inline-block;" href="{% url 'tournament_file_open' item.id %}" target="_blank">Відкрити</a>
-                            <a class="btn" style="padding:5px 10px; font-size:13px; width:auto; display:inline-block;" href="{% url 'tournament_file_download' item.id %}">Завантажити</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p>Файлів ще немає.</p>
-        {% endif %}
+        <div style="margin-top: 24px;">
+            {% if files %}
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #eee; text-align: left;">
+                            <th style="padding: 10px;">Назва</th>
+                            <th style="padding: 10px;">Тип</th>
+                            <th style="padding: 10px;">Дії</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in files %}
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 10px;">{{ item.title }}</td>
+                            <td style="padding: 10px;">{{ item.get_file_type_display }}</td>
+                            <td style="padding: 10px;">
+                                <a href="{% url 'tournament_file_open' item.id %}" target="_blank" style="color: #007bff; text-decoration: none; margin-right: 10px;">Відкрити</a>
+                                <a href="{% url 'tournament_file_download' item.id %}" style="text-decoration: none;">⬇️</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p style="color: #666; margin-top: 15px;">Файлів немає.</p>
+            {% endif %}
+        </div>
     </div>
+    {% endif %}
 </div>
-{% endif %}
-</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const wrapper = document.getElementById('rounds-logic-wrapper');
+    const input = document.querySelector('input[name="max_rounds"]');
+    const radios = document.querySelectorAll('input[name="tournament_format"]');
+
+    function toggleDisplay() {
+        const selected = document.querySelector('input[name="tournament_format"]:checked');
+        if (selected && selected.value === 'multi') {
+            wrapper.style.display = 'block';
+            if (input && (input.value === "" || input.value == 1)) {
+                input.value = 2; // Підставляємо 2, якщо поле пусте
+            }
+        } else {
+            wrapper.style.display = 'none';
+            if (input) input.value = 1; // Для одиничного формату завжди 1
+        }
+    }
+
+    radios.forEach(r => r.addEventListener('change', toggleDisplay));
+    toggleDisplay(); 
+
+    // Прибираємо атрибут max, щоб адмін міг ввести будь-яке число
+    if (input) {
+        input.removeAttribute('max');
+        input.setAttribute('min', '1');
+    }
+});
+</script>
 {% endblock %}
