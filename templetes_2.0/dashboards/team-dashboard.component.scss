@@ -1,0 +1,28 @@
+.welcome-banner {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.team-card {
+  border-radius: 15px;
+  border: 1px solid #eee;
+  transition: all 0.2s;
+  position: relative;
+
+  &.selected {
+    border-color: #007bff;
+    background-color: rgba(#007bff, 0.02);
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  }
+}
+
+.border-top-primary { border-top: 4px solid #007bff; }
+.border-top-success { border-top: 4px solid #28a745; }
+
+.submission-item {
+  transition: transform 0.2s;
+  &:hover { background-color: #f0f4f8 !important; }
+}

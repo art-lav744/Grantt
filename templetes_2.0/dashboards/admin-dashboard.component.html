@@ -1,0 +1,55 @@
+<div class="container mt-4">
+  <h2 class="mb-4">⚙️ Панель керування</h2>
+
+  <div class="row g-4 mb-5">
+    <div class="col-md-6">
+      <div class="card stat-card border-primary p-4 h-100">
+        <h3>Турніри</h3>
+        <div class="display-5 fw-bold text-primary">{{ tournaments.length }}</div>
+        <button class="btn btn-primary mt-3" routerLink="/tournament/create">➕ Новий турнір</button>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card stat-card border-success p-4 h-100">
+        <h3>Користувачі</h3>
+        <div class="display-5 fw-bold text-success">{{ totalUsers }}</div>
+        <button class="btn btn-outline-success mt-3" routerLink="/admin/users">Керувати ролями</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card p-4 shadow-sm mb-4">
+    <h3>Активні заходи</h3>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Назва</th>
+            <th>Команд</th>
+            <th>Раунди</th>
+            <th>Дії</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of tournaments">
+            <td><strong>{{ t.title }}</strong></td>
+            <td>{{ t.teams_count }}</td>
+            <td>
+              <ul class="list-unstyled small mb-0">
+                <li *ngFor="let r of t.rounds">
+                  {{ r.title }} <a [routerLink]="['/rounds/edit', r.id]" class="text-primary text-decoration-none ms-1">(ред.)</a>
+                </li>
+              </ul>
+            </td>
+            <td>
+              <div class="d-flex flex-column gap-1">
+                <button class="btn btn-sm btn-purple text-white" [routerLink]="['/round/create', t.id]">➕ Раунд</button>
+                <button class="btn btn-sm btn-light border" [routerLink]="['/tournament/edit', t.id]">Налаштувати ⚙️</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,43 @@
+<div class="container py-4">
+  <div class="header mb-4">
+    <h2>Кабінет Журі</h2>
+    <p>Ви увійшли як: <strong>{{ userNickname }}</strong></p>
+  </div>
+
+  <div class="stats-grid mb-4">
+    <div class="stat-card">
+      <div class="value">{{ totalCount }}</div>
+      <div class="label">Всього робіт</div>
+    </div>
+    <div class="stat-card success">
+      <div class="value">{{ doneCount }}</div>
+      <div class="label">Оцінено</div>
+    </div>
+    <div class="stat-card pending">
+      <div class="value">{{ totalCount - doneCount }}</div>
+      <div class="label">Очікують</div>
+    </div>
+  </div>
+
+  <div class="card p-3 mb-4">
+    <h3>Мої призначені турніри</h3>
+    <ul *ngIf="assignedTournaments.length; else noTournaments">
+      <li *ngFor="let t of assignedTournaments">
+        <a [routerLink]="['/tournaments', t.id]">{{ t.title }}</a>
+        <span class="status-text">({{ t.status }})</span>
+      </li>
+    </ul>
+    <ng-template #noTournaments>
+      <p class="text-muted">Вас ще не призначено до турнірів.</p>
+    </ng-template>
+  </div>
+
+  <div class="evaluations-list">
+    <div *ngFor="let eval of my_evaluations" class="jury-card" [class.scored]="eval.is_scored">
+      <div class="card-status">{{ eval.is_scored ? 'Оцінено' : 'Не оцінено' }}</div>
+      <button class="btn btn-primary">
+        {{ eval.is_scored ? 'Редагувати' : 'Оцінити' }}
+      </button>
+    </div>
+  </div>
+</div>

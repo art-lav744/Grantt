@@ -1,0 +1,12 @@
+.stat-card {
+  border-left: 6px solid;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+
+  h3 { font-size: 1.1rem; color: #666; }
+}
+
+.btn-purple {
+  background-color: #6f42c1;
+  &:hover { background-color: darken(#6f42c1, 10%); }
+}

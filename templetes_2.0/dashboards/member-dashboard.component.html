@@ -1,0 +1,24 @@
+<div class="container py-4" *ngIf="user?.role === 'player'">
+  <div *ngIf="teamParticipations.length; else noTeams">
+    <h2 class="mb-4">Ваші команди:</h2>
+    <div class="row">
+      <div class="col-md-6 mb-3" *ngFor="let membership of teamParticipations">
+        <div class="card team-item">
+          <h3>{{ membership.team.name }}</h3>
+          <p>Ваша роль: {{ membership.role_in_team || 'Учасник' }}</p>
+          <button class="btn btn-primary" [routerLink]="['/teams', membership.team.id]">
+            Перейти до турніру
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #noTeams>
+    <div class="alert alert-info shadow-sm">
+      👋 Привіт, {{ user.nickname }}! Ви ще не в команді. <br>
+      Попросіть капітана додати вас за email: <strong>{{ user.email }}</strong> <br>
+      або <a routerLink="/tournaments">оберіть турнір</a>, щоб створити свою.
+    </div>
+  </ng-template>
+</div>

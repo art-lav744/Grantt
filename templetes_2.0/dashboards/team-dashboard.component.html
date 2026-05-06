@@ -1,0 +1,53 @@
+<div class="container py-4">
+  <h2 class="mb-4">Панель Організатора</h2>
+
+  <div class="stats-row mb-4">
+    <div class="card stat-box blue">
+      <h3>Усі турніри</h3>
+      <div class="number">{{ tournaments.length }}</div>
+      <button class="btn btn-light btn-sm" routerLink="/tournaments/create">➕ Новий турнір</button>
+    </div>
+    <div class="card stat-box green">
+      <h3>Користувачі</h3>
+      <div class="number">{{ totalUsers }}</div>
+      <button class="btn btn-light btn-sm" routerLink="/admin/users">Керувати ролями</button>
+    </div>
+  </div>
+
+  <div class="card mb-4 p-4">
+    <h3>Створити обліковий запис персоналу</h3>
+    <form [formGroup]="staffForm" (ngSubmit)="onCreateStaff()" class="staff-form">
+      <input formControlName="email" type="email" placeholder="Email" class="form-control">
+      <select formControlName="role" class="form-select">
+        <option value="jury">Журі</option>
+        <option value="admin">Адміністратор</option>
+      </select>
+      <button type="submit" class="btn btn-primary" [disabled]="staffForm.invalid">Створити</button>
+    </form>
+  </div>
+
+  <div class="card p-4">
+    <h3>Список турнірів</h3>
+    <table class="table" *ngIf="tournaments.length">
+      <thead>
+        <tr>
+          <th>Назва</th>
+          <th>Команд</th>
+          <th>Статус</th>
+          <th>Дії</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let t of tournaments">
+          <td>{{ t.title }}</td>
+          <td>{{ t.teams_count }}</td>
+          <td><span class="badge">{{ t.status }}</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary me-2" [routerLink]="['/rounds/create', t.id]">➕ Раунд</button>
+            <button class="btn btn-sm btn-secondary" [routerLink]="['/tournaments/edit', t.id]">✏️</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
