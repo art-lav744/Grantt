@@ -1,0 +1,34 @@
+.form-container {
+  max-width: 600px;
+  margin: 50px auto;
+}
+
+.registration-card {
+  h2 { margin-top: 0; color: #333; }
+  .tournament-info { color: #666; }
+}
+
+.form-group {
+  margin-bottom: 20px;
+  label { display: block; font-weight: 600; margin-bottom: 10px; }
+  input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+}
+
+.info-box {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.btn-success {
+  width: 100%;
+  background: #28a745;
+  &:hover { background: #218838; }
+}

@@ -1,0 +1,61 @@
+<div class="container">
+  <div class="card main-info">
+    <h1>{{ team?.name }}</h1>
+    <p><strong>Турнір:</strong> {{ team?.tournament?.title }}</p>
+    <p><strong>Капітан:</strong> {{ team?.captain?.email }}</p>
+    <button class="btn btn-primary" [routerLink]="['/submit', team?.id]">Подати роботу</button>
+  </div>
+
+  <div class="card mt-4">
+    <h2>Додати учасника</h2>
+    <div *ngIf="currentUser?.id === team?.captain?.id; else memberOnly">
+      <div class="add-member-form">
+        <input type="email" [(ngModel)]="newMemberEmail" placeholder="Email учасника" class="form-control">
+        <button (click)="addMember()" class="btn btn-add">Додати</button>
+      </div>
+    </div>
+    <ng-template #memberOnly>
+      <p class="text-muted">Тільки капітан може додавати учасників.</p>
+    </ng-template>
+  </div>
+
+  <div class="card mt-4">
+    <h2>Учасники</h2>
+    <table class="table" *ngIf="members.length > 0; else noMembers">
+      <thead>
+        <tr>
+          <th>Ім'я</th>
+          <th>Email</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let m of members">
+          <td>{{ m.full_name }}</td>
+          <td>{{ m.email }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noMembers><p>Учасників ще не додано.</p></ng-template>
+  </div>
+
+  <div class="card mt-4">
+    <h2>Подачі</h2>
+    <table class="table" *ngIf="submissions.length > 0; else noSubmissions">
+      <thead>
+        <tr>
+          <th>Раунд</th>
+          <th>GitHub</th>
+          <th>Оцінка</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of submissions">
+          <td>{{ s.round.title }}</td>
+          <td><a [href]="s.github_link" target="_blank">Відкрити</a></td>
+          <td>{{ s.evaluation ? 'Оцінена' : '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <ng-template #noSubmissions><p>Подач поки немає.</p></ng-template>
+  </div>
+</div>

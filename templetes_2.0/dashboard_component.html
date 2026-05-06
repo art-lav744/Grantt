@@ -1,0 +1,56 @@
+<div class="card welcome-card">
+  <h1>Особистий кабінет</h1>
+  <p>Вітаємо, <strong>{{ user.nickname }}</strong></p>
+</div>
+
+<div class="card">
+  <h2>Мої команди</h2>
+  <div class="table-responsive" *ngIf="teams.length > 0; else noTeams">
+    <table>
+      <thead>
+        <tr>
+          <th>Назва</th>
+          <th>Турнір</th>
+          <th>Дія</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let team of teams">
+          <td>{{ team.name }}</td>
+          <td>{{ team.tournament.title }}</td>
+          <td><button class="btn btn-sm" (click)="openTeam(team.id)">Відкрити</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #noTeams>
+    <p>У вас ще немає команд.</p>
+  </ng-template>
+</div>
+
+<div class="card">
+  <h2>Останні подачі</h2>
+  <div class="table-responsive" *ngIf="submissions.length > 0; else noSubs">
+    <table>
+      <thead>
+        <tr>
+          <th>Команда</th>
+          <th>Раунд</th>
+          <th>GitHub</th>
+          <th>Дата</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let sub of submissions">
+          <td>{{ sub.team.name }}</td>
+          <td>{{ sub.round.title }}</td>
+          <td><a [href]="sub.github_link" target="_blank">Відкрити</a></td>
+          <td>{{ sub.created_at | date:'dd.MM.yyyy HH:mm' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #noSubs>
+    <p>Подач поки немає.</p>
+  </ng-template>
+</div>

@@ -1,0 +1,34 @@
+<div class="container mt-5">
+  <h1 class="text-center mb-5">🏆 Платформа IT-Турнірів</h1>
+
+  <h3 class="text-success">🟢 Реєстрація відкрита</h3>
+  <div class="row mb-5">
+    <div class="col-md-4" *ngFor="let t of regOpenTournaments">
+      <div class="card shadow-sm h-100">
+        <img *ngIf="t.cover_image" [src]="t.cover_image" class="card-img-top" [alt]="t.title">
+        <div class="card-body">
+          <h5 class="card-title">{{ t.title }}</h5>
+          <p class="card-text text-muted">{{ t.description | slice:0:100 }}...</p>
+          <p><strong>Кінець реєстрації:</strong> {{ t.reg_end | date:'dd.mm.yyyy HH:mm' }}</p>
+          <button [routerLink]="['/register', t.id]" class="btn btn-success w-100">Брати участь</button>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="regOpenTournaments.length === 0" class="col-12">
+      <p class="text-muted">Зараз немає турнірів з відкритою реєстрацією.</p>
+    </div>
+  </div>
+
+  <h3 class="text-primary">🔥 Турніри тривають</h3>
+  <div class="row mb-5">
+    <div class="col-md-4" *ngFor="let t of runningTournaments">
+      <div class="card border-primary h-100">
+        <div class="card-body">
+          <h5 class="card-title">{{ t.title }} <span class="badge bg-primary">LIVE</span></h5>
+          <p><strong>Завершення:</strong> {{ t.end_time | date:'dd.mm.yyyy HH:mm' }}</p>
+          <button [routerLink]="['/tournament', t.id]" class="btn btn-outline-primary w-100">Дивитись хід</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

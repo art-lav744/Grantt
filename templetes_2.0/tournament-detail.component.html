@@ -1,0 +1,102 @@
+<div class="card header-card">
+  <div class="header-flex">
+    <div class="info">
+      <h1>{{ tournament?.title }}</h1>
+      <p><strong>Опис:</strong> {{ tournament?.description || '—' }}</p>
+      <p><strong>Початок реєстрації:</strong> {{ tournament?.reg_start | date:'dd.MM.yyyy HH:mm' }}</p>
+      <p><strong>Кінець реєстрації:</strong> {{ tournament?.reg_end | date:'dd.MM.yyyy HH:mm' }}</p>
+      <p><strong>Статус:</strong> <span class="status-tag">{{ tournament?.status }}</span></p>
+    </div>
+    
+    <div class="actions" *ngIf="canManageRounds">
+      <button class="btn btn-primary" [routerLink]="['/rounds/create', tournament?.id]">Додати раунд</button>
+      <button class="btn btn-secondary" [routerLink]="['/tournaments/edit', tournament?.id]">Редагувати</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Команди</h2>
+  <div class="table-responsive" *ngIf="teams.length > 0; else noTeams">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Назва</th>
+          <th>Капітан</th>
+          <th>Учасників</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let team of teams">
+          <td>{{ team.name }}</td>
+          <td>{{ team.captain_email }}</td>
+          <td>{{ team.members_count || '—' }}</td>
+          <td><button class="btn-link" [routerLink]="['/teams', team.id]">Переглянути</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #noTeams>
+    <p class="empty-msg">Команд ще немає або список прихований.</p>
+  </ng-template>
+</div>
+
+<div class="card">
+  <div class="header-flex">
+    <h2>Раунди</h2>
+    <button class="btn btn-sm" *ngIf="canManageRounds" [routerLink]="['/rounds/create', tournament?.id]">Додати раунд</button>
+  </div>
+
+  <div class="table-responsive" *ngIf="rounds.length > 0; else noRounds">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Назва</th>
+          <th>Статус</th>
+          <th>Початок</th>
+          <th>Кінець</th>
+          <th *ngIf="canManageRounds"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let round of rounds">
+          <td>{{ round.title }}</td>
+          <td>{{ round.status_display || round.status }}</td>
+          <td>{{ round.start_time | date:'dd.MM.yyyy' }}</td>
+          <td>{{ round.end_time | date:'dd.MM.yyyy' }}</td>
+          <td *ngIf="canManageRounds">
+            <button class="btn btn-secondary btn-sm" [routerLink]="['/rounds/edit', round.id]">Редагувати</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #noRounds><p class="empty-msg">Раундів ще немає.</p></ng-template>
+</div>
+
+<div class="card" *ngIf="canAccessFiles">
+  <h2>Файли турніру</h2>
+  <div class="table-responsive" *ngIf="files.length > 0; else noFiles">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Назва</th>
+          <th>Тип</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let file of files">
+          <td>{{ file.title }}</td>
+          <td>{{ file.file_type }}</td>
+          <td class="file-actions">
+            <a [href]="file.open_url" class="btn btn-sm">Відкрити</a>
+            <a [href]="file.download_url" class="btn btn-secondary btn-sm">Завантажити</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ng-template #noFiles><p class="empty-msg">Файлів ще немає.</p></ng-template>
+</div>

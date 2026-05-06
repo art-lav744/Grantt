@@ -1,0 +1,57 @@
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.status-tag {
+  background: #e2e8f0;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+
+  th {
+    text-align: left;
+    color: #718096;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    padding: 12px;
+    border-bottom: 2px solid #edf2f7;
+  }
+
+  td {
+    padding: 12px;
+    border-bottom: 1px solid #edf2f7;
+    vertical-align: middle;
+  }
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #3182ce;
+  cursor: pointer;
+  font-weight: 500;
+  &:hover { text-decoration: underline; }
+}
+
+.file-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.empty-msg {
+  color: #a0aec0;
+  font-style: italic;
+  padding: 20px 0;
+}

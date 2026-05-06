@@ -1,0 +1,28 @@
+<div class="form-container">
+  <div class="card registration-card">
+    <h2>🛡️ Реєстрація команди</h2>
+    <p class="tournament-info">Турнір: <strong>{{ tournament.title }}</strong></p>
+    <hr>
+    
+    <form [formGroup]="teamForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label>Назва вашої команди:</label>
+        <input 
+          type="text" 
+          formControlName="team_name" 
+          class="form-control" 
+          placeholder="Наприклад: CyberDragons">
+      </div>
+      
+      <div class="info-box">
+        <small>
+          ℹ️ Ви стаєте <strong>Капітаном</strong>. Після створення ви зможете запросити інших учасників за їхнім Email.
+        </small>
+      </div>
+
+      <button type="submit" class="btn btn-success" [disabled]="teamForm.invalid">
+        Підтвердити реєстрацію
+      </button>
+    </form>
+  </div>
+</div>

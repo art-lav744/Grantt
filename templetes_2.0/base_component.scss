@@ -1,0 +1,95 @@
+:host {
+  display: block;
+  background-color: #f4f6f9;
+  min-height: 100vh;
+}
+
+.main-header {
+  background: #1f2937;
+  color: white;
+  padding: 16px 24px;
+}
+
+.nav-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-links a, .nav-user a {
+  color: white;
+  text-decoration: none;
+  margin-right: 15px;
+  &.brand { font-size: 1.2rem; }
+}
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-user-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  &:hover { background: rgba(255,255,255,0.12); }
+}
+
+.nav-avatar-placeholder {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: #2563eb;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; border: 2px solid rgba(255,255,255,0.4);
+}
+
+.logout-btn {
+  background: none; border: none;
+  color: rgba(255,255,255,0.7);
+  cursor: pointer; font-size: inherit;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+/* Глобальні стилі для всього додатку */
+::ng-deep {
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 10px 16px;
+    background: #2563eb;
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    &:disabled { background: #9ca3af; }
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+    }
+  }
+}

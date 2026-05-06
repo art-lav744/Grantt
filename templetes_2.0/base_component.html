@@ -1,0 +1,39 @@
+<header class="main-header">
+  <nav class="nav-container">
+    <div class="nav-links">
+      <a routerLink="/" class="brand"><strong>Tournament 2026</strong></a>
+      <a routerLink="/tournaments">Турніри</a>
+      <a *ngIf="isLoggedIn" routerLink="/dashboard">Кабінет</a>
+    </div>
+
+    <div class="nav-user">
+      <ng-container *ngIf="isLoggedIn; else authLinks">
+        <a routerLink="/profile" class="nav-user-link">
+          <div *ngIf="!user.profile_image" class="nav-avatar-placeholder">
+            {{ user.nickname | slice:0:1 | uppercase }}
+          </div>
+          <img *ngIf="user.profile_image" [src]="user.profile_image" class="nav-avatar" alt="Avatar">
+          <span>{{ user.nickname }}</span>
+        </a>
+        <button (click)="logout()" class="logout-btn">Вийти</button>
+      </ng-container>
+
+      <ng-template #authLinks>
+        <a routerLink="/login">Увійти</a>
+        <a routerLink="/register">Реєстрація</a>
+      </ng-template>
+    </div>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="messages" *ngIf="messages.length > 0">
+    <div *ngFor="let msg of messages" [class]="'message ' + msg.type">
+      {{ msg.text }}
+    </div>
+  </div>
+
+  <main>
+    <router-outlet></router-outlet>
+  </main>
+</div>
