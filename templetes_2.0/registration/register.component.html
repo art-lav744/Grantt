@@ -1,0 +1,38 @@
+<div class="card shadow-container register-card">
+  <h2>Реєстрація</h2>
+  <form [formGroup]="registerForm" (ngSubmit)="onRegister()">
+    
+    <div *ngIf="errorMessage" class="error-summary">
+      {{ errorMessage }}
+    </div>
+
+    <div *ngFor="let controlName of ['username', 'email', 'password', 'confirmPassword']" class="form-group">
+      <label [for]="controlName">{{ getLabel(controlName) }}</label>
+      
+      <div [class.password-wrapper]="controlName.includes('password')">
+        <input 
+          [type]="isPasswordVisible(controlName) ? 'text' : (controlName.includes('password') ? 'password' : 'text')" 
+          [id]="controlName" 
+          [formControlName]="controlName" 
+          class="form-control"
+        >
+        <span 
+          *ngIf="controlName.includes('password')" 
+          class="toggle-password" 
+          (click)="togglePass(controlName)"
+        >
+          {{ isPasswordVisible(controlName) ? '🔒' : '👁️' }}
+        </span>
+      </div>
+
+      <div *ngIf="registerForm.get(controlName)?.touched && registerForm.get(controlName)?.errors" class="error-text">
+        <small *ngIf="registerForm.get(controlName)?.errors?.['required']">Це поле обов'язкове</small>
+        <small *ngIf="registerForm.get(controlName)?.errors?.['email']">Некоректний email</small>
+      </div>
+    </div>
+
+    <button class="btn btn-submit" type="submit" [disabled]="registerForm.invalid">
+      Зареєструватися
+    </button>
+  </form>
+</div>
