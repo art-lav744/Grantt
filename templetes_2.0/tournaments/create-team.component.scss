@@ -1,0 +1,42 @@
+.mt-5 { margin-top: 3rem; }
+.justify-content-center { display: flex; justify-content: center; }
+.col-md-6 { width: 50%; @media (max-width: 768px) { width: 90%; } }
+
+.card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.card-header {
+  background-color: #007bff;
+  color: white;
+  padding: 15px 20px;
+}
+
+.card-body { padding: 20px; }
+
+.form-group {
+  margin-bottom: 1rem;
+  label { display: block; margin-bottom: 8px; font-weight: 500; }
+  .form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+}
+
+.btn-success {
+  width: 100%;
+  padding: 12px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  margin-top: 1.5rem;
+  cursor: pointer;
+  &:disabled { opacity: 0.6; }
+}

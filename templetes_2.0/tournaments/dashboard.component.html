@@ -1,0 +1,46 @@
+<div class="container mt-4">
+  <h2 class="welcome-text">Привіт, {{ userNickname }}!</h2>
+
+  <div class="dashboard-grid">
+    <div class="team-sidebar">
+      <div *ngIf="managedTeam" class="card border-primary shadow-sm">
+        <div class="card-body">
+          <h5 class="text-primary">Ви Капітан</h5>
+          <p>Команда: <strong>{{ managedTeam.name }}</strong></p>
+          <hr>
+          <h6>Склад:</h6>
+          <ul class="member-list">
+            <li *ngFor="let m of managedTeam.members">{{ m.nickname }}</li>
+          </ul>
+          <button class="btn btn-outline-primary btn-sm">Додати учасника</button>
+        </div>
+      </div>
+
+      <div *ngIf="joinedTeam" class="card border-success shadow-sm">
+        <div class="card-body">
+          <h5 class="text-success">Ви Учасник</h5>
+          <p>Команда: <strong>{{ joinedTeam.name }}</strong></p>
+          <button class="btn btn-success btn-sm">Сторінка турніру</button>
+        </div>
+      </div>
+
+      <div *ngIf="!managedTeam && !joinedTeam" class="alert alert-warning">
+        Ви ще не приєдналися до жодної команди.
+      </div>
+    </div>
+
+    <div class="tournaments-main">
+      <h4>Доступні турніри</h4>
+      <div class="list-group shadow-sm">
+        <div *ngFor="let t of availableTournaments" class="list-item">
+          <div>
+            <h5 class="mb-1">{{ t.title }}</h5>
+            <small class="text-muted">Реєстрація до: {{ t.reg_end | date:'dd.MM.yyyy' }}</small>
+          </div>
+          <button class="btn btn-primary btn-sm">Деталі та участь</button>
+        </div>
+        <p *ngIf="availableTournaments.length === 0">Турнірів поки немає.</p>
+      </div>
+    </div>
+  </div>
+</div>

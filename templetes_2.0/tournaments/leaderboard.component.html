@@ -1,0 +1,60 @@
+<div class="leaderboard-container">
+  <button class="back-button">← Назад до турніру</button>
+  
+  <div class="leaderboard-header">
+    <h1>{{ tournament.title }}</h1>
+    <span [class]="'tournament-status ' + (isFinal ? 'status-final' : 'status-live')">
+      {{ isFinal ? '✓ Турнір завершено' : '🔴 Живе оновлення' }}
+    </span>
+    <p class="update-hint">Таблиця лідерів оновлюється в реальному часі</p>
+  </div>
+  
+  <div class="table-responsive">
+    <table *ngIf="leaderboard.length > 0; else emptyState" class="leaderboard-table">
+      <thead>
+        <tr>
+          <th>Місце</th>
+          <th>Команда</th>
+          <th>Середній бал</th>
+          <th>Загальний результат</th>
+          <th>Критерії оцінювання</th>
+          <th>Статистика</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let entry of leaderboard">
+          <td class="rank-cell">
+            <span *ngIf="entry.rank === 1" class="medal">🥇</span>
+            <span *ngIf="entry.rank === 2" class="medal">🥈</span>
+            <span *ngIf="entry.rank === 3" class="medal">🥉</span>
+            <span *ngIf="entry.rank > 3">{{ entry.rank }}</span>
+          </td>
+          <td><a class="team-link">{{ entry.team_name }}</a></td>
+          <td class="score-cell">
+            <span [ngClass]="{
+              'score-high': entry.average_score >= 80,
+              'score-medium': entry.average_score >= 60,
+              'score-low': entry.average_score < 60
+            }">{{ entry.average_score }}%</span>
+          </td>
+          <td class="score-cell"><strong>{{ entry.total_raw_score }}</strong> / {{ entry.rounds_scored + 1 }} раунди</td>
+          <td>
+            <div class="criteria-breakdown">
+              <span *ngFor="let crit of entry.criteria_summary" class="criterion-badge">
+                <strong>{{ crit.name }}</strong><br>Сер.: {{ crit.average }}/100
+              </span>
+            </div>
+          </td>
+          <td class="stats-cell">📝 {{ entry.submissions_count }} роб. | ✓ {{ entry.evaluations_count }} оцін.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template #emptyState>
+    <div class="empty-leaderboard">
+      <div class="empty-icon">📊</div>
+      <h3>Таблиця лідерів ще порожня</h3>
+    </div>
+  </ng-template>
+</div>

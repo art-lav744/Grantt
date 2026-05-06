@@ -1,0 +1,44 @@
+<div class="card header-card">
+  <div class="header-flex">
+    <div class="info">
+      <h1>{{ tournament.title }}</h1>
+      <p><strong>Опис:</strong> {{ tournament.description }}</p>
+      <div class="dates">
+        <span><strong>Початок:</strong> {{ tournament.regStart }}</span> | 
+        <span><strong>Кінець:</strong> {{ tournament.regEnd }}</span>
+      </div>
+      <p><strong>Статус:</strong> <span class="badge">{{ tournament.status }}</span></p>
+    </div>
+    <div class="actions" *ngIf="canManage">
+      <button class="btn btn-primary">Додати раунд</button>
+      <button class="btn btn-secondary">Редагувати</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Команди</h2>
+  <table *ngIf="teams.length > 0; else noTeams">
+    <thead>
+      <tr><th>Назва</th><th>Капітан</th><th>Учасників</th><th></th></tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let team of teams">
+        <td>{{ team.name }}</td>
+        <td>{{ team.captain }}</td>
+        <td>{{ team.count }}</td>
+        <td><button class="btn btn-sm">Переглянути</button></td>
+      </tr>
+    </tbody>
+  </table>
+  <ng-template #noTeams><p>Команд ще немає.</p></ng-template>
+</div>
+
+<div class="card">
+  <div class="header-flex">
+    <h2>Раунди</h2>
+    <button *ngIf="canManage" class="btn btn-sm btn-primary">Додати раунд</button>
+  </div>
+  <table *ngFor="let r of rounds">
+    </table>
+</div>

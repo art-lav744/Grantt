@@ -1,0 +1,45 @@
+<div class="container">
+  <div class="header-section">
+    <h2>Оцінювання роботи</h2>
+    <p>Команда: <strong>{{ evaluation.submission.team.name }}</strong></p>
+    <p>Раунд: <strong>{{ evaluation.submission.round.title }}</strong></p>
+  </div>
+
+  <div class="card info-card">
+    <h3>Опис роботи</h3>
+    <p>{{ evaluation.submission.description }}</p>
+
+    <div *ngIf="criteriaDefinition" class="criteria-box">
+      <h4>Критерії раунду</h4>
+      <div class="criteria-content">{{ criteriaDefinition }}</div>
+    </div>
+
+    <div class="links-box">
+      <a *ngIf="evaluation.submission.github_link" [href]="evaluation.submission.github_link" target="_blank" class="link">GitHub репозиторій</a>
+      <a *ngIf="evaluation.submission.video_link" [href]="evaluation.submission.video_link" target="_blank" class="link">Відео презентація</a>
+    </div>
+  </div>
+
+  <form [formGroup]="evalForm" (ngSubmit)="onSubmit()" class="evaluation-form">
+    <div *ngFor="let item of criteriaScores" class="form-group">
+      <label [for]="'criterion_' + item.criterion_id">
+        {{ item.criterion.name }} (0-{{ item.criterion.max_score }})
+      </label>
+      <input type="number" [id]="'criterion_' + item.criterion_id" [formControlName]="'criterion_' + item.criterion_id" step="0.1">
+    </div>
+
+    <div class="form-group">
+      <label for="comment">Коментар</label>
+      <textarea id="comment" formControlName="comment" rows="4"></textarea>
+    </div>
+
+    <p class="total-summary">
+      Поточна сума: <strong>{{ totalScore }}/{{ maxTotal }}</strong>
+    </p>
+
+    <div class="actions">
+      <button type="submit" class="btn" [disabled]="evalForm.invalid">Зберегти оцінку</button>
+      <button type="button" class="btn secondary">Назад</button>
+    </div>
+  </form>
+</div>

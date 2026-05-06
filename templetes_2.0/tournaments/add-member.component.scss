@@ -1,0 +1,63 @@
+.add-member-container {
+  max-width: 600px;
+  margin: 50px auto;
+}
+
+.shadow-card {
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  background: white;
+}
+
+.card-title {
+  margin-top: 0;
+  color: #1f2937;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 15px;
+}
+
+.description {
+  color: #6b7280;
+  margin-bottom: 25px;
+  small { color: #9ca3af; }
+}
+
+.form-group {
+  margin-bottom: 20px;
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #374151;
+  }
+  .form-control {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+    &:focus { border-color: #3b82f6; outline: none; }
+    &.invalid { border-color: #dc3545; }
+  }
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 30px;
+  .btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    text-align: center;
+    &.btn-primary { background: #2563eb; color: white; }
+    &.btn-secondary { background: #f3f4f6; color: #374151; }
+    &:disabled { opacity: 0.6; cursor: not-allowed; }
+  }
+}

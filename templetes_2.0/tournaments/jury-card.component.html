@@ -1,0 +1,24 @@
+<div class="jury-card" [style.border-left-color]="border">
+  <div class="card-header">
+    <div class="title-group">
+      <h4>{{ eval.submission.team.name }}</h4>
+      <p class="subtitle">Раунд: <strong>{{ eval.submission.round.title }}</strong></p>
+    </div>
+    <span class="status-badge" [style.background]="border">{{ label }}</span>
+  </div>
+
+  <p class="description">{{ truncate(eval.submission.description) }}</p>
+
+  <div *ngIf="eval.criteria_entries" class="criteria-list">
+    <span *ngFor="let item of eval.criteria_entries">
+      {{ item.criterion.name }}: <strong>{{ item.score }}/{{ item.criterion.max_score }}</strong>
+    </span>
+    <span class="total">Всього: <strong>{{ eval.total_score }}/{{ eval.max_total_score }}</strong></span>
+  </div>
+
+  <div class="card-footer">
+    <a *ngIf="eval.submission.github_link" [href]="eval.submission.github_link" target="_blank" class="btn small">GitHub</a>
+    <a *ngIf="eval.submission.video_link" [href]="eval.submission.video_link" target="_blank" class="btn small">Відео</a>
+    <button class="btn main-btn">{{ btn_label }}</button>
+  </div>
+</div>

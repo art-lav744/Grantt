@@ -1,0 +1,28 @@
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow">
+        <div class="card-header">
+          <h4 class="mb-0">Реєстрація команди на {{ tournamentTitle }}</h4>
+        </div>
+        <div class="card-body">
+          <form [formGroup]="teamForm" (ngSubmit)="onCreateTeam()">
+            <div class="form-group">
+              <label for="team_name">Назва вашої команди</label>
+              <input 
+                type="text" 
+                id="team_name" 
+                formControlName="teamName" 
+                class="form-control" 
+                placeholder="Введіть круту назву..."
+              >
+            </div>
+            <button type="submit" class="btn btn-success btn-block" [disabled]="teamForm.invalid">
+              Створити та продовжити
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

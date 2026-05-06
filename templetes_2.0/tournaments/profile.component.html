@@ -1,0 +1,61 @@
+<div class="profile-grid">
+  <aside class="profile-sidebar">
+    <div class="card text-center">
+      <div class="avatar-wrap">
+        <div class="avatar-placeholder">{{ user.nickname | slice:0:1 | uppercase }}</div>
+        <div class="avatar-badge" (click)="switchTab('edit')" title="Змінити фото">
+          <i class="fas fa-pen" style="color: white; font-size: 12px;"></i>
+        </div>
+      </div>
+      <div class="sidebar-name">{{ user.nickname }}</div>
+      <div class="sidebar-email">{{ user.email }}</div>
+      <span class="role-badge">{{ user.role }}</span>
+      
+      <div class="sidebar-stat"><span>Discord</span><span class="discord-tag">{{ user.discord }}</span></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="tabs">
+      <button class="tab-btn" [class.active]="activeTab === 'teams'" (click)="switchTab('teams')">🏆 Команди</button>
+      <button class="tab-btn" [class.active]="activeTab === 'submissions'" (click)="switchTab('submissions')">📁 Роботи</button>
+      <button class="tab-btn" [class.active]="activeTab === 'edit'" (click)="switchTab('edit')">⚙️ Налаштування</button>
+    </div>
+
+    <div [ngSwitch]="activeTab">
+      <div *ngSwitchCase="'teams'" class="tab-panel active">
+        <div class="team-card">
+          <div class="team-icon">🎖️</div>
+          <div class="team-info">
+            <h4>Mykola Sabat Team <span class="captain-chip">Капітан</span></h4>
+            <p>Tournament 2026</p>
+          </div>
+          <button class="btn btn-sm">Переглянути</button>
+        </div>
+      </div>
+
+      <div *ngSwitchCase="'edit'" class="tab-panel active">
+        <div class="card">
+          <h3>Редагувати профіль</h3>
+          <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+            <div class="field-group">
+              <label>Аватарка</label>
+              <input type="file" (change)="onFileChange($event)">
+            </div>
+            <div class="form-row">
+              <div class="field-group">
+                <label>Нікнейм</label>
+                <input type="text" formControlName="nickname">
+              </div>
+              <div class="field-group">
+                <label>Discord</label>
+                <input type="text" formControlName="discord_tag">
+              </div>
+            </div>
+            <button type="submit" class="btn">Зберегти зміни</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

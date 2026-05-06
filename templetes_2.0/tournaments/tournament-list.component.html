@@ -1,0 +1,41 @@
+<div class="card">
+  <h1>🏆 Турніри</h1>
+
+  <div class="filter-group">
+    <button (click)="filter('all')" class="btn" [class.active]="activeStatus === 'all'">Всі</button>
+    <button (click)="filter('registration')" class="btn" [class.active]="activeStatus === 'registration'">🟢 Реєстрація</button>
+    <button (click)="filter('running')" class="btn" [class.active]="activeStatus === 'running'">🔥 Активні</button>
+    <button (click)="filter('finished')" class="btn" [class.active]="activeStatus === 'finished'">⚫ Завершені</button>
+  </div>
+
+  <div class="table-responsive">
+    <table *ngIf="filteredTournaments.length > 0; else emptyState">
+      <thead>
+        <tr>
+          <th>Назва</th>
+          <th>Реєстрація</th>
+          <th>Статус</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let t of filteredTournaments">
+          <td><strong>{{ t.title }}</strong></td>
+          <td>{{ t.regStart | date:'dd.MM.yyyy' }} — {{ t.regEnd | date:'dd.MM.yyyy' }}</td>
+          <td>
+            <span [ngSwitch]="t.status">
+              <span *ngSwitchCase="'registration'">🟢 Відкрита</span>
+              <span *ngSwitchCase="'running'">🔥 Йде</span>
+              <span *ngSwitchDefault>⚫ Завершено</span>
+            </span>
+          </td>
+          <td><button class="btn btn-sm">Детальніше</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template #emptyState>
+    <p class="empty-msg">Нічого не знайдено.</p>
+  </ng-template>
+</div>

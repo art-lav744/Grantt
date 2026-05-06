@@ -1,0 +1,21 @@
+.filter-group {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  .btn {
+    background: #f3f4f6;
+    color: #374151;
+    &.active { background: #2563eb; color: white; }
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  th { text-align: left; padding: 12px; border-bottom: 2px solid #eee; }
+  td { padding: 12px; border-bottom: 1px solid #f9fafb; }
+}
+
+.empty-msg { text-align: center; color: #9ca3af; padding: 40px; }

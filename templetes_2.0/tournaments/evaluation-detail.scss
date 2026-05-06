@@ -1,0 +1,48 @@
+.container { padding: 20px; max-width: 800px; margin: 0 auto; }
+.header-section { margin-bottom: 24px; }
+
+.card {
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 24px;
+}
+
+.criteria-box {
+  margin-top: 16px;
+  h4 { margin-bottom: 8px; }
+  .criteria-content {
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    white-space: pre-line;
+  }
+}
+
+.links-box {
+  margin-top: 16px;
+  display: flex; gap: 15px;
+  .link { color: #2563eb; text-decoration: none; &:hover { text-decoration: underline; } }
+}
+
+.form-group {
+  margin-bottom: 16px;
+  label { display: block; margin-bottom: 8px; font-weight: 600; }
+  input, textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    box-sizing: border-box;
+  }
+}
+
+.total-summary { color: #666; font-size: 1.1rem; margin: 20px 0; }
+
+.btn {
+  padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600;
+  background: #2563eb; color: white;
+  &.secondary { background: #e5e7eb; color: #374151; margin-left: 10px; }
+  &:disabled { background: #9ca3af; }
+}

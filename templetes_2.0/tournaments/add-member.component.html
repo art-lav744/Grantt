@@ -1,0 +1,33 @@
+<div class="container add-member-container">
+  <div class="card shadow-card">
+    <h2 class="card-title">👥 Додати до команди</h2>
+    
+    <p class="description">
+      Введіть <strong>Email</strong> користувача, якого ви хочете додати. 
+      <br><small>⚠️ Користувач вже має бути зареєстрований на платформі.</small>
+    </p>
+
+    <form [formGroup]="addMemberForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="email">Email учасника</label>
+        <input 
+          type="email" 
+          id="email" 
+          formControlName="email" 
+          placeholder="example@gmail.com" 
+          class="form-control"
+          [class.invalid]="addMemberForm.get('email')?.touched && addMemberForm.get('email')?.invalid"
+        >
+      </div>
+
+      <div class="button-group">
+        <button type="submit" class="btn btn-primary" [disabled]="addMemberForm.invalid">
+          Додати за Email
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="goBack()">
+          Назад
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

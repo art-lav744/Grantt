@@ -1,0 +1,36 @@
+.leaderboard-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+.leaderboard-header {
+  text-align: center; margin-bottom: 30px;
+  h1 { font-size: 2.5em; color: #333; }
+}
+
+.tournament-status {
+  display: inline-block; padding: 8px 16px; border-radius: 20px; font-size: 0.9em;
+  &.status-final { background-color: #28a745; color: white; }
+  &.status-live { 
+    background-color: #ffc107; color: #333; 
+    animation: pulse 2s infinite; 
+  }
+}
+
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+.leaderboard-table {
+  width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden;
+  thead { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+  th, td { padding: 15px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+}
+
+.rank-cell { font-weight: bold; width: 60px; text-align: center; }
+.score-high { color: #28a745; font-weight: bold; }
+.score-medium { color: #ffc107; font-weight: bold; }
+.score-low { color: #dc3545; font-weight: bold; }
+
+.criterion-badge {
+  display: inline-block; padding: 4px 8px; background: #f0f0f0; border-radius: 4px; font-size: 0.8em; margin: 2px;
+}
+
+.back-button { 
+  padding: 8px 16px; border: none; background: #f0f0f0; cursor: pointer; border-radius: 4px; margin-bottom: 15px;
+}

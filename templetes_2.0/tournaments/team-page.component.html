@@ -1,0 +1,93 @@
+<div class="container mt-4">
+  <div class="card header-card border-primary mb-4">
+    <div class="card-body d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="display-4">{{ team.name }}</h1>
+        <p class="lead">
+          <strong>{{ team.tournament.title }}</strong>
+          <span *ngIf="team.organization" class="badge badge-secondary">{{ team.organization }}</span>
+        </p>
+      </div>
+      <div class="actions" *ngIf="isCaptain">
+        <button class="btn btn-success" (click)="goToSubmit()">📤 Подати роботу</button>
+        <button class="btn btn-primary" (click)="goToAddMember()">➕ Додати учасника</button>
+      </div>
+      <div *ngIf="!isCaptain">
+        <span class="badge badge-info">Учасник</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <aside class="sidebar">
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">Інформація</div>
+        <ul class="list-group">
+          <li class="list-group-item">
+            <strong>Капітан:</strong><br>
+            {{ team.captain_name }}<br>
+            <small class="text-muted">{{ team.captain_email }}</small>
+          </li>
+          <li class="list-group-item">
+            <strong>Учасників:</strong><br>
+            {{ team.members.length }} / {{ team.max_members }}
+          </li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header bg-dark text-white">Учасники</div>
+        <ul class="list-group">
+          <li *ngFor="let member of team.members" class="list-group-item">
+            <strong>{{ member.full_name }}</strong>
+            <span *ngIf="member.isCaptain" class="badge badge-warning">Cap</span>
+            <br><small class="text-muted">{{ member.email }}</small>
+          </li>
+        </ul>
+      </div>
+    </aside>
+
+    <section class="content">
+      <div class="card">
+        <div class="card-header bg-success text-white">Історія подач</div>
+        <div class="card-body">
+          <div class="table-responsive" *ngIf="submissions.length > 0; else emptySub">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Раунд</th>
+                  <th>Дата</th>
+                  <th>Оцінка</th>
+                  <th>Матеріали</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let sub of submissions">
+                  <td><strong>{{ sub.roundTitle }}</strong></td>
+                  <td>{{ sub.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
+                  <td>
+                    <div *ngIf="sub.evalCount > 0" class="score-badge">
+                      {{ sub.totalAvg }}/100
+                      <div class="criteria">{{ sub.criteriaPreview }}</div>
+                    </div>
+                    <span *ngIf="sub.evalCount === 0" class="badge badge-warning">На розгляді</span>
+                  </td>
+                  <td>
+                    <a [href]="sub.githubLink" target="_blank" class="icon-btn">🔗 Git</a>
+                    <a *ngIf="sub.videoLink" [href]="sub.videoLink" target="_blank" class="icon-btn video">📹 Video</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #emptySub>
+            <div class="alert alert-info text-center py-5">
+              <h5>Ви ще не подали жодної роботи</h5>
+              <button *ngIf="isCaptain" class="btn btn-primary mt-3" (click)="goToSubmit()">📤 Подати зараз</button>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

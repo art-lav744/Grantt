@@ -1,0 +1,99 @@
+<div class="container py-4">
+  <div class="header-flex">
+    <h2><i class="fas fa-user-shield"></i> Панель керування доступами</h2>
+    <button class="btn btn-outline-secondary btn-sm" (click)="goToDashboard()">Повернутись у Dashboard</button>
+  </div>
+
+  <div class="card shadow-sm mb-5">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Користувачі системи (Учасники/Журі)</h5>
+      <span class="badge bg-light text-dark">Всього: {{ users.length }}</span>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">Користувач</th>
+            <th>Роль</th>
+            <th>Статус</th>
+            <th class="text-end pe-3">Дії</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of users">
+            <td class="ps-3">
+              <div class="d-flex align-items-center">
+                <div class="avatar-sm me-2 rounded-circle">{{ u.nickname | slice:0:1 | uppercase }}</div>
+                <div>
+                  <div class="fw-bold">{{ u.nickname }}</div>
+                  <small class="text-muted">{{ u.email }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span [class]="u.role === 'jury' ? 'badge bg-purple' : 'badge bg-info text-dark'">
+                {{ u.role === 'jury' ? 'Журі' : 'Учасник' }}
+              </span>
+            </td>
+            <td>
+              <span [class]="u.isActive ? 'badge status-active' : 'badge status-blocked'">
+                {{ u.isActive ? 'Активний' : 'Заблокований' }}
+              </span>
+            </td>
+            <td class="text-end pe-3">
+              <div class="btn-group">
+                <button (click)="toggleStatus(u)" [class]="u.isActive ? 'btn btn-outline-danger' : 'btn btn-outline-success'">
+                  <i [class]="u.isActive ? 'fas fa-user-slash' : 'fas fa-user-check'"></i>
+                </button>
+                <button (click)="changeRole(u)" class="btn btn-outline-primary ms-1">
+                  <i [class]="u.role === 'participant' ? 'fas fa-gavel' : 'fas fa-user-graduate'"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-4">
+      <div class="card shadow-sm border-primary">
+        <div class="card-header bg-primary text-white"><h5>Нове призначення</h5></div>
+        <div class="card-body">
+          <form [formGroup]="assignForm" (ngSubmit)="onAssign()">
+            <div class="mb-3">
+              <label class="form-label">Оберіть суддю</label>
+              <select formControlName="juryId" class="form-select">
+                <option *ngFor="let j of juryUsers" [value]="j.id">{{ j.nickname }}</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Оберіть роботу</label>
+              <select formControlName="submissionId" class="form-select">
+                <option *ngFor="let s of submissions" [value]="s.id">#{{ s.id }} - {{ s.teamName }}</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Призначити</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card shadow-sm h-100">
+        <div class="card-header"><h5>Активні призначення</h5></div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            <div *ngFor="let a of assignments" class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <span class="badge bg-secondary me-2">ID #{{ a.submissionId }}</span>
+                <strong>{{ a.juryName }}</strong> <i class="fas fa-arrow-right mx-2"></i> {{ a.teamName }}
+              </div>
+              <small class="text-muted">{{ a.roundTitle }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

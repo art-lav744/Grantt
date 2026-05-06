@@ -1,0 +1,92 @@
+/* Контейнери карток */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+
+  &.header-card {
+    border-left: 5px solid #2563eb;
+    h1 { margin: 0 0 8px 0; font-size: 24px; }
+    p { margin: 0; color: #666; }
+  }
+}
+
+/* Елементи форми */
+.form-group {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    &.ng-invalid.ng-touched {
+      border-color: #dc2626;
+    }
+  }
+
+  textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+  }
+}
+
+/* Група кнопок */
+.btn-group-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #f3f4f6;
+
+  .btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+
+    &:first-child {
+      background: #2563eb;
+      color: #fff;
+      &:hover { background: #1d4ed8; }
+      &:disabled { background: #94a3b8; cursor: not-allowed; }
+    }
+
+    &.btn-secondary {
+      background: #f3f4f6;
+      color: #4b5563;
+      &:hover { background: #e5e7eb; }
+    }
+  }
+}
+
+/* Повідомлення про помилки */
+.error-msg {
+  color: #dc2626;
+  font-size: 13px;
+  margin-top: 5px;
+}

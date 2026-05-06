@@ -1,0 +1,27 @@
+.submission-card {
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 30px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+
+  h2 { margin-bottom: 25px; color: #1f2937; }
+}
+
+.form-group {
+  margin-bottom: 20px;
+  label { display: block; font-weight: 600; margin-bottom: 8px; color: #374151; }
+  .form-control {
+    width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px;
+    box-sizing: border-box;
+    &:focus { border-color: #3b82f6; outline: none; }
+  }
+  .error { color: #dc2626; font-size: 12px; margin-top: 5px; }
+}
+
+.btn-submit {
+  width: 100%; background: #2563eb; color: white; padding: 12px; 
+  border: none; border-radius: 8px; font-weight: 600; cursor: pointer;
+  &:disabled { background: #94a3b8; }
+}
