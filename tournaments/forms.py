@@ -324,7 +324,7 @@ class TournamentForm(forms.ModelForm):
         if fmt == 'single':
             return 1
         if not rounds or rounds < 1:
-            raise ValidationError("Вкажіть кількість раундів для цього формату.")[cite: 21]
+            raise ValidationError("Вкажіть кількість раундів для цього формату.")
         return rounds
 
     def clean_min_team_members(self):
