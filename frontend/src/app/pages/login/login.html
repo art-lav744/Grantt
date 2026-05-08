@@ -1,0 +1,31 @@
+<div class="card shadow-container">
+  <h2>Вхід</h2>
+  <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+    
+    <div *ngIf="errorMessage" class="error-summary">
+      {{ errorMessage }}
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" formControlName="email" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="password">Пароль</label>
+      <div class="password-wrapper">
+        <input 
+          [type]="isPasswordVisible ? 'text' : 'password'" 
+          id="password" 
+          formControlName="password" 
+          class="form-control"
+        >
+        <span class="toggle-password" (click)="toggleVisibility()">
+          {{ isPasswordVisible ? '🔒' : '👁️' }}
+        </span>
+      </div>
+    </div>
+
+    <button class="btn" type="submit" [disabled]="loginForm.invalid || loading">{{ loading ? 'Вхід...' : 'Увійти' }}</button>
+  </form>
+</div>

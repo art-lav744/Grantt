@@ -1,0 +1,62 @@
+.list-container {
+  max-width: 1100px;
+  margin: 2rem auto;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  color: #1a202c;
+  margin-bottom: 1.5rem;
+}
+
+.tournaments-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    background-color: #f7fafc;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #4a5568;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  td {
+    padding: 15px;
+    border-bottom: 1px solid #edf2f7;
+  }
+}
+
+.status-pill {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #edf2f7;
+  color: #4a5568;
+
+  &[data-status="Active"] {
+    background: #c6f6d5;
+    color: #22543d;
+  }
+}
+
+.btn-outline {
+  border: 1px solid #3182ce;
+  color: #3182ce;
+  background: transparent;
+  padding: 6px 16px;
+  border-radius: 4px;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #3182ce;
+    color: white;
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #718096;
+}

@@ -1,0 +1,81 @@
+<a routerLink="/dashboard" class="btn btn-outline">← Назад</a>
+
+<section>
+  <h1>Дії адміна / організатора</h1>
+
+  <div *ngIf="message" class="success">{{ message }}</div>
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <section>
+    <h2>Змінити статус турніру</h2>
+
+    <label>
+      Турнір
+      <select [(ngModel)]="selectedTournamentId" name="selectedTournamentId">
+        <option [ngValue]="null">Оберіть турнір</option>
+        <option *ngFor="let tournament of tournaments" [ngValue]="tournament.id">
+          {{ tournament.title }} — {{ tournament.status }}
+        </option>
+      </select>
+    </label>
+
+    <label>
+      Новий статус
+      <select [(ngModel)]="selectedStatus" name="selectedStatus">
+        <option value="registration">registration</option>
+        <option value="open">open</option>
+        <option value="closed">closed</option>
+        <option value="archived">archived</option>
+      </select>
+    </label>
+
+    <button type="button" (click)="updateStatus()">Оновити статус</button>
+  </section>
+
+  <section>
+    <h2>Розподілити роботи раунду між журі</h2>
+
+    <label>
+      ID раунду
+      <input type="number" [(ngModel)]="selectedRoundId" name="selectedRoundId" />
+    </label>
+
+    <button type="button" (click)="distributeRound()">Розподілити</button>
+  </section>
+
+  <section>
+    <h2>Видалити команду</h2>
+
+    <label>
+      ID команди
+      <input type="number" [(ngModel)]="teamIdToDelete" name="teamIdToDelete" />
+    </label>
+
+    <button type="button" (click)="deleteTeam()">Видалити команду</button>
+  </section>
+
+  <section>
+    <h2>Заявки журі</h2>
+
+    <div *ngIf="pendingJuryRegistrations.length === 0">
+      Немає заявок на підтвердження.
+    </div>
+
+    <table *ngIf="pendingJuryRegistrations.length > 0">
+      <tr>
+        <th>Журі</th>
+        <th>Турнір</th>
+        <th>Дія</th>
+      </tr>
+
+      <tr *ngFor="let registration of pendingJuryRegistrations">
+        <td>{{ registration.jury_nickname || registration.jury_email }}</td>
+        <td>{{ registration.tournament_title }}</td>
+        <td>
+          <button type="button" (click)="reviewJuryRegistration(registration.id, 'approved')">Підтвердити</button>
+          <button type="button" (click)="reviewJuryRegistration(registration.id, 'rejected')">Відхилити</button>
+        </td>
+      </tr>
+    </table>
+  </section>
+</section>

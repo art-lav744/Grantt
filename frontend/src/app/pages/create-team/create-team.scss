@@ -1,0 +1,42 @@
+section {
+  margin-top: 24px;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.members-section {
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.member-row {
+  border: 1px solid #ddd;
+  padding: 12px;
+  margin-bottom: 12px;
+  max-width: 560px;
+}
+
+.error-summary {
+  color: #b00020;
+  margin-bottom: 12px;
+}
+
+.success-summary {
+  color: #0a7a2f;
+  margin-bottom: 12px;
+}
+
+.muted {
+  opacity: 0.75;
+  margin-bottom: 12px;
+}

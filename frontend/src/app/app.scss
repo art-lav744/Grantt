@@ -1,0 +1,36 @@
+.top-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.top-nav a,
+.top-nav button {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #1f2937;
+  cursor: pointer;
+  font: inherit;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.top-nav a:hover,
+.top-nav button:hover,
+.top-nav a.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.page-wrap {
+  padding: 20px;
+}

@@ -1,0 +1,61 @@
+<a routerLink="/" class="btn btn-outline">← Назад</a>
+
+<div *ngIf="error">{{ error }}</div>
+
+<section *ngIf="tournament">
+  <h1>{{ tournament.title }}</h1>
+
+  <p><strong>Опис:</strong> {{ tournament.description || '—' }}</p>
+  <p><strong>Статус:</strong> {{ tournament.status }}</p>
+  <p><strong>Початок реєстрації:</strong> {{ tournament.reg_start || '—' }}</p>
+  <p><strong>Кінець реєстрації:</strong> {{ tournament.reg_end || '—' }}</p>
+  <p><strong>Кількість команд:</strong> {{ tournament.teams_count ?? 0 }}</p>
+</section>
+
+<section>
+  <h2>Команди</h2>
+
+  <a *ngIf="tournament" [routerLink]="['/tournaments', tournament.id, 'create-team']" class="btn btn-outline">+ Створити команду</a>
+
+  <div *ngIf="teams.length === 0">
+    Команд ще немає або список прихований.
+  </div>
+
+  <table *ngIf="teams.length > 0">
+    <tr>
+      <th>Назва</th>
+      <th>Капітан</th>
+      <th>Учасників</th>
+    </tr>
+
+    <tr *ngFor="let team of teams">
+      <td><a [routerLink]="['/teams', team.id]">{{ team.name }}</a></td>
+      <td>{{ team.captain?.email || '—' }}</td>
+      <td>{{ team.members_count ?? '—' }}</td>
+    </tr>
+  </table>
+</section>
+
+<section>
+  <h2>Раунди</h2>
+
+  <div *ngIf="rounds.length === 0">
+    Раундів ще немає.
+  </div>
+
+  <table *ngIf="rounds.length > 0">
+    <tr>
+      <th>Назва</th>
+      <th>Початок</th>
+      <th>Кінець</th>
+      <th>Статус</th>
+    </tr>
+
+    <tr *ngFor="let round of rounds">
+      <td>{{ round.title || round.name }}</td>
+      <td>{{ round.start_time || round.start || '—' }}</td>
+      <td>{{ round.end_time || round.end || '—' }}</td>
+      <td>{{ round.status || '—' }}</td>
+    </tr>
+  </table>
+</section>

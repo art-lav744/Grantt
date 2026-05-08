@@ -1,0 +1,22 @@
+<section>
+  <h1>Відправка роботи</h1>
+
+  <form (ngSubmit)="submit()">
+    <div>
+      <label>GitHub URL</label>
+      <input type="text" [(ngModel)]="form.github_link" name="github_link">
+    </div>
+
+    <div>
+      <label>Опис</label>
+      <textarea [(ngModel)]="form.description" name="description"></textarea>
+    </div>
+
+    <button type="submit">Відправити</button>
+  </form>
+
+  <p *ngIf="success">{{ success }}</p>
+  <p *ngIf="error">{{ error }}</p>
+
+  <a routerLink="/">На головну</a>
+</section>

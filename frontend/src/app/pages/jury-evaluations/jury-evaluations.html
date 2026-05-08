@@ -1,0 +1,32 @@
+<a routerLink="/dashboard" class="btn btn-outline">← Назад</a>
+
+<section>
+  <h1>Оцінювання журі</h1>
+
+  <div *ngIf="loading">Завантаження...</div>
+  <div *ngIf="error">{{ error }}</div>
+
+  <div *ngIf="!loading && evaluations.length === 0">
+    Вам ще не призначено робіт для оцінювання.
+  </div>
+
+  <table *ngIf="evaluations.length > 0">
+    <tr>
+      <th>Команда</th>
+      <th>Раунд</th>
+      <th>Статус</th>
+      <th>Бал</th>
+      <th>Дія</th>
+    </tr>
+
+    <tr *ngFor="let evaluation of evaluations">
+      <td>{{ evaluation.team_name || '—' }}</td>
+      <td>{{ evaluation.round_title || '—' }}</td>
+      <td>{{ evaluation.status || '—' }}</td>
+      <td>{{ evaluation.total_score ?? 0 }}</td>
+      <td>
+        <a [routerLink]="['/jury/evaluations', evaluation.id]">Оцінити</a>
+      </td>
+    </tr>
+  </table>
+</section>

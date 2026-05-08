@@ -1,0 +1,17 @@
+<header class="top-nav">
+  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Турніри</a>
+
+  <a *ngIf="isLoggedIn" routerLink="/dashboard" routerLinkActive="active">Кабінет</a>
+  <a *ngIf="isLoggedIn && isJuryOrOrganizer" routerLink="/jury/evaluations" routerLinkActive="active">Журі</a>
+  <a *ngIf="isLoggedIn && isAdminOrOrganizer" routerLink="/admin/actions" routerLinkActive="active">Адмін-панель</a>
+
+  <span class="spacer"></span>
+
+  <a *ngIf="!isLoggedIn" routerLink="/login" routerLinkActive="active">Вхід</a>
+  <a *ngIf="!isLoggedIn" routerLink="/register" routerLinkActive="active">Реєстрація</a>
+  <button *ngIf="isLoggedIn" type="button" (click)="logout()">Вийти</button>
+</header>
+
+<main class="page-wrap">
+  <router-outlet></router-outlet>
+</main>

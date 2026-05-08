@@ -1,0 +1,28 @@
+.dashboard-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0 20px;
+}
+
+.dashboard-links a {
+  border: 1px solid #3182ce;
+  border-radius: 6px;
+  color: #3182ce;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.dashboard-links a:hover {
+  background: #3182ce;
+  color: #ffffff;
+}
+
+.error-summary {
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #991b1b;
+  margin: 12px 0;
+  padding: 10px 12px;
+}

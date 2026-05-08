@@ -1,0 +1,40 @@
+<div class="card list-container">
+  <h1 class="page-title">Список турнірів</h1>
+  
+  <div class="table-responsive" *ngIf="tournaments.length > 0; else empty">
+    <table class="tournaments-table">
+      <thead>
+        <tr>
+          <th>Назва</th>
+          <th>Початок реєстрації</th>
+          <th>Кінець реєстрації</th>
+          <th>Статус</th>
+          <th>Дія</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let t of tournaments">
+          <td class="font-bold">{{ t.title }}</td>
+          <td>{{ (t.regStart | date:'dd.MM.yyyy HH:mm') || '—' }}</td>
+          <td>{{ (t.regEnd | date:'dd.MM.yyyy HH:mm') || '—' }}</td>
+          <td>
+            <span class="status-pill" [attr.data-status]="t.status">
+              {{ t.status }}
+            </span>
+          </td>
+          <td>
+            <button class="btn btn-outline" [routerLink]="['/tournaments', t.id]">
+              Детальніше
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <ng-template #empty>
+    <div class="empty-state">
+      <p>Турнірів поки немає.</p>
+    </div>
+  </ng-template>
+</div>

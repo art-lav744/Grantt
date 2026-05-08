@@ -1,0 +1,26 @@
+section {
+  margin-top: 24px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+th,
+td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+
+.btn {
+  display: inline-block;
+  margin-top: 12px;
+}
+
+.error-summary {
+  margin-top: 16px;
+  color: #b00020;
+}

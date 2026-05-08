@@ -1,0 +1,53 @@
+<a [routerLink]="['/tournaments', tournamentId]" class="btn btn-outline">← Назад до турніру</a>
+
+<section>
+  <h1>Створити команду</h1>
+
+  <div *ngIf="error" class="error-summary">{{ error }}</div>
+  <div *ngIf="success" class="success-summary">{{ success }}</div>
+
+  <form [formGroup]="teamForm" (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label for="name">Назва команди</label>
+      <input id="name" type="text" formControlName="name" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="captain_name">Ім’я капітана</label>
+      <input id="captain_name" type="text" formControlName="captain_name" class="form-control">
+    </div>
+
+    <div class="form-group">
+      <label for="captain_email">Email капітана</label>
+      <input id="captain_email" type="email" formControlName="captain_email" class="form-control">
+    </div>
+
+    <section formArrayName="members" class="members-section">
+      <h2>Учасники команди</h2>
+
+      <div *ngIf="members.length === 0" class="muted">
+        Додаткових учасників ще немає. Капітан рахується як перший учасник.
+      </div>
+
+      <div *ngFor="let member of members.controls; let i = index" [formGroupName]="i" class="member-row">
+        <div class="form-group">
+          <label>Ім’я учасника</label>
+          <input type="text" formControlName="full_name" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label>Email учасника</label>
+          <input type="email" formControlName="email" class="form-control">
+        </div>
+
+        <button type="button" class="btn btn-outline" (click)="removeMember(i)">Видалити</button>
+      </div>
+
+      <button type="button" class="btn btn-outline" (click)="addMember()">+ Додати учасника</button>
+    </section>
+
+    <button class="btn" type="submit" [disabled]="teamForm.invalid || loading">
+      {{ loading ? 'Створення...' : 'Створити команду' }}
+    </button>
+  </form>
+</section>

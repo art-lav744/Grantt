@@ -1,0 +1,41 @@
+<a routerLink="/" class="btn btn-outline">← На головну</a>
+
+<div *ngIf="loading">Завантаження команди...</div>
+<div *ngIf="error" class="error-summary">{{ error }}</div>
+
+<section *ngIf="team">
+  <h1>{{ team.name }}</h1>
+
+  <p><strong>Турнір:</strong> {{ team.tournament_title || ('ID ' + team.tournament_id) }}</p>
+  <p><strong>Капітан:</strong> {{ team.captain_name || '—' }}</p>
+  <p><strong>Email капітана:</strong> {{ team.captain_email || '—' }}</p>
+  <p><strong>Кількість учасників:</strong> {{ team.members_count ?? ((team.members?.length || 0) + 1) }}</p>
+
+  <a *ngIf="team.tournament_id" [routerLink]="['/tournaments', team.tournament_id]" class="btn btn-outline">
+    ← Назад до турніру
+  </a>
+</section>
+
+<section *ngIf="team">
+  <h2>Учасники</h2>
+
+  <table>
+    <tr>
+      <th>Ім’я</th>
+      <th>Email</th>
+      <th>Роль</th>
+    </tr>
+
+    <tr>
+      <td>{{ team.captain_name || '—' }}</td>
+      <td>{{ team.captain_email || '—' }}</td>
+      <td>Капітан</td>
+    </tr>
+
+    <tr *ngFor="let member of team.members">
+      <td>{{ member.full_name || '—' }}</td>
+      <td>{{ member.email || '—' }}</td>
+      <td>Учасник</td>
+    </tr>
+  </table>
+</section>

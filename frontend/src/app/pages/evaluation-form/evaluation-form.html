@@ -1,0 +1,38 @@
+<a routerLink="/jury/evaluations" class="btn btn-outline">← До списку оцінювань</a>
+
+<section>
+  <h1>Форма оцінювання</h1>
+
+  <div *ngIf="loading">Завантаження...</div>
+  <div *ngIf="error">{{ error }}</div>
+
+  <form *ngIf="evaluation && !loading" (ngSubmit)="save()">
+    <p><strong>Команда:</strong> {{ evaluation.team_name || '—' }}</p>
+    <p><strong>Раунд:</strong> {{ evaluation.round_title || '—' }}</p>
+
+    <div *ngFor="let criterion of criteriaScores" class="field">
+      <label>
+        {{ criterion.name }} / {{ criterion.max_score }}
+        <input
+          type="number"
+          name="criterion_{{ criterion.criterion_id }}"
+          [(ngModel)]="criterion.score"
+          [min]="0"
+          [max]="criterion.max_score"
+          step="0.1"
+        />
+      </label>
+    </div>
+
+    <div class="field">
+      <label>
+        Коментар
+        <textarea name="comment" [(ngModel)]="comment" rows="4"></textarea>
+      </label>
+    </div>
+
+    <button type="submit" [disabled]="saving">
+      {{ saving ? 'Збереження...' : 'Зберегти оцінку' }}
+    </button>
+  </form>
+</section>

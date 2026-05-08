@@ -1,0 +1,33 @@
+<section>
+  <h1>Мій кабінет</h1>
+
+  <div *ngIf="forbiddenMessage" class="error-summary">
+    {{ forbiddenMessage }}
+  </div>
+
+  <nav class="dashboard-links">
+    <a routerLink="/">Турніри</a>
+    <a *ngIf="isJuryOrOrganizer" routerLink="/jury/evaluations">Оцінювання журі</a>
+    <a *ngIf="isAdminOrOrganizer" routerLink="/admin/actions">Дії адміна / організатора</a>
+  </nav>
+
+  <div *ngIf="loading">
+    Завантаження...
+  </div>
+
+  <div *ngIf="!loading && teams.length === 0">
+    Ви ще не маєте команд.
+  </div>
+
+  <div *ngIf="teams.length > 0">
+    <h2>Мої команди</h2>
+
+    <ul>
+      <li *ngFor="let team of teams">
+        <a [routerLink]="['/teams', team.id]">
+          {{ team.name }}
+        </a>
+      </li>
+    </ul>
+  </div>
+</section>
