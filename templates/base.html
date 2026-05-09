@@ -130,10 +130,21 @@
         <div>
             <a href="{% url 'home' %}"><strong>Tournament 2026</strong></a>
             <a href="{% url 'tournament_list' %}">Турніри</a>
+            
             {% if user.is_authenticated %}
                 <a href="{% url 'dashboard' %}">Кабінет</a>
+                
+                <a href="{% url 'team_dashboard' %}" class="nav-link">
+                    🔔 Сповіщення
+                    {% if user.unread_notifications_count > 0 %}
+                        <span style="background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px;">
+                            {{ user.unread_notifications_count }}
+                        </span>
+                    {% endif %}
+                </a>
             {% endif %}
         </div>
+
         <div class="nav-user">
             {% if user.is_authenticated %}
                 <a href="{% url 'profile' %}" class="nav-user-link">

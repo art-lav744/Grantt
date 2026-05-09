@@ -1,7 +1,7 @@
 import random
 import secrets
 import string
-
+#new_one
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
@@ -12,6 +12,7 @@ from django.core.mail import send_mail
 from django.db.models import Count
 from django.http import FileResponse, Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -20,9 +21,34 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from .forms import (
+    AddMemberForm,
+    ProfileEditForm,
+    RegisterForm,
+    RoundForm,
+    SubmissionForm,
+    TournamentFileForm,
+    TournamentForm,
+    JuryAssignmentForm,
+)
 
-from .forms import AddMemberForm, ProfileEditForm, RegisterForm, RoundForm, SubmissionForm, TournamentFileForm, TournamentForm, JuryAssignmentForm
-from .models import Evaluation, JuryRegistrationStatus, JuryTournamentRegistration, Round, RoundStatus, Submission, Team, TeamMember, Tournament, TournamentFile, TournamentStatus, User, UserRole
+from .models import (
+    Evaluation,
+    JuryRegistrationStatus,
+    JuryTournamentRegistration,
+    Round,
+    RoundStatus,
+    Submission,
+    Team,
+    TeamMember,
+    TeamInvite,
+    UserNotification,
+    Tournament,
+    TournamentFile,
+    TournamentStatus,
+    User,
+    UserRole,
+)
 from .permissions import IsAdmin, IsAuthenticatedJWT, IsJury, IsOrganizerOrAdmin
 from .serializers import (
     EvaluationOutSerializer,
@@ -44,6 +70,7 @@ from .utils import (
     process_square_image,
     tournament_registration_error,
     validate_raw_image,
+    send_membership_invite_email,
 )
 
 
@@ -498,7 +525,7 @@ def register_for_tournament(request, tournament_id):
 
     return redirect('create_team', tournament_id=tournament.id)
 
-
+#new_one
 @login_required
 def team_dashboard(request):
     team = Team.objects.filter(captain=request.user).select_related('tournament').first()
@@ -510,34 +537,46 @@ def team_dashboard(request):
 
     submissions = team.submissions.select_related('round').prefetch_related('evaluation').order_by('-created_at')
     submissions = attach_submission_score_summaries(submissions)
-    return render(request, 'tournaments/team_dashboard.html', {'team': team, 'submissions': submissions})
+    notifications = request.user.notifications.all()[:10] # останні 10 сповіщень
+    return render(request, 'tournaments/team_dashboard.html', {'user_notifications': notifications, 'team': team, 'submissions': submissions})
 
 
 @login_required
 def add_team_member(request, team_id):
-    team = get_object_or_404(Team, id=team_id)
-    if request.user != team.captain:
-        messages.error(request, 'Тільки капітан команди може додавати учасників.')
-        return redirect('team_detail', pk=team.id)
-
-    form = AddMemberForm(request.POST or None, team=team, user=request.user)
+    team = get_object_or_404(Team, id=team_id, captain=request.user)
+    
     if request.method == 'POST':
-        if form.is_valid():
-            email = form.cleaned_data['email']
-            user_to_add = getattr(form, 'user_instance', None)
-            TeamMember.objects.get_or_create(
+        email = request.POST.get('email', '').strip().lower()
+        
+        if email:
+            # 1. Створюємо об'єкт запрошення (TeamInvite)
+            invite, created = TeamInvite.objects.get_or_create(
                 team=team,
                 email=email,
-                defaults={'user': user_to_add, 'full_name': getattr(user_to_add, 'full_name', '') or getattr(user_to_add, 'nickname', '') or email},
+                inviter=request.user,
+                is_active=True
             )
-            messages.success(request, f'Учасника {email} додано!')
-            return redirect('team_detail', pk=team.id)
-        for errors in form.errors.values():
-            for error in errors:
-                messages.error(request, error)
-            return redirect('team_detail', pk=team.id)
+            
+            # 2. Відправляємо Email (функція з вашого utils.py)
+            try:
+                send_membership_invite_email(invite)
+                messages.success(request, f"Запрошення для {email} надіслано!")
+            except Exception as e:
+                messages.error(request, f"Помилка при відправці пошти: {e}")
 
-    return render(request, 'tournaments/add_member.html', {'team': team, 'form': form})
+            # 3. Якщо користувач вже є в системі, створюємо внутрішнє сповіщення
+            target_user = User.objects.filter(email=email).first()
+            if target_user:
+                UserNotification.objects.create(
+                    user=target_user,
+                    title="Нове запрошення до команди",
+                    message=f"Вас запросили приєднатися до команди {team.name}",
+                    link=reverse('process_invite_link', args=[invite.id])
+                )
+            
+            return redirect('team_detail', pk=team.id)
+            
+    return render(request, 'tournaments/add_member.html', {'team': team})
 
 
 @login_required
@@ -676,6 +715,59 @@ def tournament_file_open(request, file_id):
     if not tournament_file.file:
         raise Http404('Файл не знайдено.')
     return FileResponse(tournament_file.file.open('rb'), as_attachment=False, filename=tournament_file.file.name.split('/')[-1])
+
+
+#new_one
+# 1. Створення запрошення
+def send_invite_action(request, team_id):
+    team = get_object_or_404(Team, id=team_id)
+    email = request.POST.get('email')
+    
+    # Створюємо об'єкт запрошення
+    invite = TeamInvite.objects.create(
+        team=team,
+        email=email,
+        inviter=request.user
+    )
+    
+    # Відправляємо Email
+    send_membership_invite_email(invite)
+    
+    # Якщо користувач з таким email вже є в системі, створюємо внутрішнє сповіщення
+    invited_user = User.objects.filter(email=email).first()
+    if invited_user:
+        UserNotification.objects.create(
+            user=invited_user,
+            title="Нове запрошення",
+            message=f"Вас запрошено до команди {team.name}",
+            link=f"/invite/accept/{invite.id}/"
+        )
+    
+    messages.success(request, "Запрошення надіслано!")
+    return redirect('team_detail', pk=team_id)
+
+# 2. Прийняття запрошення (те, що відкриється з Gmail)
+def process_invite_link(request, invite_id):
+    invite = get_object_or_404(TeamInvite, id=invite_id, is_active=True)
+    
+    # Якщо користувач не залогінений, відправляємо на реєстрацію/логін
+    if not request.user.is_authenticated:
+        messages.info(request, "Будь ласка, увійдіть в акаунт, щоб прийняти запрошення.")
+        return redirect(f"{reverse('login')}?next={request.path}")
+
+    # Перевіряємо, чи email запрошення збігається з поштою поточного користувача
+    if request.user.email.lower() != invite.email.lower():
+        messages.error(request, "Це запрошення призначене для іншої поштової скриньки.")
+        return redirect('dashboard')
+
+    # Додаємо користувача до команди
+    TeamMember.objects.get_or_create(team=invite.team, user=request.user)
+    
+    # Деактивуємо запрошення, щоб ним не скористалися двічі
+    invite.is_active = False
+    invite.save()
+
+    return render(request, 'registration/invite_success.html', {'team': invite.team})
 
 
 class TournamentFileListCreateView(APIView):

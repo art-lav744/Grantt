@@ -2,13 +2,18 @@ import io
 import re
 import uuid
 from datetime import datetime, timezone as dt_timezone
-
+#new_one_reverse_send_email
 import jwt
+from django.core.mail import send_mail
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
+from django.urls import reverse
 from PIL import Image
 from rest_framework import exceptions
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.core.mail import EmailMultiAlternatives
 
 
 ALLOWED_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
@@ -210,3 +215,26 @@ def validate_raw_image(uploaded_file):
     uploaded_file.seek(0)
     ext = uploaded_file.name.rsplit('.', 1)[-1].lower() if '.' in uploaded_file.name else 'jpg'
     return ContentFile(uploaded_file.read(), name=f'{uuid.uuid4().hex}.{ext}')
+
+#new_one
+def send_membership_invite_email(invite_obj):
+    accept_url = f"{settings.SITE_URL}{reverse('process_invite_link', args=[invite_obj.id])}"
+    
+    context = {
+        'team_name': invite_obj.team.name,
+        'inviter_name': invite_obj.inviter.nickname or invite_obj.inviter.full_name,
+        'accept_url': accept_url
+    }
+    
+    # Рендеримо HTML версію
+    html_content = render_to_string('emails/team_invite_email.html', context)
+    # Створюємо текстову версію для клієнтів, що не підтримують HTML
+    text_content = strip_tags(html_content) 
+    
+    subject = f"Запрошення до команди {invite_obj.team.name}"
+    from_email = settings.DEFAULT_FROM_EMAIL
+    to = invite_obj.email
+
+    msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()

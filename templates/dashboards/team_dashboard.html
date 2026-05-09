@@ -11,8 +11,46 @@
                 <h2 style="margin: 0; font-size: 2.2em;">🚀 Мій кабінет</h2>
                 <p style="opacity: 0.9; margin-top: 5px;">Вітаємо, <strong>{{ nickname }}</strong> ({{ role }})</p>
             </div>
+            
+            {% if user.unread_notifications_count > 0 %}
+            <div style="text-align: right;">
+                <div style="position: relative; display: inline-block;">
+                    <span style="font-size: 2em;">🔔</span>
+                    <span style="position: absolute; top: -5px; right: -5px; background: #ff4757; color: white; border-radius: 50%; padding: 4px 8px; font-size: 0.5em; font-weight: bold; border: 2px solid #0056b3;">
+                        {{ user.unread_notifications_count }}
+                    </span>
+                </div>
+                <p style="margin: 5px 0 0 0; font-size: 0.8em; opacity: 0.9;">Нові повідомлення</p>
+            </div>
+            {% endif %}
         </div>
     </div>
+
+    <section style="margin-bottom: 30px;">
+        <h3 style="color: #333; display: flex; align-items: center; gap: 10px;">
+            🔔 Сповіщення
+        </h3>
+        {% if user_notifications %}
+            {% for note in user_notifications %}
+                <div class="card" style="border-left: 5px solid {% if not note.is_read %}#007bff{% else %}#ccc{% endif %}; padding: 15px; margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="display: block; font-size: 1.1em;">{{ note.title }}</strong>
+                            <p style="margin: 5px 0; color: #666;">{{ note.message }}</p>
+                            <small style="color: #999;">{{ note.created_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                        {% if note.link %}
+                            <a href="{{ note.link }}" class="btn" style="width: auto; margin-top: 0; background: #28a745;">Переглянути / Прийняти</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: #888; background: #f9f9f9; padding: 20px; border-radius: 10px; text-align: center;">
+                У вас поки немає нових сповіщень.
+            </p>
+        {% endif %}
+    </section>
 
     <section style="margin-bottom: 40px;">
         <h3 style="margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 10px;">
