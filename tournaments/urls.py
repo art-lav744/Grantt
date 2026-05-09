@@ -16,6 +16,8 @@ urlpatterns = [
     path('tournament/<int:tournament_id>/create-team/', views.create_team, name='create_team'),
     path('tournaments/', views.tournament_list, name='tournament_list'),
     path('tournament/<int:tournament_id>/register/', views.register_for_tournament, name='register_tournament'),
+    path('tournament/<int:tournament_id>/apply-jury/', views.apply_as_jury, name='apply_jury'),
+    path('tournament/<int:tournament_id>/leaderboard/', views.tournament_leaderboard, name='tournament_leaderboard'),
     path('tournament/<int:tournament_id>/', views.tournament_detail, name='tournament_detail'),
 
     path('teams/<int:pk>/', views.team_detail, name='team_detail'),
@@ -29,7 +31,8 @@ urlpatterns = [
     path('tournament-files/<int:file_id>/open/', views.tournament_file_open, name='tournament_file_open'),
     path('tournament-files/<int:file_id>/download/', views.tournament_file_download, name='tournament_file_download'),
     path('tournament/<int:tournament_id>/round/create/', views.round_create, name='round_create'),
-    
+    path('rounds/<int:round_id>/edit/', views.round_edit, name='round_edit'),
+    path('admin-panel/manage-access/', views.manage_access_and_jury, name='manage_access'),
     # Подача роботи (для капітана)
     path('team/<int:team_id>/submit/', views.submission_create, name='submission_create'),
     

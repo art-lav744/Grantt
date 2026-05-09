@@ -105,7 +105,7 @@
                                     <td>
                                         {% if sub.eval_count > 0 %}
                                             <strong>{{ sub.total_avg }}/100</strong><br>
-                                            <small class="text-muted">Тех: {{ sub.tech_avg }} | Функ: {{ sub.func_avg }}</small>
+                                            <small class="text-muted">{{ sub.criteria_preview }}</small>
                                         {% else %}
                                             <span class="badge badge-warning">На розгляді</span>
                                         {% endif %}

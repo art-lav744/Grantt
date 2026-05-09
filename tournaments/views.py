@@ -9,8 +9,8 @@ from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-from django.db.models import Avg, Count
-from django.http import FileResponse, Http404
+from django.db.models import Count
+from django.http import FileResponse, Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -21,9 +21,34 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-#new_one
-from .forms import AddMemberForm, ProfileEditForm, RegisterForm, RoundForm, SubmissionForm, TournamentFileForm, TournamentForm
-from .models import Evaluation, Round, RoundStatus, Submission, Team, TeamMember, TeamInvite, UserNotification, Tournament, TournamentFile, TournamentStatus, User, UserRole
+from .forms import (
+    AddMemberForm,
+    ProfileEditForm,
+    RegisterForm,
+    RoundForm,
+    SubmissionForm,
+    TournamentFileForm,
+    TournamentForm,
+    JuryAssignmentForm,
+)
+
+from .models import (
+    Evaluation,
+    JuryRegistrationStatus,
+    JuryTournamentRegistration,
+    Round,
+    RoundStatus,
+    Submission,
+    Team,
+    TeamMember,
+    TeamInvite,
+    UserNotification,
+    Tournament,
+    TournamentFile,
+    TournamentStatus,
+    User,
+    UserRole,
+)
 from .permissions import IsAdmin, IsAuthenticatedJWT, IsJury, IsOrganizerOrAdmin
 from .serializers import (
     EvaluationOutSerializer,
@@ -37,6 +62,7 @@ from .serializers import (
     TournamentCreateSerializer,
     TournamentOutSerializer,
     UserOutSerializer,
+    JuryTournamentRegistrationOutSerializer,
 )
 from .utils import (
     attach_submission_score_summaries,
@@ -46,6 +72,14 @@ from .utils import (
     validate_raw_image,
     send_membership_invite_email,
 )
+
+
+def _criteria_definition_from_round(round_obj):
+    criteria = round_obj.get_or_create_scoring_criteria()
+    return Round.format_criteria_definition([
+        {'name': criterion.name, 'max_score': criterion.max_score}
+        for criterion in criteria
+    ])
 
 
 def home(request):
@@ -164,8 +198,7 @@ def profile_view(request):
     team_ids = list(captain_teams.values_list('id', flat=True)) + list(member_teams.values_list('id', flat=True))
     submissions = (
         Submission.objects.filter(team__id__in=team_ids)
-        .select_related('team', 'round', 'team__tournament')
-        .prefetch_related('evaluations')
+        .select_related('team', 'round', 'team__tournament', 'evaluation__jury')
         .order_by('-created_at')
     )
     submissions = attach_submission_score_summaries(submissions)
@@ -184,7 +217,10 @@ def dashboard(request):
 
     if user.role == UserRole.ADMIN:
         context['total_users'] = User.objects.count()
-        context['tournaments'] = Tournament.objects.all().annotate(teams_count=Count('teams'))
+        # Додаємо prefetch_related('rounds'), щоб уникнути N+1 запитів у циклі шаблону
+        context['tournaments'] = Tournament.objects.all().annotate(
+            teams_count=Count('teams')
+        ).prefetch_related('rounds') 
         return render(request, 'dashboards/admin_dashboard.html', context)
 
     if user.role == UserRole.ORGANIZER:
@@ -196,9 +232,18 @@ def dashboard(request):
 
     if user.role == UserRole.JURY:
         evals = Evaluation.objects.filter(jury=user).select_related('submission__team', 'submission__round').order_by('submission__round__title', 'submission__team__name')
+        for evaluation in evals:
+            evaluation.criteria_entries = evaluation.ensure_score_entries()
+            evaluation.max_total_score = sum(item.criterion.max_score for item in evaluation.criteria_entries)
         total_count = evals.count()
-        done_count = sum(1 for e in evals if e.tech_score > 0 or e.func_score > 0)
-        context.update({'my_evaluations': evals, 'total_count': total_count, 'done_count': done_count, 'pending_count': total_count - done_count})
+        done_count = sum(1 for e in evals if e.is_scored())
+        context.update({
+            'my_evaluations': evals,
+            'total_count': total_count,
+            'done_count': done_count,
+            'pending_count': total_count - done_count,
+            'assigned_tournaments': user.jury_tournaments.order_by('-created_at', '-id'),
+        })
         return render(request, 'dashboards/jury_dashboard.html', context)
 
     captain_teams, member_teams = _get_user_all_teams(user)
@@ -208,10 +253,11 @@ def dashboard(request):
     if selected_team_id:
         selected_team = all_my_teams.filter(id=selected_team_id).first()
         if selected_team:
+            team_submissions = Submission.objects.filter(team=selected_team).select_related('round').prefetch_related('evaluation').order_by('-created_at')
             context.update({
                 'selected_team': selected_team,
                 'members': selected_team.memberships.all(),
-                'submissions': Submission.objects.filter(team=selected_team).select_related('round').order_by('-created_at'),
+                'submissions': attach_submission_score_summaries(team_submissions),
                 'form': SubmissionForm(team=selected_team),
             })
     return render(request, 'dashboards/team_dashboard.html', context)
@@ -247,8 +293,16 @@ def tournament_list(request):
 
 def tournament_detail(request, tournament_id):
     tournament = get_object_or_404(Tournament, id=tournament_id)
-    teams = tournament.teams.select_related('captain').all()
+    teams = tournament.teams.select_related('captain').annotate(members_count=Count('memberships')).prefetch_related('memberships')
+    if tournament.hide_teams_until_registration_end and timezone.now() < tournament.reg_end and not (
+        getattr(request.user, 'is_authenticated', False) and (request.user.is_superuser or getattr(request.user, 'is_admin_like', False))
+    ):
+        teams = Team.objects.none()
     rounds = tournament.rounds.order_by('start_time')
+    if not (getattr(request.user, 'is_authenticated', False) and (request.user.is_superuser or getattr(request.user, 'is_admin_like', False))):
+        rounds = rounds.filter(end_time__lte=timezone.now())
+    for round_obj in rounds:
+        round_obj.scoring_criteria = round_obj.get_or_create_scoring_criteria()
     user_team = _get_user_tournament_team(request.user, tournament)
     can_access_files = _user_can_access_tournament_files(request.user, tournament)
     return render(request, 'tournaments/tournament_detail.html', {
@@ -258,7 +312,49 @@ def tournament_detail(request, tournament_id):
         'files': tournament.files.select_related('uploaded_by').all() if can_access_files else [],
         'user_team': user_team,
         'can_access_files': can_access_files,
+        'can_manage_rounds': getattr(request.user, 'is_authenticated', False) and (request.user.is_superuser or getattr(request.user, 'is_admin_like', False)),
     })
+
+
+@login_required
+def apply_as_jury(request, tournament_id):
+    """Allow jury members to apply for a tournament."""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    
+    # Only jury members can apply
+    if request.user.role not in [UserRole.JURY, UserRole.ORGANIZER]:
+        messages.error(request, 'Тільки користувачі з роллю журі можуть подавати заявку.')
+        return redirect('tournament_detail', tournament_id=tournament_id)
+    
+    # Check if already assigned to this tournament
+    if tournament in request.user.jury_tournaments.all():
+        messages.info(request, 'Ви вже призначені на цей турнір.')
+        return redirect('tournament_detail', tournament_id=tournament_id)
+    
+    # Check if already applied
+    existing_registration = JuryTournamentRegistration.objects.filter(
+        jury=request.user,
+        tournament=tournament
+    ).first()
+    
+    if existing_registration:
+        if existing_registration.status == JuryRegistrationStatus.PENDING:
+            messages.info(request, 'Ви вже подали заявку на цей турнір (очікує схвалення).')
+        elif existing_registration.status == JuryRegistrationStatus.APPROVED:
+            messages.info(request, 'Ваша заявка вже схвалена.')
+        elif existing_registration.status == JuryRegistrationStatus.REJECTED:
+            messages.error(request, 'Ваша попередня заявка була відхилена.')
+        return redirect('tournament_detail', tournament_id=tournament_id)
+    
+    # Create new registration
+    JuryTournamentRegistration.objects.create(
+        jury=request.user,
+        tournament=tournament,
+        status=JuryRegistrationStatus.PENDING,
+    )
+    
+    messages.success(request, 'Ваша заявка на участь як журі прийнята. Очікуйте схвалення адміністратора.')
+    return redirect('tournament_detail', tournament_id=tournament_id)
 
 
 @login_required
@@ -289,6 +385,69 @@ def tournament_create(request):
 
     return render(request, 'tournaments/tournament_form.html', {'form': form, 'title': 'Створення турніру'})
 
+@login_required
+def manage_access_and_jury(request):
+    if request.user.role != UserRole.ADMIN:
+        return redirect('dashboard')
+
+    # Обробка дій над користувачами
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        action = request.POST.get('action')
+        
+        if user_id and action:
+            target_user = get_object_or_404(User, id=user_id)
+            
+            # Захист: не даємо адміну випадково змінити себе або іншого адміна/організатора через цю форму
+            if target_user.role in [UserRole.ADMIN, UserRole.ORGANIZER]:
+                messages.error(request, "Не можна редагувати адміністраторів через цю панель.")
+            else:
+                if action == 'toggle_status':
+                    target_user.is_active = not target_user.is_active
+                    target_user.save()
+                    status_text = "активовано" if target_user.is_active else "заблоковано"
+                    messages.success(request, f"Користувача {target_user.email} {status_text}.")
+                
+                elif action == 'make_jury':
+                    target_user.role = UserRole.JURY
+                    target_user.save()
+                    messages.success(request, f"{target_user.email} тепер має роль Журі.")
+                
+                elif action == 'make_participant':
+                    target_user.role = UserRole.PARTICIPANT
+                    target_user.save()
+                    messages.success(request, f"{target_user.email} тепер має роль Учасника.")
+
+            return redirect('manage_access')
+        
+    users_to_manage = User.objects.exclude(role__in=[UserRole.ADMIN, UserRole.ORGANIZER])
+
+    # 2. Призначення робіт
+    if request.method == 'POST' and 'assign_jury' in request.POST:
+        form = JuryAssignmentForm(request.POST)
+        if form.is_valid():
+            jury = form.cleaned_data['jury']
+            submission = form.cleaned_data['submission']
+            
+            # Створюємо об'єкт оцінки (якщо його ще немає), щоб закріпити роботу за журі
+            evaluation, created = Evaluation.objects.get_or_create(
+                submission=submission,
+                jury=jury
+            )
+            if created:
+                messages.success(request, f"Роботу #{submission.id} призначено журі {jury.email}")
+            else:
+                messages.warning(request, "Цю роботу вже призначено цьому журі.")
+            return redirect('manage_access')
+    else:
+        form = JuryAssignmentForm()
+
+    context = {
+        'users': users_to_manage,
+        'jury_form': form,
+        'assignments': Evaluation.objects.select_related('submission', 'jury').all()
+    }
+    return render(request, 'tournaments/manage_access.html', context)
 
 @login_required
 def tournament_edit(request, pk):
@@ -376,7 +535,7 @@ def team_dashboard(request):
         messages.info(request, 'Ви ще не перебуваєте в команді.')
         return redirect('home')
 
-    submissions = team.submissions.select_related('round').prefetch_related('evaluations').order_by('-created_at')
+    submissions = team.submissions.select_related('round').prefetch_related('evaluation').order_by('-created_at')
     submissions = attach_submission_score_summaries(submissions)
     notifications = request.user.notifications.all()[:10] # останні 10 сповіщень
     return render(request, 'tournaments/team_dashboard.html', {'user_notifications': notifications, 'team': team, 'submissions': submissions})
@@ -424,7 +583,7 @@ def add_team_member(request, team_id):
 def team_detail(request, pk):
     team = get_object_or_404(Team.objects.select_related('captain', 'tournament'), pk=pk)
     members = TeamMember.objects.filter(team=team).order_by('full_name')
-    submissions = Submission.objects.filter(team=team).select_related('round').prefetch_related('evaluations').order_by('-created_at')
+    submissions = Submission.objects.filter(team=team).select_related('round').prefetch_related('evaluation').order_by('-created_at')
     submissions = attach_submission_score_summaries(submissions)
     return render(request, 'tournaments/team_detail.html', {
         'team': team,
@@ -446,10 +605,33 @@ def round_create(request, tournament_id):
         new_round = form.save(commit=False)
         new_round.tournament = tournament
         new_round.save()
+        new_round.set_scoring_criteria(form.cleaned_data['parsed_criteria'])
         messages.success(request, f"Раунд '{new_round.title}' успішно створено!")
         return redirect('tournament_detail', tournament_id=tournament.id)
     return render(request, 'tournaments/round_form.html', {'form': form, 'tournament': tournament})
 
+
+@login_required
+def round_edit(request, round_id):
+    if not request.user.is_admin_like and not request.user.is_superuser:
+        messages.error(request, 'У вас немає прав для редагування раундів.')
+        return redirect('home')
+
+    round_obj = get_object_or_404(Round.objects.select_related('tournament'), id=round_id)
+    tournament = round_obj.tournament
+    form = RoundForm(request.POST or None, instance=round_obj, tournament=tournament)
+
+    if request.method == 'POST' and form.is_valid():
+        updated_round = form.save()
+        messages.success(request, f"Раунд '{updated_round.title}' успішно оновлено!")
+        return redirect('tournament_detail', tournament_id=tournament.id)
+
+    return render(request, 'tournaments/round_form.html', {
+        'form': form,
+        'tournament': tournament,
+        'round_obj': round_obj,
+        'is_edit': True,
+    })
 
 @login_required
 def submission_create(request, team_id):
@@ -709,7 +891,11 @@ class MyTeamInfoView(APIView):
     permission_classes = [IsAuthenticatedJWT]
 
     def get(self, request):
-        teams = Team.objects.filter(captain=request.user).order_by('name')
+        teams = (
+            Team.objects.filter(captain=request.user)
+            | Team.objects.filter(memberships__user=request.user)
+        )
+        teams = teams.distinct().annotate(members_count=Count('memberships')).prefetch_related('memberships').order_by('name')
         return Response(TeamOutSerializer(teams, many=True).data)
 
 
@@ -717,7 +903,12 @@ class MyEvaluationsView(APIView):
     permission_classes = [IsJury]
 
     def get(self, request):
-        evaluations = Evaluation.objects.filter(jury=request.user).order_by('-created_at')
+        evaluations = (
+            Evaluation.objects.filter(jury=request.user)
+            .select_related('submission__team', 'submission__round', 'submission__round__tournament')
+            .prefetch_related('criteria_scores__criterion')
+            .order_by('submission__round__title', 'submission__team__name', '-created_at')
+        )
         return Response(EvaluationOutSerializer(evaluations, many=True).data)
 
 
@@ -796,29 +987,183 @@ class TournamentImageUploadView(APIView):
         return Response(TournamentOutSerializer(tournament).data)
 
 
+def tournament_leaderboard(request, tournament_id):
+    """Web view for tournament leaderboard."""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    teams = Team.objects.filter(tournament=tournament).prefetch_related('submissions__evaluation')
+    payload = []
+
+    for team in teams:
+        submissions = list(team.submissions.all())
+        all_evaluations = [submission.evaluation for submission in submissions if hasattr(submission, 'evaluation')]
+
+        round_scores = []  # List of scores per round
+        all_criteria = {}  # {criterion_name: list of scores across rounds}
+        criteria_order = []
+        
+        for submission in submissions:
+            score_data = submission.calculate_final_score()
+            if score_data['total'] is not None:
+                round_scores.append(score_data['total'])
+            
+            # Track criteria across all rounds
+            for criterion in score_data['criteria']:
+                if criterion['name'] not in all_criteria:
+                    criteria_order.append(criterion['name'])
+                    all_criteria[criterion['name']] = []
+                all_criteria[criterion['name']].append(criterion['average'])
+
+        # Calculate averages and totals
+        average_score = (sum(round_scores) / len(round_scores)) if round_scores else 0.0
+        total_raw_score = sum(round_scores)
+        
+        # Build criteria summary with per-round details
+        criteria_summary = []
+        for name in criteria_order:
+            scores = all_criteria[name]
+            criteria_summary.append({
+                'name': name,
+                'average': round(sum(scores) / len(scores), 2),
+                'round_scores': scores,
+                'rounds_participated': len(scores),
+            })
+        
+        primary_criterion_avg = criteria_summary[0]['average'] if criteria_summary else 0.0
+        payload.append({
+            'team': team,
+            'team_name': team.name,
+            'average_score': round(average_score, 2),
+            'total_raw_score': round(total_raw_score, 2),
+            'round_scores': round_scores,
+            'criteria_summary': criteria_summary,
+            'primary_criterion_avg': round(primary_criterion_avg, 2),
+            'submissions_count': len(submissions),
+            'evaluations_count': len(all_evaluations),
+            'rounds_scored': len(round_scores),
+        })
+
+    payload.sort(
+        key=lambda x: (
+            -x['average_score'],
+            -x['primary_criterion_avg'],
+            -x['rounds_scored'],
+            -x['submissions_count'],
+            x['team_name'].lower(),
+        )
+    )
+    for index, row in enumerate(payload, start=1):
+        row['rank'] = index
+    
+    tournament_finished = tournament.end_time <= timezone.now() or tournament.status in {
+        TournamentStatus.CLOSED,
+        TournamentStatus.ARCHIVED,
+    }
+    
+    return render(request, 'tournaments/leaderboard.html', {
+        'tournament': tournament,
+        'leaderboard': payload,
+        'is_final': tournament_finished,
+    })
+
+
 class TournamentLeaderboardView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, tournament_id):
-        results = Team.objects.filter(tournament_id=tournament_id).annotate(
-            tech_avg=Avg('submissions__evaluations__tech_score'),
-            func_avg=Avg('submissions__evaluations__func_score'),
-            submissions_count=Count('submissions', distinct=True),
-        )
+        tournament = get_object_or_404(Tournament, pk=tournament_id)
+        teams = Team.objects.filter(tournament=tournament).prefetch_related('submissions__evaluation')
         payload = []
-        for team in results:
-            tech_avg = round(float(team.tech_avg or 0), 2)
-            func_avg = round(float(team.func_avg or 0), 2)
-            total_score = round((tech_avg + func_avg) / 2, 2)
+
+        for team in teams:
+            submissions = list(team.submissions.all())
+            all_evaluations = [submission.evaluation for submission in submissions if hasattr(submission, 'evaluation')]
+
+            round_scores = []  # List of scores per round
+            all_criteria = {}  # {criterion_name: list of scores across rounds}
+            criteria_order = []
+            
+            for submission in submissions:
+                score_data = submission.calculate_final_score()
+                if score_data['total'] is not None:
+                    round_scores.append(score_data['total'])
+                
+                # Track criteria across all rounds
+                for criterion in score_data['criteria']:
+                    if criterion['name'] not in all_criteria:
+                        criteria_order.append(criterion['name'])
+                        all_criteria[criterion['name']] = []
+                    all_criteria[criterion['name']].append(criterion['average'])
+
+            # Calculate averages and totals
+            average_score = (sum(round_scores) / len(round_scores)) if round_scores else 0.0
+            total_raw_score = sum(round_scores)
+            
+            # Build criteria summary with per-round details
+            criteria_summary = []
+            for name in criteria_order:
+                scores = all_criteria[name]
+                criteria_summary.append({
+                    'name': name,
+                    'average': round(sum(scores) / len(scores), 2),
+                    'round_scores': scores,
+                    'rounds_participated': len(scores),
+                })
+            
+            primary_criterion_avg = criteria_summary[0]['average'] if criteria_summary else 0.0
             payload.append({
                 'team_name': team.name,
-                'tech_avg': tech_avg,
-                'func_avg': func_avg,
-                'total_score': total_score,
-                'submissions_count': team.submissions_count,
+                'average_score': round(average_score, 2),
+                'total_raw_score': round(total_raw_score, 2),
+                'round_scores': round_scores,
+                'criteria_summary': criteria_summary,
+                'primary_criterion_avg': round(primary_criterion_avg, 2),
+                'submissions_count': len(submissions),
+                'evaluations_count': len(all_evaluations),
+                'rounds_scored': len(round_scores),
             })
-        payload.sort(key=lambda x: x['total_score'], reverse=True)
-        return Response(payload)
+
+        payload.sort(
+            key=lambda x: (
+                -x['average_score'],
+                -x['primary_criterion_avg'],
+                -x['rounds_scored'],
+                -x['submissions_count'],
+                x['team_name'].lower(),
+            )
+        )
+        for index, row in enumerate(payload, start=1):
+            row['rank'] = index
+        tournament_finished = tournament.end_time <= timezone.now() or tournament.status in {
+            TournamentStatus.CLOSED,
+            TournamentStatus.ARCHIVED,
+        }
+        return Response({
+            'tournament_id': tournament.id,
+            'tournament_title': tournament.title,
+            'is_final': tournament_finished,
+            'leaderboard': payload,
+        })
+
+
+class TournamentTeamsView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, tournament_id):
+        tournament = get_object_or_404(Tournament, pk=tournament_id)
+        user = request.user
+        can_manage = bool(getattr(user, 'is_authenticated', False) and (user.is_superuser or getattr(user, 'is_admin_like', False)))
+
+        if tournament.hide_teams_until_registration_end and timezone.now() < tournament.reg_end and not can_manage:
+            return Response([])
+
+        teams = (
+            Team.objects.filter(tournament=tournament)
+            .select_related('captain')
+            .annotate(members_count=Count('memberships'))
+            .prefetch_related('memberships')
+            .order_by('name', 'id')
+        )
+        return Response(TeamOutSerializer(teams, many=True).data)
 
 
 class TeamCreateView(APIView):
@@ -828,6 +1173,7 @@ class TeamCreateView(APIView):
         serializer = TeamCreateSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         team = serializer.save()
+        team = Team.objects.annotate(members_count=Count('memberships')).prefetch_related('memberships').get(pk=team.pk)
         return Response(TeamOutSerializer(team).data, status=status.HTTP_201_CREATED)
 
 
@@ -869,13 +1215,47 @@ class MemberTournamentsView(APIView):
 
 
 class RoundCreateView(APIView):
-    permission_classes = [IsOrganizerOrAdmin]
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsOrganizerOrAdmin()]
+        return [AllowAny()]
+
+    def get(self, request):
+        tournament_id = request.query_params.get('tournament_id')
+        rounds = Round.objects.select_related('tournament').order_by('start_time', 'id')
+        if tournament_id:
+            rounds = rounds.filter(tournament_id=tournament_id)
+
+        user = request.user
+        can_manage = bool(getattr(user, 'is_authenticated', False) and (user.is_superuser or getattr(user, 'is_admin_like', False)))
+        if not can_manage:
+            rounds = rounds.filter(end_time__lte=timezone.now())
+
+        return Response(RoundCreateSerializer(rounds, many=True).data)
 
     def post(self, request):
         serializer = RoundCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         round_obj = serializer.save()
         return Response(serializer.to_representation(round_obj), status=status.HTTP_201_CREATED)
+
+
+class RoundDetailView(APIView):
+    permission_classes = [IsOrganizerOrAdmin]
+
+    def patch(self, request, round_id):
+        round_obj = get_object_or_404(Round, pk=round_id)
+        serializer = RoundCreateSerializer(round_obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        round_obj = serializer.save()
+        return Response(serializer.to_representation(round_obj))
+
+    def put(self, request, round_id):
+        round_obj = get_object_or_404(Round, pk=round_id)
+        serializer = RoundCreateSerializer(round_obj, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        round_obj = serializer.save()
+        return Response(serializer.to_representation(round_obj))
 
 
 class DistributeWorksView(APIView):
@@ -886,16 +1266,24 @@ class DistributeWorksView(APIView):
         if not round_obj:
             return Response({'detail': 'Round not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        K = int(request.data.get('k', 3))
+        if round_obj.end_time > timezone.now() and round_obj.status != RoundStatus.CLOSED:
+            return Response(
+                {'detail': 'Розподіл робіт доступний лише після завершення раунду.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        evaluations_per_submission = int(request.data.get('evaluations_per_submission', 3))
         try:
-            result = _distribute_round_assignments(round_obj, k=K)
+            result = _distribute_round_assignments(round_obj, evaluations_per_submission=evaluations_per_submission)
         except ValueError:
             return Response({'detail': 'Немає зареєстрованих членів журі'}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({
             'status': 'Роботи розподілено між журі',
-            'k_per_submission': result['k_per_submission'],
-            'created_assignments': result['created_assignments'],
+            'evaluations_per_submission': result['evaluations_per_submission'],
+            'evaluations_created_count': result['evaluations_created_count'],
+            'submissions_count': result['submissions_count'],
+            'juries_assigned': result['juries_assigned'],
         })
 
 
@@ -925,36 +1313,47 @@ class ActiveTaskView(APIView):
 
 # ===================SUBMISSION / JURY====================
 
-def _distribute_round_assignments(round_obj, k=3):
+def _distribute_round_assignments(round_obj, evaluations_per_submission=3):
+    """
+    Distribute submissions to jury members for evaluation.
+    
+    Args:
+        round_obj: The Round to distribute submissions for
+        evaluations_per_submission: Number of jury members per submission (default 3)
+    
+    Returns:
+        dict with distribution statistics
+    """
     submissions = list(Submission.objects.filter(round=round_obj))
     jury_members = list(User.objects.filter(role=UserRole.JURY, jury_tournaments=round_obj.tournament))
     if not jury_members:
         raise ValueError('Немає зареєстрованих членів журі')
 
-    k_actual = min(k, len(jury_members))
-    created = 0
+    evaluations_created_count = 0
     for submission in submissions:
-        chosen = random.sample(jury_members, k=k_actual)
-        for jury in chosen:
-            _, was_created = Evaluation.objects.get_or_create(
-                submission=submission,
-                jury=jury,
-                defaults={'tech_score': 0, 'func_score': 0},
-            )
-            created += int(was_created)
+        criteria = submission.round.get_or_create_scoring_criteria()
+        chosen_jury = random.choice(jury_members)
+        evaluation, was_created = Evaluation.objects.get_or_create(
+            submission=submission,
+            defaults={'jury': chosen_jury},
+        )
+        evaluation.ensure_score_entries(criteria)
+        evaluations_created_count += int(was_created)
 
     return {
-        'k_per_submission': k_actual,
-        'created_assignments': created,
+        'evaluations_per_submission': evaluations_per_submission,
+        'evaluations_created_count': evaluations_created_count,
         'submissions_count': len(submissions),
+        'juries_assigned': len([s for s in submissions if hasattr(s, 'evaluation')]),
     }
 
 
-def _auto_distribute_if_round_started(round_obj, k=3):
-    if round_obj.start_time > timezone.now():
+def _auto_distribute_if_round_started(round_obj, evaluations_per_submission=3):
+    """Automatically distribute round assignments if round has finished."""
+    if round_obj.end_time > timezone.now() and round_obj.status != RoundStatus.CLOSED:
         return None
 
-    return _distribute_round_assignments(round_obj, k=k)
+    return _distribute_round_assignments(round_obj, evaluations_per_submission=evaluations_per_submission)
 
 class SubmissionCreateView(APIView):
     permission_classes = [IsAuthenticatedJWT]
@@ -963,16 +1362,95 @@ class SubmissionCreateView(APIView):
         serializer = SubmissionCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         submission = serializer.save()
-
-        # Якщо раунд уже стартував, одразу запускаємо той самий алгоритм,
-        # що і в POST /api/rounds/<id>/distribute.
-        try:
-            _auto_distribute_if_round_started(submission.round, k=3)
-        except ValueError:
-            # Якщо журі ще не призначене - ігноруєм
-            pass
-
         return Response(serializer.to_representation(submission), status=status.HTTP_201_CREATED)
+
+
+class JuryTournamentRegistrationView(APIView):
+    permission_classes = [IsAuthenticatedJWT]
+
+    def get(self, request):
+        if request.user.role != UserRole.JURY:
+            return Response({'detail': 'Тільки член журі може переглядати свої заявки.'}, status=status.HTTP_403_FORBIDDEN)
+        registrations = JuryTournamentRegistration.objects.filter(jury=request.user).select_related('tournament', 'reviewed_by')
+        return Response(JuryTournamentRegistrationOutSerializer(registrations, many=True).data)
+
+    def post(self, request):
+        if request.user.role != UserRole.JURY:
+            return Response({'detail': 'Тільки член журі може подати заявку.'}, status=status.HTTP_403_FORBIDDEN)
+
+        tournament_id = request.data.get('tournament_id')
+        tournament = Tournament.objects.filter(pk=tournament_id).first()
+        if not tournament:
+            return Response({'detail': 'Tournament not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        registration, created = JuryTournamentRegistration.objects.get_or_create(
+            jury=request.user,
+            tournament=tournament,
+            defaults={'status': JuryRegistrationStatus.PENDING},
+        )
+        if not created and registration.status == JuryRegistrationStatus.REJECTED:
+            registration.status = JuryRegistrationStatus.PENDING
+            registration.reviewed_by = None
+            registration.reviewed_at = None
+            registration.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'updated_at'])
+
+        if registration.status == JuryRegistrationStatus.APPROVED:
+            request.user.jury_tournaments.add(tournament)
+
+        code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        return Response(JuryTournamentRegistrationOutSerializer(registration).data, status=code)
+
+
+class JuryTournamentRegistrationReviewView(APIView):
+    permission_classes = [IsAuthenticatedJWT]
+
+    def patch(self, request, registration_id):
+        if not (request.user.is_superuser or request.user.role == UserRole.ADMIN):
+            return Response({'detail': 'Тільки адміністратор може підтверджувати заявки.'}, status=status.HTTP_403_FORBIDDEN)
+
+        registration = JuryTournamentRegistration.objects.filter(pk=registration_id).select_related('jury', 'tournament').first()
+        if not registration:
+            return Response({'detail': 'Registration not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        new_status = request.data.get('status')
+        if new_status not in {JuryRegistrationStatus.APPROVED, JuryRegistrationStatus.REJECTED}:
+            return Response({'detail': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        registration.status = new_status
+        registration.reviewed_by = request.user
+        registration.reviewed_at = timezone.now()
+        registration.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'updated_at'])
+
+        if new_status == JuryRegistrationStatus.APPROVED:
+            registration.jury.jury_tournaments.add(registration.tournament)
+        else:
+            registration.jury.jury_tournaments.remove(registration.tournament)
+
+        return Response(JuryTournamentRegistrationOutSerializer(registration).data)
+
+
+class JuryPendingRegistrationsView(APIView):
+    permission_classes = [IsAuthenticatedJWT]
+
+    def get(self, request):
+        if not (request.user.is_superuser or request.user.role == UserRole.ADMIN):
+            return Response({'detail': 'Тільки адміністратор може переглядати заявки.'}, status=status.HTTP_403_FORBIDDEN)
+        registrations = (
+            JuryTournamentRegistration.objects
+            .filter(status=JuryRegistrationStatus.PENDING)
+            .select_related('jury', 'tournament')
+        )
+        return Response(JuryTournamentRegistrationOutSerializer(registrations, many=True).data)
+
+
+class MyAssignedJuryTournamentsView(APIView):
+    permission_classes = [IsAuthenticatedJWT]
+
+    def get(self, request):
+        if request.user.role != UserRole.JURY:
+            return Response({'detail': 'Тільки для членів журі.'}, status=status.HTTP_403_FORBIDDEN)
+        tournaments = request.user.jury_tournaments.annotate(teams_count=Count('teams')).order_by('-created_at', '-id')
+        return Response(TournamentOutSerializer(tournaments, many=True).data)
 
 @login_required
 def evaluation_detail(request, eval_id):
@@ -984,34 +1462,44 @@ def evaluation_detail(request, eval_id):
         pk=eval_id,
         jury=request.user,
     )
+    criteria_scores = evaluation.ensure_score_entries()
 
     if request.method == 'POST':
-        tech  = request.POST.get('tech_score', '').strip()
-        func  = request.POST.get('func_score', '').strip()
         comment = request.POST.get('comment', '').strip()
 
         errors = []
-        try:
-            tech_val = float(tech)
-            func_val = float(func)
-        except ValueError:
-            errors.append('Введіть числові значення оцінок.')
-
-        if not errors:
-            if not (0 <= tech_val <= 100) or not (0 <= func_val <= 100):
-                errors.append('Оцінки мають бути від 0 до 100.')
+        parsed_scores = []
+        for criterion_score in criteria_scores:
+            raw_value = request.POST.get(f'criterion_{criterion_score.criterion_id}', '').strip()
+            try:
+                value = float(raw_value)
+            except ValueError:
+                errors.append(f'Введіть числове значення для "{criterion_score.criterion.name}".')
+                continue
+            if not (0 <= value <= criterion_score.criterion.max_score):
+                errors.append(
+                    f'Оцінка для "{criterion_score.criterion.name}" має бути від 0 до {criterion_score.criterion.max_score}.'
+                )
+            parsed_scores.append((criterion_score, value))
 
         if errors:
             for e in errors:
                 messages.error(request, e)
         else:
-            evaluation.tech_score = tech_val
-            evaluation.func_score = func_val
-            evaluation.comment    = comment
+            for criterion_score, value in parsed_scores:
+                criterion_score.score = value
+                criterion_score.save(update_fields=['score'])
+            evaluation.comment = comment
             evaluation.save()
             messages.success(request, 'Оцінку збережено!')
             return redirect('dashboard')
 
-    return render(request, 'tournaments/evaluation_detail.html', {'evaluation': evaluation})
+    return render(request, 'tournaments/evaluation_detail.html', {
+        'evaluation': evaluation,
+        'criteria_scores': criteria_scores,
+        'criteria_total': sum(item.score for item in criteria_scores),
+        'criteria_max_total': sum(item.criterion.max_score for item in criteria_scores),
+        'criteria_definition': _criteria_definition_from_round(evaluation.submission.round),
+    })
 
 

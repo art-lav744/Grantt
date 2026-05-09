@@ -26,10 +26,26 @@
         </div>
     </div>
 
+    <div class="card" style="padding: 18px; margin-bottom: 22px;">
+        <h3 style="margin-top: 0;">Мої призначені турніри</h3>
+        {% if assigned_tournaments %}
+            <ul style="margin: 0; padding-left: 18px;">
+                {% for tournament in assigned_tournaments %}
+                    <li>
+                        <a href="{% url 'tournament_detail' tournament.id %}">{{ tournament.title }}</a>
+                        <span style="color: #666;">({{ tournament.status }})</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p style="margin-bottom: 0; color: #666;">Вас ще не призначено до жодного турніру.</p>
+        {% endif %}
+    </div>
+
     {# Список #}
     <div class="evaluations-list">
         {% for eval in my_evaluations %}
-            {% if eval.tech_score == 0 and eval.func_score == 0 %}
+            {% if not eval.is_scored %}
                 {% with border="#ffc107" label="Не оцінено" btn_label="Оцінити" %}
                     {% include "tournaments/jury_card.html" %}
                 {% endwith %}

@@ -4,7 +4,6 @@
 
 {% block content %}
 <div class="container">
-
     <div style="margin-bottom: 24px;">
         <h2>Оцінювання роботи</h2>
         <p>Команда: <strong>{{ evaluation.submission.team.name }}</strong></p>
@@ -14,6 +13,15 @@
     <div class="card" style="max-width: 800px;">
         <h3>Опис роботи</h3>
         <p>{{ evaluation.submission.description }}</p>
+
+        {% if criteria_definition %}
+        <div style="margin-top: 16px;">
+            <h4 style="margin-bottom: 8px;">Критерії раунду</h4>
+            <div style="padding: 12px; background: #f8fafc; border-radius: 8px;">
+                {{ criteria_definition|linebreaks }}
+            </div>
+        </div>
+        {% endif %}
 
         {% if evaluation.submission.github_link %}
         <p><a href="{{ evaluation.submission.github_link }}" target="_blank">GitHub репозиторій</a></p>
@@ -26,26 +34,31 @@
     <form method="post" style="max-width: 800px; margin-top: 24px;">
         {% csrf_token %}
 
+        {% for item in criteria_scores %}
         <div class="form-group">
-            <label for="tech_score">Технічна оцінка (0-100)</label>
-            <input type="number" id="tech_score" name="tech_score" min="0" max="100" step="0.1"
-                   value="{{ evaluation.tech_score }}" required>
+            <label for="criterion_{{ item.criterion_id }}">{{ item.criterion.name }} (0-{{ item.criterion.max_score }})</label>
+            <input
+                type="number"
+                id="criterion_{{ item.criterion_id }}"
+                name="criterion_{{ item.criterion_id }}"
+                min="0"
+                max="{{ item.criterion.max_score }}"
+                step="0.1"
+                value="{{ item.score }}"
+                required
+            >
         </div>
-
-        <div class="form-group">
-            <label for="func_score">Функціональна оцінка (0-100)</label>
-            <input type="number" id="func_score" name="func_score" min="0" max="100" step="0.1"
-                   value="{{ evaluation.func_score }}" required>
-        </div>
+        {% endfor %}
 
         <div class="form-group">
             <label for="comment">Коментар</label>
             <textarea id="comment" name="comment" rows="4">{{ evaluation.comment }}</textarea>
         </div>
 
+        <p style="color: #666;">Поточна сума: <strong>{{ criteria_total }}/{{ criteria_max_total }}</strong></p>
+
         <button type="submit" class="btn">Зберегти оцінку</button>
         <a href="{% url 'dashboard' %}" class="btn secondary">Назад</a>
     </form>
-
 </div>
 {% endblock %}

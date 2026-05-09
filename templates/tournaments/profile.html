@@ -374,7 +374,6 @@
             </thead>
             <tbody>
               {% for sub in submissions %}
-                {% with evals=sub.evaluations.all %}
                   <tr>
                     <td>
                       <strong style="font-size:14px;">{{ sub.round.tournament.title }}</strong><br>
@@ -386,7 +385,7 @@
                       {% if sub.eval_count > 0 %}
                         <div style="font-size:12px; color:#374151;">
                           <strong>{{ sub.total_avg }}/100</strong><br>
-                          <span style="color:#6b7280;">Тех: {{ sub.tech_avg }} | Функ: {{ sub.func_avg }}</span>
+                          <span style="color:#6b7280;">{{ sub.criteria_preview }}</span>
                         </div>
                       {% else %}
                         <span class="sub-status pending">На розгляді</span>
@@ -401,7 +400,6 @@
                       {% endif %}
                     </td>
                   </tr>
-                {% endwith %}
               {% endfor %}
             </tbody>
           </table>

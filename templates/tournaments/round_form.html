@@ -1,18 +1,34 @@
 {% extends "base.html" %}
+
+{% block title %}{% if is_edit %}Редагувати раунд{% else %}Створити раунд{% endif %}{% endblock %}
+
 {% block content %}
-<div class="card" style="max-width: 600px; margin: auto;">
-    <h2>➕ Створити раунд для "{{ tournament.title }}"</h2>
+<div class="card">
+    <h1>{% if is_edit %}Редагувати раунд{% else %}Створити раунд{% endif %}</h1>
+    <p><strong>Турнір:</strong> {{ tournament.title }}</p>
+</div>
+
+<div class="card">
     <form method="post">
-        {% if form.non_field_errors %}<div style="color:red; margin-bottom:10px;">{{ form.non_field_errors }}</div>{% endif %}
         {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="message error">{{ form.non_field_errors }}</div>
+        {% endif %}
+
         {% for field in form %}
-            <div style="margin-bottom: 15px;">
-                <label><strong>{{ field.label }}</strong></label>
+            <div>
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                 {{ field }}
-                {% for error in field.errors %}<div style="color:red; font-size:0.85rem; margin-top:5px;">{{ error }}</div>{% endfor %}
+                {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                {% for error in field.errors %}
+                    <div class="message error">{{ error }}</div>
+                {% endfor %}
             </div>
         {% endfor %}
-        <button type="submit" class="btn" style="background: #28a745; width: 100%;">Створити раунд</button>
+
+        <button class="btn" type="submit">{% if is_edit %}Зберегти зміни{% else %}Створити раунд{% endif %}</button>
+        <a class="btn btn-secondary" href="{% url 'tournament_detail' tournament.id %}">Назад до турніру</a>
     </form>
 </div>
 {% endblock %}

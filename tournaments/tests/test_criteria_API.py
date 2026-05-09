@@ -44,11 +44,11 @@ class ActiveRoundAPITest(APITestCase):
             title="Active Round",
             description="Test Desc",
             requirements="Test Req",
-            evaluation_criteria="1. Технічна частина\n2. Креативність",
             start_time=now - timezone.timedelta(hours=1),
             end_time=now + timezone.timedelta(hours=5),
             status=RoundStatus.ACTIVE
         )
+        self.round.set_scoring_criteria("Технічна частина | 100\nКреативність | 100")
         
         # 6. Авторизація
         self.client.force_authenticate(user=self.user)
@@ -65,5 +65,6 @@ class ActiveRoundAPITest(APITestCase):
         self.assertIn('evaluation_criteria', response.data)
         self.assertEqual(
             response.data['evaluation_criteria'], 
-            "1. Технічна частина\n2. Креативність"
+            "Технічна частина | 100\nКреативність | 100"
         )
+        self.assertEqual(len(response.data['criteria']), 2)
