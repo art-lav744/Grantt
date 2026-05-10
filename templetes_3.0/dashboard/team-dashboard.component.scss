@@ -1,0 +1,147 @@
+// Дизайн-токени
+$main1: #1a3a4a;
+$main3: #3ab8c8;
+$bg-card: #162d3d;
+$white: #ffffff;
+$success: #2ecc71;
+$warning: #ff9f43;
+
+.bg-dark-card { background-color: $bg-card; }
+
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.team-card {
+  background: $bg-card;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border: 1px solid rgba($main3, 0.08);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+
+  &.selected {
+    border-color: $main3;
+    box-shadow: 0 0 15px rgba($main3, 0.3);
+    .action-arrow svg { opacity: 1; transform: translateX(4px); }
+  }
+
+  &:hover {
+    transform: translateY(-5px);
+    border-color: rgba($main3, 0.4);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+
+    .action-arrow svg { opacity: 1; transform: translateX(4px); }
+    .team-icon-wrapper { background: rgba($main3, 0.15); transform: scale(1.05); }
+  }
+}
+
+.card-main-content {
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-grow: 1;
+
+  .team-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    background: rgba($main3, 0.08);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+
+    img { width: 35px; height: 35px; object-fit: contain; }
+  }
+
+  .team-name {
+    margin: 14px 0 0 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: $white;
+    text-align: center;
+  }
+}
+
+.card-footer {
+  padding: 15px 20px;
+  background: $main1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-icon-svg {
+  width: 14px;
+  height: 14px;
+  stroke: rgba($white, 0.6);
+}
+
+.tournament-info {
+  width: 100%;
+  color: $main3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba($white, 0.05);
+  
+  .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+.role-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: rgba($white, 0.8);
+
+  &.captain {
+    color: $main3;
+    border: 1px solid rgba($main3, 0.2);
+    .footer-icon-svg { stroke: $main3; }
+  }
+}
+
+.action-arrow {
+  margin-left: auto;
+  svg { width: 20px; height: 20px; stroke: $main3; opacity: 0.3; transition: all 0.2s; }
+}
+
+.border-top-primary { border-top: 4px solid $main3; }
+.border-top-success { border-top: 4px solid $success; }
+
+.submission-item {
+  transition: transform 0.2s;
+  &:hover { background-color: rgba($white, 0.05) !important; }
+}
+
+.dashboard-header {
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff; // Білий колір
+    margin: 0;
+    display: flex;
+    align-items: center;
+  }
+  
+  .header-icon-svg {
+    width: 28px;
+    height: 28px;
+    stroke: #3ab8c8; // Колір $main3 для акценту
+  }
+}
