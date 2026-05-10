@@ -9,6 +9,7 @@ from django.contrib.auth import logout as django_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+from django.db.models.functions import TruncDate
 from django.db.models import Count
 from django.http import FileResponse, Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
@@ -752,6 +753,20 @@ def create_staff(request):
         messages.success(request, f'Користувача {new_user.email} створено. Тимчасовий пароль: {temp_password}')
 
     return redirect('dashboard')
+
+
+class SubmissionHistoryView(APIView):
+    def get(self, request):
+        stats = (
+            Submission.objects.filter(user=request.user)
+            .annotate(date=TruncDate('created_at'))
+            .values('date')
+            .annotate(count=Count('id'))
+            .order_by('date')
+        )
+        
+        data = {item['date'].strftime('%Y-%m-%d'): item['count'] for item in stats}
+        return Response(data)
 
 
 class RegisterView(APIView):
