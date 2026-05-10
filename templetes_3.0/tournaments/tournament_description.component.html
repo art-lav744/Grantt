@@ -1,0 +1,34 @@
+<div class="detail-container" *ngIf="!isLoading; else loader">
+  <div class="tournament-card-large">
+    <div class="card-content">
+      <h1 class="tournament-title">{{ tournament?.title }}</h1>
+      
+      <div class="description-section">
+        <p class="description-text">
+          {{ tournament?.description }}
+        </p>
+      </div>
+
+      <ul class="info-list">
+        <li>Макс. команд: {{ tournament?.max_teams }}</li>
+        <li>Учасників у команді: {{ tournament?.min_team_members }} - {{ tournament?.max_team_members }}</li>
+        <li>Старт: {{ tournament?.start_time | date:'dd.MM.yyyy HH:mm' }}</li>
+        <li>Фініш: {{ tournament?.end_time | date:'dd.MM.yyyy HH:mm' }}</li>
+      </ul>
+
+      <div class="action-footer">
+        <button class="btn-register" [disabled]="tournament?.status !== 'registration'">
+          Зареєструватися
+        </button>
+        
+        <a [routerLink]="['/tournaments', tournament?.id, 'teams']" class="link-teams">
+          Команди-учасниці
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #loader>
+  <div class="loader">Завантаження...</div>
+</ng-template>

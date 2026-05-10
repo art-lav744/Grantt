@@ -1,0 +1,41 @@
+<div class="modal-card" (click)="$event.stopPropagation()">
+  <h2>Додати учасника</h2>
+  <p class="modal-desc">Заповніть дані для відправки запрошення.</p>
+  
+  <form [formGroup]="addMemberForm" (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label for="fullName">ПІБ учасника</label>
+      <input 
+        id="fullName"
+        type="text" 
+        formControlName="fullName" 
+        class="form-input" 
+        placeholder="Прізвище Ім'я По батькові"
+        [class.is-invalid]="addMemberForm.get('fullName')?.touched && addMemberForm.get('fullName')?.invalid"
+      >
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email адреса</label>
+      <input 
+        id="email"
+        type="email" 
+        formControlName="email" 
+        class="form-input" 
+        placeholder="example@gmail.com"
+        [class.is-invalid]="addMemberForm.get('email')?.touched && addMemberForm.get('email')?.invalid"
+      >
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-cancel" (click)="goBack()">Скасувати</button>
+      <button 
+        type="submit" 
+        class="btn-confirm" 
+        [disabled]="addMemberForm.invalid"
+      >
+        Запросити
+      </button>
+    </div>
+  </form>
+</div>

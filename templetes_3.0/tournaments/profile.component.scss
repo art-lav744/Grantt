@@ -1,0 +1,309 @@
+:host {
+  display: block;
+  background-color: #1a3a4a; // Темний фон як у Figma
+  min-height: 100vh;
+  color: white;
+  font-family: 'Inter', sans-serif;
+  padding: 40px 20px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  @media (max-width: 992px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sidebar Styling */
+.avatar-section {
+  text-align: center;
+  margin-bottom: 30px;
+
+  .avatar-circle {
+    width: 160px;
+    height: 160px;
+    background: #d9d9d9;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    color: #444;
+    position: relative;
+
+    .edit-badge {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: #000;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+    }
+  }
+
+  .nickname {
+    font-size: 32px;
+    margin: 0 0 5px;
+    font-weight: 500;
+  }
+
+  .email-link {
+    color: #a0c4d1;
+    text-decoration: underline;
+    font-size: 14px;
+  }
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    opacity: 0.9;
+
+    &.logout {
+      margin-top: 20px;
+      cursor: pointer;
+      &:hover { opacity: 1; color: #ff4d4d; }
+    }
+  }
+}
+
+/* Main Content Styling */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 40px;
+
+  .stat-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 20px;
+    text-align: center;
+    backdrop-filter: blur(5px);
+
+    .stat-label {
+      display: block;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 64px;
+      font-weight: 700;
+    }
+  }
+}
+
+.activity-section {
+  margin-bottom: 30px;
+  h3 { font-size: 20px; margin-bottom: 15px; }
+
+  .heatmap-placeholder {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    
+    .months {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #ccc;
+      margin-bottom: 10px;
+    }
+
+    .grid-cells {
+      height: 80px;
+      background: rgba(255, 255, 255, 0.05); // Заглушка для сітки
+      border-radius: 4px;
+    }
+  }
+}
+
+.history-log {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .log-item {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 15px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    .log-avatar {
+      width: 40px;
+      height: 40px;
+      background: #d9d9d9;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .log-text {
+      font-size: 14px;
+      line-height: 1.4;
+    }
+  }
+}
+
+/* ... попередні стилі зберігаються ... */
+
+.heatmap-container {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+
+  .months {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #88a0ad;
+    margin-bottom: 10px;
+  }
+
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(30, 1fr);
+    gap: 4px;
+    margin-bottom: 15px;
+
+    .cell {
+      aspect-ratio: 1;
+      background: rgba(255, 255, 255, 0.05); // Майже однотонні клітинки
+      border-radius: 2px;
+      &:nth-child(3n) { background: rgba(255, 255, 255, 0.08); } // Легка варіація
+    }
+  }
+
+  .history-slider {
+    width: 100%;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 60px;
+      height: 6px;
+      background: #4a6a7a;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+  }
+}
+
+.edit-section {
+  margin-top: 50px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+  h3 { margin-bottom: 20px; }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 15px;
+    @media (max-width: 576px) { grid-template-columns: 1fr; }
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    label { font-size: 13px; color: #a0c4d1; }
+    input, select {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px;
+      border-radius: 8px;
+      color: white;
+      outline: none;
+      &:focus { border-color: #2563eb; }
+    }
+    option { background: #1a3a4a; }
+  }
+
+  .btn-save {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    &:hover { background: #1d4ed8; }
+  }
+}
+
+.custom-file-upload {
+  .file-label-svg {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px dashed rgba(255, 255, 255, 0.2);
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #a0c4d1;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: #2563eb;
+      color: white;
+    }
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    span {
+      font-size: 14px;
+    }
+  }
+}
+
+/* Оновлена іконка олівця на аватарці */
+.edit-badge {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: scale(1.1);
+    background: #2563eb;
+  }
+}
+
+/* Видаляємо стилі старого логу активності */
+.history-log {
+  display: none; 
+}

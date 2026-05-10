@@ -1,0 +1,19 @@
+<div @listAnimation *ngIf="!isLoading">
+  <div class="card header-card">
+    <h1>Створити раунд</h1>
+    <p>Турнір: <span>{{ tournament?.title }}</span></p>
+  </div>
+
+  <div class="card">
+    <form [formGroup]="roundForm" (ngSubmit)="submit()">
+      <div class="btn-group-row">
+        <button type="submit" class="btn" [disabled]="roundForm.invalid">Створити раунд</button>
+        <button type="button" class="btn btn-secondary" (click)="goBack()">Назад до турніру</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div *ngIf="isLoading" class="loader">
+  Завантаження даних турніру...
+</div>
