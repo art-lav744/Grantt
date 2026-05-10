@@ -544,6 +544,17 @@ def team_dashboard(request):
 @login_required
 def add_team_member(request, team_id):
     team = get_object_or_404(Team, id=team_id, captain=request.user)
+
+    # Перевіряємо, чи користувач є капітаном команди
+    if request.user != team.captain:
+        messages.error(request, 'Тільки капітан команди може додавати учасників.')
+        return redirect('team_detail', pk=team.id)
+
+    # Перевіряємо, чи реєстрація на турнір відкрита
+    err = tournament_registration_error(team.tournament)
+    if err:
+        messages.error(request, err)
+        return redirect('team_detail', pk=team.id)
     
     if request.method == 'POST':
         email = request.POST.get('email', '').strip().lower()
