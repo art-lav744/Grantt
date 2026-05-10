@@ -1,0 +1,72 @@
+<div class="dashboard-container">
+  <header class="dashboard-header">
+    <h1>Мої команди</h1>
+  </header>
+
+  <div class="teams-grid">
+    <div class="team-card" *ngFor="let team of teams" (click)="openTeam(team.id)">
+      
+      <div class="card-main-content">
+        <div class="team-icon-wrapper">
+          <img [src]="team.image || 'assets/team-placeholder.png'" alt="Team Icon">
+        </div>
+        <h3 class="team-name">{{ team.name }}</h3>
+      </div>
+      
+      <div class="card-footer">
+        <div class="tournament-info">
+          <svg class="footer-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+            <path d="M4 22h16"/>
+            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+          </svg>
+          <span class="truncate">{{ team.tournament.title }}</span>
+        </div>
+        
+        <div class="status-badge" [ngClass]="'status-' + team.status">
+          <svg *ngIf="team.status === 'in-progress'" class="footer-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.1.3-2.12.81-3 Ludicrous-"/>
+          </svg>
+          
+          <svg *ngIf="team.status === 'completed'" class="footer-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="7"/>
+            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+          </svg>
+          
+          <span>{{ team.status === 'in-progress' ? 'В процесі' : 'Результати' }}</span>
+        </div>
+        
+        <div class="role-tag" [class.captain]="team.is_captain">
+          <svg *ngIf="team.is_captain" class="footer-icon-svg captain-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7Zm3 16h14"/>
+          </svg>
+          
+          <svg *ngIf="!team.is_captain" class="footer-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          
+          <span>{{ team.is_captain ? 'Капітан' : 'Учасник' }}</span>
+        </div>
+        
+        <div class="action-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+
+    <div *ngIf="teams.length === 0" class="empty-state">
+      <svg class="empty-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      </svg>
+      <p>Ви ще не приєдналися до жодної команди</p>
+      <button class="btn-find" routerLink="/dashboard/tournaments">Знайти турнір</button>
+    </div>
+  </div>
+</div>

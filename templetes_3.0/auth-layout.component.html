@@ -1,0 +1,62 @@
+<div class="auth-layout" [class.expanded]="isExpanded">
+
+  <aside class="sidebar">
+
+    <div class="sidebar-logo" (click)="toggleSidebar()">
+      <img src="assets/logo.png" alt="Grantt" class="logo-img">
+      <span class="logo-text" *ngIf="isExpanded">rantt</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a routerLink="profile" routerLinkActive="active" class="nav-item" title="Профіль">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span *ngIf="isExpanded">Профіль</span>
+      </a>
+
+      <a routerLink="submissions" routerLinkActive="active" class="nav-item" title="Подачі">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <span *ngIf="isExpanded">Подачі</span>
+      </a>
+
+      <a routerLink="tournaments" routerLinkActive="active" class="nav-item" title="Турніри">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        <span *ngIf="isExpanded">Турніри</span>
+      </a>
+
+      <a routerLink="panel" routerLinkActive="active" class="nav-item" title="Панель">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span *ngIf="isExpanded">Панель</span>
+      </a>
+
+      <a routerLink="messages" routerLinkActive="active" class="nav-item" title="Повідомлення">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <span *ngIf="isExpanded">Повідомлення</span>
+      </a>
+    </nav>
+
+  </aside>
+
+  <div class="main-area">
+    <div class="topbar">
+      <div class="topbar-right">
+        <a routerLink="profile" class="user-info">
+          <span class="user-name">{{ user.nickname }}</span>
+          <div *ngIf="!user.profile_image" class="avatar-placeholder">
+            {{ user.nickname | slice:0:1 | uppercase }}
+          </div>
+          <img *ngIf="user.profile_image" [src]="user.profile_image" class="avatar-img" alt="Avatar">
+        </a>
+      </div>
+    </div>
+
+    <div class="messages-container" *ngIf="messages.length > 0">
+      <div *ngFor="let msg of messages" [class]="'message ' + msg.type">
+        {{ msg.text }}
+      </div>
+    </div>
+
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
