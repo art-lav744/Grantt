@@ -2,7 +2,7 @@ from datetime import timedelta
 import random
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from tournaments.models import Tournament, TournamentStatus, User, Team, TeamMember, UserRole, Round, Submission, Evaluation
+from tournaments.models import Tournament, TournamentStatus, User, Team, TeamMember, UserRole, Round, RoundCriterion, Submission, Evaluation
 
 
 class Command(BaseCommand):
@@ -153,10 +153,17 @@ class Command(BaseCommand):
                 },
             )
             round1.save()
-            round1.set_scoring_criteria([
-                {'name': 'Technical', 'max_score': 100},
-                {'name': 'Functionality', 'max_score': 100},
-            ])
+            # Create scoring criteria
+            RoundCriterion.objects.get_or_create(
+                round=round1,
+                name='Technical',
+                defaults={'max_score': 100, 'order': 0},
+            )
+            RoundCriterion.objects.get_or_create(
+                round=round1,
+                name='Functionality',
+                defaults={'max_score': 100, 'order': 1},
+            )
 
             # Submissions for each team
             submissions = []
@@ -208,11 +215,22 @@ class Command(BaseCommand):
                     },
                 )
                 round2.save()
-                round2.set_scoring_criteria([
-                    {'name': 'Code Quality', 'max_score': 100},
-                    {'name': 'Innovation', 'max_score': 100},
-                    {'name': 'Performance', 'max_score': 100},
-                ])
+                # Create scoring criteria
+                RoundCriterion.objects.get_or_create(
+                    round=round2,
+                    name='Code Quality',
+                    defaults={'max_score': 100, 'order': 0},
+                )
+                RoundCriterion.objects.get_or_create(
+                    round=round2,
+                    name='Innovation',
+                    defaults={'max_score': 100, 'order': 1},
+                )
+                RoundCriterion.objects.get_or_create(
+                    round=round2,
+                    name='Performance',
+                    defaults={'max_score': 100, 'order': 2},
+                )
 
                 # Submissions for round 2
                 round2_submissions = []

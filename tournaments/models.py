@@ -539,7 +539,7 @@ class Evaluation(models.Model):
         unique_together = [('submission', 'jury')]
 
     def ensure_score_entries(self, criteria=None):
-        criteria = criteria or self.submission.round.get_or_create_scoring_criteria()
+        criteria = criteria or self.submission.round.criteria.all()
 
         existing_ids = set(
             self.criteria_scores.values_list('criterion_id', flat=True)
