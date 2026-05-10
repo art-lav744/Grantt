@@ -1,0 +1,195 @@
+// Reusing core styles to ensure consistency
+$main1: #1a3a4a;
+$main3: #3ab8c8;
+$bg-page: #e5e5e5;
+$white: #ffffff;
+$error: #ff8a80;
+
+.page-wrapper {
+  background-color: $bg-page;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+}
+
+.card {
+  background: $main1;
+  border-radius: 16px;
+  padding: 36px 40px;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  transition: box-shadow 0.4s ease;
+
+  &:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 
+                inset 0 0 10px rgba(58, 184, 200, 0.18);
+  }
+}
+
+.logo-area {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+  .logo-img { width: 72px; height: auto; }
+}
+
+h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: $white;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.form-control {
+  background: $white;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 14px;
+  color: $main1;
+  width: 100%;
+  box-sizing: border-box;
+  transition: 0.2s ease;
+
+  &::placeholder { color: rgba(26, 58, 74, 0.45); }
+  &:focus {
+    outline: none;
+    border-color: $main3;
+    box-shadow: 0 0 0 3px rgba(58, 184, 200, 0.15);
+  }
+}
+
+.password-wrapper {
+  position: relative;
+  input { padding-right: 44px; }
+  .toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    display: flex;
+  }
+}
+
+.password-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  
+  &.valid { color: $main3; }
+}
+
+.error-text small {
+  display: block;
+  color: $error;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+// Terms & Checkbox Styling
+.terms-container {
+  margin: 20px 0;
+}
+
+.custom-checkbox {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  padding-left: 28px;
+  cursor: pointer;
+  user-select: none;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0; width: 0;
+  }
+
+  .checkmark {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    height: 18px;
+    width: 18px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid $main3;
+    border-radius: 4px;
+  }
+
+  input:checked ~ .checkmark {
+    background-color: $main3;
+  }
+
+  .checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  input:checked ~ .checkmark:after {
+    display: block;
+  }
+
+  .terms-text {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.4;
+    u { text-underline-offset: 2px; }
+  }
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 13px;
+  background: linear-gradient(135deg, #3ab8c8 0%, #1e8fa0 100%);
+  color: $white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4dcfdf 0%, #2aa8bb 100%);
+    box-shadow: 0 4px 16px rgba(58, 184, 200, 0.45);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: not-allowed;
+  }
+}

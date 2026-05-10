@@ -1,0 +1,70 @@
+<div class="page-wrapper">
+  <div class="card shadow-container register-card">
+    <div class="logo-area">
+      <img src="templetes_angular\media_photos_etc\logo_grantt.png" alt="Grantt logo" class="logo-img"> <!-- change-for-assets/logo -->
+    </div>
+
+    <h2>Зареєструвати акаунт Grantt</h2>
+
+    <form [formGroup]="registerForm" (ngSubmit)="onRegister()">
+      
+      <div *ngIf="errorMessage" class="error-summary">
+        {{ errorMessage }}
+      </div>
+
+      <div *ngFor="let controlName of ['username', 'email', 'password', 'confirmPassword']" class="form-group">
+        <label [for]="controlName" class="visually-hidden">{{ getLabel(controlName) }}</label>
+        
+        <div [class.password-wrapper]="controlName.includes('password')">
+          <input 
+            [type]="isPasswordVisible(controlName) ? 'text' : (controlName.includes('password') ? 'password' : 'text')" 
+            [id]="controlName" 
+            [formControlName]="controlName" 
+            class="form-control"
+            [placeholder]="getLabel(controlName)"
+          >
+          <span 
+            *ngIf="controlName.includes('password')" 
+            class="toggle-password" 
+            (click)="togglePass(controlName)"
+          >
+            <svg *ngIf="!isPasswordVisible(controlName)" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ab8c8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg *ngIf="isPasswordVisible(controlName)" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ab8c8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8 a18.45 18.45 0 0 1 5.06-5.94"/>
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8 a18.5 18.5 0 0 1-2.16 3.19"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </span>
+        </div>
+
+        <div *ngIf="controlName === 'password'" class="password-hint" [class.valid]="registerForm.get('password')?.valid">
+          <span>Мінімум 8 символів</span>
+          <svg *ngIf="registerForm.get('password')?.valid" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#3ab8c8" stroke-width="3">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+
+        <div *ngIf="registerForm.get(controlName)?.touched && registerForm.get(controlName)?.errors" class="error-text">
+          <small *ngIf="registerForm.get(controlName)?.errors?.['required']">Це поле обов'язкове</small>
+          <small *ngIf="registerForm.get(controlName)?.errors?.['email']">Некоректний email</small>
+          <small *ngIf="controlName === 'confirmPassword' && registerForm.errors?.['mismatch']">Паролі не збігаються</small>
+        </div>
+      </div>
+
+      <div class="terms-container">
+        <label class="custom-checkbox">
+          <input type="checkbox" formControlName="termsAccepted">
+          <span class="checkmark"></span>
+          <span class="terms-text">Реєструючись, ви погоджуєтесь з нашими <u>умовами використання</u> та <u>політикою конфіденційності</u></span>
+        </label>
+      </div>
+
+      <button class="btn btn-submit" type="submit" [disabled]="registerForm.invalid">
+        Зареєструватися
+      </button>
+    </form>
+  </div>
+</div>
