@@ -424,6 +424,126 @@ class Round(models.Model):
     def accepts_submissions(self):
         return self.start_time <= timezone.now() <= self.end_time
 
+    @staticmethod
+    def _format_score_value(value):
+        value = float(value)
+        return f'{value:g}'
+
+    @classmethod
+    def parse_criteria_definition(cls, criteria):
+        """Convert text/list criteria input into a list of criterion dictionaries.
+
+        Accepted formats:
+        - "Technical | 100\nFunctionality | 100"
+        - [{'name': 'Technical', 'max_score': 100}, ...]
+        """
+        if criteria in (None, ''):
+            criteria = list(cls.DEFAULT_CRITERIA)
+
+        if isinstance(criteria, str):
+            parsed = []
+            for line_number, raw_line in enumerate(criteria.splitlines(), start=1):
+                line = raw_line.strip()
+                if not line:
+                    continue
+                if '|' not in line:
+                    raise ValidationError(
+                        f'Рядок {line_number}: використайте формат "Назва | Максимальний бал".'
+                    )
+                name, max_score = line.split('|', 1)
+                parsed.append({'name': name.strip(), 'max_score': max_score.strip()})
+            return parsed
+
+        if isinstance(criteria, (list, tuple)):
+            parsed = []
+            for item in criteria:
+                if isinstance(item, dict):
+                    parsed.append({
+                        'name': item.get('name') or item.get('title'),
+                        'max_score': item.get('max_score', item.get('max', item.get('score'))),
+                    })
+                elif isinstance(item, (list, tuple)) and len(item) >= 2:
+                    parsed.append({'name': item[0], 'max_score': item[1]})
+                else:
+                    raise ValidationError('Кожен критерій має містити назву і максимальний бал.')
+            return parsed
+
+        raise ValidationError('Некоректний формат критеріїв оцінювання.')
+
+    @classmethod
+    def validate_criteria_payload(cls, criteria):
+        if not criteria:
+            raise ValidationError('Потрібен хоча б один критерій оцінювання.')
+
+        cleaned = []
+        seen_names = set()
+        for index, item in enumerate(criteria, start=1):
+            name = str(item.get('name', '')).strip()
+            if not name:
+                raise ValidationError(f'Критерій #{index}: назва обов’язкова.')
+
+            normalized_name = name.casefold()
+            if normalized_name in seen_names:
+                raise ValidationError(f'Критерій "{name}" дублюється.')
+            seen_names.add(normalized_name)
+
+            try:
+                max_score = float(item.get('max_score'))
+            except (TypeError, ValueError):
+                raise ValidationError(f'Критерій "{name}": максимальний бал має бути числом.')
+
+            if max_score <= 0:
+                raise ValidationError(f'Критерій "{name}": максимальний бал має бути більшим за 0.')
+
+            cleaned.append({'name': name, 'max_score': max_score})
+
+        return cleaned
+
+    @classmethod
+    def format_criteria_definition(cls, criteria):
+        cleaned = cls.validate_criteria_payload(cls.parse_criteria_definition(criteria))
+        return '\n'.join(
+            f"{item['name']} | {cls._format_score_value(item['max_score'])}"
+            for item in cleaned
+        )
+
+    def set_scoring_criteria(self, criteria):
+        parsed = self.validate_criteria_payload(self.parse_criteria_definition(criteria))
+        self.evaluation_criteria = self.format_criteria_definition(parsed)
+        if self.pk:
+            self.save(update_fields=['evaluation_criteria'])
+
+            existing_by_name = {criterion.name.casefold(): criterion for criterion in self.criteria.all()}
+            keep_ids = []
+            for order, item in enumerate(parsed, start=1):
+                criterion = existing_by_name.get(item['name'].casefold())
+                if criterion is None:
+                    criterion = RoundCriterion.objects.create(
+                        round=self,
+                        name=item['name'],
+                        max_score=item['max_score'],
+                        order=order,
+                    )
+                else:
+                    criterion.name = item['name']
+                    criterion.max_score = item['max_score']
+                    criterion.order = order
+                    criterion.save(update_fields=['name', 'max_score', 'order'])
+                keep_ids.append(criterion.id)
+
+            self.criteria.exclude(id__in=keep_ids).delete()
+        return parsed
+
+    def get_or_create_scoring_criteria(self):
+        criteria = list(self.criteria.all())
+        if criteria:
+            return criteria
+        self.set_scoring_criteria(self.evaluation_criteria or list(self.DEFAULT_CRITERIA))
+        return list(self.criteria.all())
+
+    def total_max_score(self):
+        return sum(criterion.max_score for criterion in self.get_or_create_scoring_criteria())
+
     def __str__(self):
         return f'{self.tournament.title}: {self.title}'
 
@@ -504,6 +624,49 @@ class Submission(models.Model):
                 raise ValidationError({
                     'round': 'Подання або оновлення відповіді для цього раунду вже недоступне.'
                 })
+
+    def calculate_final_score(self):
+        criteria = self.round.get_or_create_scoring_criteria()
+        evaluations = list(
+            Evaluation.objects.filter(submission=self)
+            .prefetch_related('criteria_scores__criterion')
+        )
+
+        criteria_result = []
+        criteria_avg_map = {}
+        raw_total = 0.0
+        max_total = sum(criterion.max_score for criterion in criteria)
+
+        for criterion in criteria:
+            scores = []
+            for evaluation in evaluations:
+                score_entry = next(
+                    (item for item in evaluation.ensure_score_entries(criteria) if item.criterion_id == criterion.id),
+                    None,
+                )
+                if score_entry is not None:
+                    scores.append(float(score_entry.score))
+
+            average = (sum(scores) / len(scores)) if scores else 0.0
+            criteria_avg_map[criterion.name] = average
+            raw_total += average
+            criteria_result.append({
+                'id': criterion.id,
+                'name': criterion.name,
+                'max_score': criterion.max_score,
+                'average': average,
+                'scores_count': len(scores),
+            })
+
+        total = (raw_total / max_total * 100) if max_total else None
+        return {
+            'total': total,
+            'raw_total': raw_total,
+            'max_total': max_total,
+            'criteria': criteria_result,
+            'criteria_avg_map': criteria_avg_map,
+            'evaluations_count': len(evaluations),
+        }
 
 
 class Evaluation(models.Model):

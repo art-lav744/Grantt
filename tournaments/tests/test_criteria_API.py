@@ -58,9 +58,6 @@ class ActiveRoundAPITest(APITestCase):
         url = '/api/rounds/active/'
         response = self.client.get(url)
         
-        # Виводимо дані для діагностики
-        print(f"\nDEBUG DATA: {response.data}") 
-        
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('evaluation_criteria', response.data)
         self.assertEqual(

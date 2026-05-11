@@ -771,8 +771,23 @@ def process_invite_link(request, invite_id):
         messages.error(request, "Це запрошення призначене для іншої поштової скриньки.")
         return redirect('dashboard')
 
-    # Додаємо користувача до команди
-    TeamMember.objects.get_or_create(team=invite.team, user=request.user)
+    # Додаємо користувача до команди. TeamMember має обов'язкові full_name/email,
+    # тому одного user недостатньо для створення валідного запису.
+    member_email = normalize_email_value(request.user.email)
+    member_name = request.user.full_name or request.user.nickname or member_email
+    member, created = TeamMember.objects.get_or_create(
+        team=invite.team,
+        email=member_email,
+        defaults={
+            'user': request.user,
+            'full_name': member_name,
+        },
+    )
+    if not created and member.user_id != request.user.id:
+        member.user = request.user
+        if not member.full_name:
+            member.full_name = member_name
+        member.save(update_fields=['user', 'full_name'])
     
     # Деактивуємо запрошення, щоб ним не скористалися двічі
     invite.is_active = False
