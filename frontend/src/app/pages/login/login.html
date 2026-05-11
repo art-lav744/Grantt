@@ -1,31 +1,57 @@
-<div class="card shadow-container">
-  <h2>Вхід</h2>
-  <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
-    
-    <div *ngIf="errorMessage" class="error-summary">
-      {{ errorMessage }}
+<div class="page-wrapper">
+  <div class="card shadow-container">
+    <div class="logo-area">
+      <img src="/assets/logo_grantt.png" alt="Grantt logo" class="logo-img"> 
     </div>
 
-    <div class="form-group">
-      <label for="email">Email</label>
-      <input type="email" id="email" formControlName="email" class="form-control">
-    </div>
+    <h2>Увійти в акаунт Grantt</h2>
 
-    <div class="form-group">
-      <label for="password">Пароль</label>
-      <div class="password-wrapper">
-        <input 
-          [type]="isPasswordVisible ? 'text' : 'password'" 
-          id="password" 
-          formControlName="password" 
-          class="form-control"
-        >
-        <span class="toggle-password" (click)="toggleVisibility()">
-          {{ isPasswordVisible ? '🔒' : '👁️' }}
-        </span>
+    <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+      
+      <div *ngIf="errorMessage" class="error-summary">
+        {{ errorMessage }}
       </div>
-    </div>
 
-    <button class="btn" type="submit" [disabled]="loginForm.invalid || loading">{{ loading ? 'Вхід...' : 'Увійти' }}</button>
-  </form>
+      <div class="form-group">
+        <label for="username" class="visually-hidden">Електронна пошта або ім'я користувача</label>
+        <input 
+          type="text" 
+          id="username" 
+          formControlName="username" 
+          class="form-control" 
+          placeholder="Email"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="password" class="visually-hidden">Пароль</label>
+        <div class="password-wrapper">
+          <input 
+            [type]="isPasswordVisible ? 'text' : 'password'" 
+            id="password" 
+            formControlName="password" 
+            class="form-control"
+            placeholder="Пароль"
+          >
+          <span class="toggle-password" (click)="toggleVisibility()">
+            <svg *ngIf="!isPasswordVisible" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ab8c8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg *ngIf="isPasswordVisible" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3ab8c8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8 a18.45 18.45 0 0 1 5.06-5.94"/>
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8 a18.5 18.5 0 0 1-2.16 3.19"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <button class="btn" type="submit" [disabled]="loginForm.invalid">Увійти</button>
+      
+      <div class="footer-link">
+        Не маєте акаунту? <span routerLink="/register">Зареєструватися</span>
+      </div>
+    </form>
+  </div>
 </div>

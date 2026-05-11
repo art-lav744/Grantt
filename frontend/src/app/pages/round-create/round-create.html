@@ -1,0 +1,24 @@
+<div class="container">
+  <a class="btn btn-outline" [routerLink]="['/tournaments', tournamentId]">← Назад до турніру</a>
+
+  <div class="card">
+    <h1>Додати раунд</h1>
+    <p *ngIf="error" class="error-summary">{{ error }}</p>
+
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <label>Назва раунду</label>
+      <input class="form-control" formControlName="title" placeholder="Наприклад: Раунд 1">
+
+      <label>Опис</label>
+      <textarea class="form-control" formControlName="description" placeholder="Завдання або короткий опис"></textarea>
+
+      <label>Початок</label>
+      <input class="form-control" type="datetime-local" formControlName="start">
+
+      <label>Кінець</label>
+      <input class="form-control" type="datetime-local" formControlName="end">
+
+      <button class="btn" type="submit" [disabled]="saving">Створити</button>
+    </form>
+  </div>
+</div>

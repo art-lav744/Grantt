@@ -13,7 +13,7 @@ export class App {
   constructor(private router: Router) {}
 
   get isLoggedIn(): boolean {
-    return !!(localStorage.getItem('access_token') || localStorage.getItem('token'));
+    return !!(localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('access'));
   }
 
   get role(): string {
@@ -31,6 +31,9 @@ export class App {
   logout(): void {
     localStorage.removeItem('access_token');
     localStorage.removeItem('token');
+    localStorage.removeItem('access');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('refresh');
     localStorage.removeItem('role');
     localStorage.removeItem('nickname');
     localStorage.removeItem('user_id');

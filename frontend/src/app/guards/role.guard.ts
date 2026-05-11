@@ -12,7 +12,7 @@ function hasAnyRole(allowedRoles: string[]): boolean {
 
 export const authGuard: CanActivateFn = () => {
   const router = inject(Router);
-  const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+  const token = localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('access');
 
   if (token) {
     return true;
@@ -23,7 +23,7 @@ export const authGuard: CanActivateFn = () => {
 
 export const adminOrganizerGuard: CanActivateFn = () => {
   const router = inject(Router);
-  const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+  const token = localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('access');
 
   if (!token) {
     return router.createUrlTree(['/login']);
@@ -40,7 +40,7 @@ export const adminOrganizerGuard: CanActivateFn = () => {
 
 export const juryGuard: CanActivateFn = () => {
   const router = inject(Router);
-  const token = localStorage.getItem('access_token') || localStorage.getItem('token');
+  const token = localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('access');
 
   if (!token) {
     return router.createUrlTree(['/login']);

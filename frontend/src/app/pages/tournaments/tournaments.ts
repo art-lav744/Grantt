@@ -1,47 +1,40 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { ApiService } from '../../services/api';
 
 @Component({
   selector: 'app-tournaments',
   standalone: true,
-  imports: [CommonModule,RouterLink],
+  imports: [CommonModule, RouterLink],
   templateUrl: './tournaments.html',
   styleUrls: ['./tournaments.scss']
 })
 export class Tournaments implements OnInit {
-  activeStatus: string = 'all';
+  tournaments: any[] = [];
+  isLoading = true;
+  errorMessage = '';
 
-  tournaments = [
-    {
-      id: 1,
-      title: 'Spring Code Challenge',
-      regStart: new Date('2026-03-01'),
-      regEnd: new Date('2026-04-15'),
-      status: 'registration'
-    },
-    {
-      id: 2,
-      title: 'AI Hackathon',
-      regStart: new Date('2026-01-10'),
-      regEnd: new Date('2026-02-01'),
-      status: 'running'
-    }
-  ];
-
-  filteredTournaments = [...this.tournaments];
+  constructor(private api: ApiService) {}
 
   ngOnInit(): void {
-    this.filter('all');
+    this.loadTournaments();
   }
 
-  filter(status: string): void {
-    this.activeStatus = status;
+  loadTournaments(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
 
-    if (status === 'all') {
-      this.filteredTournaments = this.tournaments;
-    } else {
-      this.filteredTournaments = this.tournaments.filter(t => t.status === status);
-    }
+    this.api.getTournaments().subscribe({
+      next: (items: any[]) => {
+        this.tournaments = Array.isArray(items) ? items : [];
+        this.isLoading = false;
+      },
+      error: () => {
+        this.tournaments = [];
+        this.errorMessage = 'Не вдалося завантажити турніри';
+        this.isLoading = false;
+      }
+    });
   }
 }

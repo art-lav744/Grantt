@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { ApiService } from '../../services/api';
 
 @Component({
   selector: 'app-register',
@@ -9,7 +11,7 @@ import { CommonModule } from '@angular/common';
   templateUrl: './register.html',
   styleUrls: ['./register.scss']
 })
-export class Register{
+export class Register {
   registerForm: FormGroup;
   visiblePasswords: { [key: string]: boolean } = {
     password: false,
@@ -17,21 +19,37 @@ export class Register{
   };
   errorMessage = '';
 
-  constructor(private fb: FormBuilder) {
+  constructor(
+    private fb: FormBuilder,
+    private api: ApiService,
+    private router: Router
+  ) {
     this.registerForm = this.fb.group({
       username: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
-      confirmPassword: ['', Validators.required]
-    });
+      confirmPassword: ['', Validators.required],
+      termsAccepted: [false, Validators.requiredTrue]
+    }, { validators: this.passwordMatchValidator });
+  }
+
+  passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
+    const password = control.get('password');
+    const confirmPassword = control.get('confirmPassword');
+
+    if (password && confirmPassword && password.value !== confirmPassword.value) {
+      return { mismatch: true };
+    }
+
+    return null;
   }
 
   getLabel(name: string): string {
     const labels: { [key: string]: string } = {
-      username: "Ім'я користувача",
-      email: "Електронна пошта",
-      password: "Пароль",
-      confirmPassword: "Підтвердження пароля"
+      username: 'Нікнейм',
+      email: 'Email',
+      password: 'Пароль',
+      confirmPassword: 'Підтвердіть пароль'
     };
     return labels[name];
   }
@@ -45,8 +63,25 @@ export class Register{
   }
 
   onRegister(): void {
-    if (this.registerForm.valid) {
-      console.log('Дані реєстрації:', this.registerForm.value);
+    if (this.registerForm.invalid) {
+      this.registerForm.markAllAsTouched();
+      return;
     }
+
+    const payload = {
+      username: this.registerForm.value.username,
+      email: this.registerForm.value.email,
+      password: this.registerForm.value.password
+    };
+
+    this.errorMessage = '';
+
+    this.api.register(payload).subscribe({
+      next: () => this.router.navigate(['/login']),
+      error: (err: any) => {
+        console.error('Register error:', err);
+        this.errorMessage = err?.error?.detail || err?.error?.message || 'Помилка реєстрації';
+      }
+    });
   }
 }

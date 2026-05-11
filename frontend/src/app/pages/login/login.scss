@@ -1,104 +1,154 @@
-// Контейнер картки
+$main1: #1a3a4a;
+$main3: #3ab8c8;
+$bg-page: #e5e5e5;
+$white: #ffffff;
+$error: #ff8a80;
+
+.page-wrapper {
+  background-color: $bg-page;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+}
+
 .card {
-  max-width: 500px;
-  margin: 2rem auto;
-  padding: 25px;
-  background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  font-family: Arial, sans-serif;
+  background: $main1;
+  border-radius: 16px;
+  padding: 36px 40px;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  transition: box-shadow 0.4s ease;
 
-  h2 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    text-align: center;
-    color: #333;
+  &:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 
+                inset 0 0 10px rgba(58, 184, 200, 0.18),
+                0 0 15px rgba(58, 184, 200, 0.1);
   }
 }
 
-// Група форми
+.logo-area {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+
+  .logo-img {
+    width: 72px;
+    height: auto;
+  }
+}
+
+h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: $white;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 14px;
+}
 
-  label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 500;
-    color: #444;
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.form-control {
+  background: $white;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 11px 14px;
+  font-size: 14px;
+  color: $main1;
+  width: 100%;
+  box-sizing: border-box;
+  transition: 0.2s ease;
+
+  &::placeholder {
+    color: rgba(26, 58, 74, 0.45);
   }
 
-  .form-control {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 1rem;
-    box-sizing: border-box;
-    transition: border-color 0.2s;
-
-    &:focus {
-      outline: none;
-      border-color: #007bff;
-    }
+  &:focus {
+    outline: none;
+    border-color: $main3;
+    box-shadow: 0 0 0 3px rgba(58, 184, 200, 0.15);
   }
 }
 
-// Обгортка для поля з паролем
 .password-wrapper {
   position: relative;
-  display: block;
 
   input {
-    width: 100%;
-    padding-right: 40px; // Місце для іконки
-    box-sizing: border-box;
+    padding-right: 44px;
   }
 
   .toggle-password {
     position: absolute;
-    right: 10px;
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
     cursor: pointer;
-    user-select: none;
-    font-size: 1.1rem;
-    opacity: 0.7;
-
-    &:hover {
-      opacity: 1;
-    }
+    display: flex;
+    align-items: center;
   }
 }
 
-// Кнопка
 .btn {
   width: 100%;
-  padding: 12px;
-  background-color: #007bff;
-  color: white;
+  padding: 13px;
+  background: linear-gradient(135deg, #3ab8c8 0%, #1e8fa0 100%);
+  color: $white;
   border: none;
-  border-radius: 4px;
-  font-size: 1rem;
-  font-weight: bold;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.3s;
+  margin-top: 8px;
+  transition: all 0.25s ease;
 
-  &:hover {
-    background-color: #0056b3;
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #4dcfdf 0%, #2aa8bb 100%);
+    box-shadow: 0 4px 16px rgba(58, 184, 200, 0.45);
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
   }
 
   &:disabled {
-    background-color: #ccc;
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.4);
     cursor: not-allowed;
   }
 }
 
-// Помилки
 .error-summary {
-  color: #d9534f;
-  background-color: #f2dede;
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 15px;
-  font-size: 0.9rem;
+  color: $error;
+  font-size: 12px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.footer-link {
+  text-align: center;
+  margin-top: 16px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 13px;
+
+  span {
+    color: $main3;
+    cursor: pointer;
+    text-decoration: underline;
+  }
 }

@@ -1,42 +1,136 @@
-section {
-  margin-top: 24px;
+.mt-5 { margin-top: 3rem; }
+:host {
+  display: block;
+  width: 100%;
+}
+
+.registration-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  background-color: #0b1e2d; // Колір фону сторінки
+  min-height: calc(100vh - 80px); // Адаптація під layout
+}
+
+.registration-card {
+  width: 100%;
+  max-width: 550px;
+  background: #1a365d; // Колір картки з макету
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+
+  .tournament-photo-area {
+    width: 100%;
+    height: 180px;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-placeholder {
+      color: #a0aec0;
+      text-align: center;
+      opacity: 0.6;
+      p { font-size: 0.8rem; margin-top: 10px; }
+    }
+  }
+
+  .card-header {
+    padding: 30px 20px 10px;
+    text-align: center;
+    h2 {
+      margin: 0;
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+  }
+
+  .card-body {
+    padding: 20px 45px 45px;
+  }
 }
 
 .form-group {
-  margin-bottom: 14px;
+  margin-bottom: 25px;
+  label {
+    display: block;
+    color: #fff;
+    margin-bottom: 12px;
+    font-size: 1rem;
+  }
 }
 
-.form-control {
-  display: block;
+.styled-input {
   width: 100%;
-  max-width: 520px;
-  padding: 8px;
+  padding: 14px 25px;
+  background: #ffffff;
+  border: none;
+  border-radius: 30px; // Овальна форма як у Figma
+  font-size: 1rem;
+  color: #1a202c;
   box-sizing: border-box;
+  outline: none;
+
+  &::placeholder {
+    color: #a0aec0;
+  }
 }
 
-.members-section {
-  margin-top: 24px;
-  margin-bottom: 24px;
+.info-box {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 15px;
+  margin-bottom: 30px;
+  gap: 15px;
+
+  .info-icon {
+    color: #3182ce; // Синій акцент замість зеленого
+    display: flex;
+    align-items: center;
+  }
+
+  .info-text {
+    font-size: 0.85rem;
+    color: #a0aec0;
+    line-height: 1.5;
+    margin: 0;
+  }
 }
 
-.member-row {
-  border: 1px solid #ddd;
-  padding: 12px;
-  margin-bottom: 12px;
-  max-width: 560px;
-}
+.btn-submit {
+  width: 100%;
+  padding: 16px;
+  background: #3182ce; // Синій акцент
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
 
-.error-summary {
-  color: #b00020;
-  margin-bottom: 12px;
-}
+  &:hover:not(:disabled) {
+    background: #2b6cb0;
+  }
 
-.success-summary {
-  color: #0a7a2f;
-  margin-bottom: 12px;
-}
-
-.muted {
-  opacity: 0.75;
-  margin-bottom: 12px;
+  &:disabled {
+    background: #4a5568;
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }

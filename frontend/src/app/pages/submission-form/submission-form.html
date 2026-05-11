@@ -1,22 +1,77 @@
-<section>
-  <h1>Відправка роботи</h1>
+<div class="submission-container" *ngIf="tournament; else loading">
+  <main class="content">
+    <div class="task-card">
+      <header class="card-header">
+        <div class="tabs">
+          <button class="tab-btn" [class.active]="activeTab === 'info'" (click)="activeTab = 'info'">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Умова
+          </button>
+          <button class="tab-btn" [class.active]="activeTab === 'submit'" (click)="activeTab = 'submit'">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Виконане завдання
+          </button>
+        </div>
+        <div class="timer" [class.expired]="isExpired">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          {{ countdownText }}
+        </div>
+      </header>
 
-  <form (ngSubmit)="submit()">
-    <div>
-      <label>GitHub URL</label>
-      <input type="text" [(ngModel)]="form.github_link" name="github_link">
+      <section class="card-body">
+        <div *ngIf="activeTab === 'info'" class="tab-content animate-fade">
+          <h1 class="title">{{ tournament.title }}</h1>
+          <p class="description">{{ tournament.description }}</p>
+          
+          <h3 *ngIf="tournament.requirements.length > 0">Технічні вимоги:</h3>
+          <ul>
+            <li *ngFor="let req of tournament.requirements">{{ req }}</li>
+          </ul>
+        </div>
+
+        <div *ngIf="activeTab === 'submit'" class="tab-content animate-fade">
+          <div class="submission-alert">
+            Будь ласка, вкажіть коректні <span class="url-label">URL-адреси</span> для перевірки.
+          </div>
+
+          <form [formGroup]="submissionForm" (ngSubmit)="onSubmit()">
+            <div class="form-group">
+              <label>GitHub Repository URL</label>
+              <input formControlName="github_link" 
+                     class="form-control" 
+                     [class.invalid]="submissionForm.get('github_link')?.invalid && submissionForm.get('github_link')?.touched"
+                     placeholder="https://github.com/...">
+              <small class="error-text" *ngIf="submissionForm.get('github_link')?.hasError('notGithub') && submissionForm.get('github_link')?.touched">
+                Вкажіть посилання на публічний репозиторій GitHub
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label>YouTube Demo URL</label>
+              <input formControlName="video_link" 
+                     class="form-control" 
+                     [class.invalid]="submissionForm.get('video_link')?.invalid && submissionForm.get('video_link')?.touched"
+                     placeholder="https://youtube.com/...">
+              <small class="error-text" *ngIf="submissionForm.get('video_link')?.hasError('notYoutube') && submissionForm.get('video_link')?.touched">
+                Посилання має вести на YouTube відео
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label>Коментар (опціонально)</label>
+              <textarea formControlName="description" class="form-control" rows="4"></textarea>
+            </div>
+
+            <button type="submit" class="submit-btn" [disabled]="submissionForm.invalid || isExpired">
+              {{ isExpired ? 'ПРИЙОМ РОБІТ ЗАВЕРШЕНО' : 'ВІДПРАВИТИ НА ПЕРЕВІРКУ' }}
+            </button>
+          </form>
+        </div>
+      </section>
     </div>
+  </main>
+</div>
 
-    <div>
-      <label>Опис</label>
-      <textarea [(ngModel)]="form.description" name="description"></textarea>
-    </div>
-
-    <button type="submit">Відправити</button>
-  </form>
-
-  <p *ngIf="success">{{ success }}</p>
-  <p *ngIf="error">{{ error }}</p>
-
-  <a routerLink="/">На головну</a>
-</section>
+<ng-template #loading>
+  <div class="loading-state">Завантаження турніру...</div>
+</ng-template>

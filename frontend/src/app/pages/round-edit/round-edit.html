@@ -1,0 +1,32 @@
+<div class="container">
+  <a class="btn btn-outline" [routerLink]="tournamentId ? ['/tournaments', tournamentId] : ['/']">← Назад</a>
+
+  <div class="card">
+    <h1>Редагувати раунд</h1>
+    <p *ngIf="loading">Завантаження...</p>
+    <p *ngIf="error" class="error-summary">{{ error }}</p>
+
+    <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()">
+      <label>Назва раунду</label>
+      <input class="form-control" formControlName="title">
+
+      <label>Опис</label>
+      <textarea class="form-control" formControlName="description"></textarea>
+
+      <label>Початок</label>
+      <input class="form-control" type="datetime-local" formControlName="start">
+
+      <label>Кінець</label>
+      <input class="form-control" type="datetime-local" formControlName="end">
+
+      <label>Статус</label>
+      <select class="form-control" formControlName="status">
+        <option value="pending">Очікує</option>
+        <option value="active">Активний</option>
+        <option value="completed">Завершений</option>
+      </select>
+
+      <button class="btn" type="submit" [disabled]="saving">Зберегти</button>
+    </form>
+  </div>
+</div>

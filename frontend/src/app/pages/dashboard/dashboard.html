@@ -1,33 +1,68 @@
-<section>
-  <h1>Мій кабінет</h1>
+<div class="dashboard-container">
+  <header class="dashboard-header">
+    <h1>Мої команди</h1>
+    <p *ngIf="currentUser">Вітаємо, {{ currentUser.nickname }}!</p>
+  </header>
 
-  <div *ngIf="forbiddenMessage" class="error-summary">
-    {{ forbiddenMessage }}
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Завантажуємо ваші команди...</p>
   </div>
 
-  <nav class="dashboard-links">
-    <a routerLink="/">Турніри</a>
-    <a *ngIf="isJuryOrOrganizer" routerLink="/jury/evaluations">Оцінювання журі</a>
-    <a *ngIf="isAdminOrOrganizer" routerLink="/admin/actions">Дії адміна / організатора</a>
-  </nav>
-
-  <div *ngIf="loading">
-    Завантаження...
+  <div *ngIf="errorMessage" class="error-container">
+    <p>{{ errorMessage }}</p>
+    <button (click)="loadMyTeams()" class="btn-retry">Повторити спробу</button>
   </div>
 
-  <div *ngIf="!loading && teams.length === 0">
-    Ви ще не маєте команд.
-  </div>
+  <div class="teams-grid" *ngIf="!isLoading && !errorMessage">
+    <div class="team-card" *ngFor="let team of teams" (click)="openTeam(team.id)">
+      
+      <div class="card-main-content">
+        <div class="team-icon-wrapper">
+          <img [src]="team.image || '/assets/team-placeholder.png'" [alt]="team.name">
+        </div>
+        <h3 class="team-name">{{ team.name }}</h3>
+      </div>
+      
+      <div class="card-footer">
+        <div class="tournament-info">
+          <svg class="footer-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+            <path d="M4 22h16"/>
+          </svg>
+          <span class="truncate">{{ team.tournament.title }}</span>
+        </div>
+        
+        <div class="status-badge" [ngClass]="'status-' + team.status">
+          <svg *ngIf="team.status === 'in-progress'" class="footer-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+          </svg>
+          <svg *ngIf="team.status === 'completed'" class="footer-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <span>{{ team.status === 'in-progress' ? 'Граємо' : 'Завершено' }}</span>
+        </div>
+        
+        <div class="role-tag" [class.captain]="team.is_captain">
+          <span>{{ team.is_captain ? 'Капітан' : 'Гравці' }}</span>
+        </div>
+        
+        <div class="action-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </div>
+      </div>
+    </div>
 
-  <div *ngIf="teams.length > 0">
-    <h2>Мої команди</h2>
-
-    <ul>
-      <li *ngFor="let team of teams">
-        <a [routerLink]="['/teams', team.id]">
-          {{ team.name }}
-        </a>
-      </li>
-    </ul>
+    <div *ngIf="teams.length === 0 && !isLoading" class="empty-state">
+      <svg class="empty-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <p>Ви ще не зареєстровані в жодному турнірі</p>
+      <button class="btn-find" routerLink="/dashboard/tournaments">Переглянути турніри</button>
+    </div>
   </div>
-</section>
+</div>

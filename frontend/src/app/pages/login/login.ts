@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api';
 
@@ -15,7 +15,6 @@ export class Login {
   loginForm: FormGroup;
   isPasswordVisible = false;
   errorMessage = '';
-  loading = false;
 
   constructor(
     private fb: FormBuilder,
@@ -23,8 +22,8 @@ export class Login {
     private router: Router
   ) {
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', Validators.required]
+      username: ['', [Validators.required]],
+      password: ['', [Validators.required]]
     });
   }
 
@@ -33,40 +32,53 @@ export class Login {
   }
 
   onLogin(): void {
-    if (this.loginForm.invalid || this.loading) {
+    this.onSubmit();
+  }
+
+  onSubmit(): void {
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
       return;
     }
 
-    this.loading = true;
+    const payload = {
+      username: this.loginForm.value.username,
+      password: this.loginForm.value.password
+    };
+
     this.errorMessage = '';
 
-    this.api.login(this.loginForm.value).subscribe({
-      next: (response: any) => {
-        const token = response?.access_token || response?.token;
+    this.api.login(payload).subscribe({
+      next: (res: any) => {
+        const token = res?.access || res?.token || res?.access_token;
 
-        if (!token) {
-          this.errorMessage = 'Сервер не повернув токен авторизації.';
-          this.loading = false;
-          return;
+        if (token) {
+          localStorage.setItem('access_token', token);
+          localStorage.setItem('token', token);
         }
 
-        localStorage.setItem('access_token', token);
-        localStorage.setItem('token', token);
+        if (res?.refresh) {
+          localStorage.setItem('refresh_token', res.refresh);
+        }
 
-        if (response.role) localStorage.setItem('role', response.role);
-        if (response.nickname) localStorage.setItem('nickname', response.nickname);
-        if (response.user_id) localStorage.setItem('user_id', String(response.user_id));
-        if (response.email) localStorage.setItem('email', response.email);
+        if (res?.role) {
+          localStorage.setItem('role', String(res.role));
+        }
+
+        if (res?.username) {
+          localStorage.setItem('username', String(res.username));
+        }
 
         this.router.navigate(['/dashboard']);
       },
-      error: (error: any) => {
-        this.errorMessage = error?.error?.non_field_errors?.[0]
-          || error?.error?.detail
-          || error?.error
-          || 'Не вдалося увійти. Перевір email і пароль.';
-        this.loading = false;
+      error: (err: any) => {
+        console.error('Login error:', err);
+        this.errorMessage = err?.error?.detail || err?.error?.message || 'Невірний логін або пароль';
       }
     });
+  }
+
+  goToRegister(): void {
+    this.router.navigate(['/register']);
   }
 }
