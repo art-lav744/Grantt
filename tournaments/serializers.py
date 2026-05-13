@@ -35,7 +35,7 @@ class UserOutSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'nickname', 'role', 'profile_image_path', 'tournaments')
+        fields = ('id', 'email', 'nickname', 'full_name', 'discord_tag', 'role', 'profile_image_path', 'tournaments')
 
     def get_profile_image_path(self, obj):
         return obj.profile_image.url if obj.profile_image else None
@@ -129,16 +129,22 @@ class TournamentCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         # Перевірка логічного ланцюжка часу
-        if data['reg_end'] <= data['reg_start']:
+        instance = getattr(self, 'instance', None)
+        reg_start = data.get('reg_start', getattr(instance, 'reg_start', None))
+        reg_end = data.get('reg_end', getattr(instance, 'reg_end', None))
+        start_time = data.get('start_time', getattr(instance, 'start_time', None))
+        end_time = data.get('end_time', getattr(instance, 'end_time', None))
+
+        if reg_start and reg_end and reg_end <= reg_start:
             raise serializers.ValidationError("Реєстрація не може закінчитися раніше, ніж почнеться.")
         
         # Ви просили, щоб початок турніру збігався з кінцем реєстрації
-        if data['start_time'] < data['reg_end']:
+        if start_time and reg_end and start_time < reg_end:
             raise serializers.ValidationError("Турнір не може початися раніше завершення реєстрації.")
             
-        if data['end_time'] <= data['start_time']:
+        if start_time and end_time and end_time <= start_time:
             raise serializers.ValidationError("Турнір не може завершитися раніше, ніж почнеться.")
-        if data.get('max_rounds', 1) < 1:
+        if data.get('max_rounds', getattr(instance, 'max_rounds', 1)) < 1:
             raise serializers.ValidationError({'max_rounds': 'Має бути щонайменше 1 раунд.'})
 
         return data
@@ -152,7 +158,7 @@ class TournamentOutSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Tournament
-        fields = ('id', 'title', 'description', 'status', 'logical_status', 'creator_id', 'reg_start', 'reg_end', 'max_teams', 'max_rounds', 'max_team_members', 'min_team_members', 'hide_teams_until_registration_end', 'cover_image_path', 'teams_count')
+        fields = ('id', 'title', 'description', 'status', 'logical_status', 'creator_id', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'max_rounds', 'max_team_members', 'min_team_members', 'hide_teams_until_registration_end', 'cover_image_path', 'teams_count')
 
     def get_cover_image_path(self, obj):
         return obj.cover_image.url if obj.cover_image else None
@@ -169,13 +175,14 @@ class TeamMemberOutSerializer(serializers.ModelSerializer):
 
 
 class TeamOutSerializer(serializers.ModelSerializer):
+    tournament = TournamentShortSerializer(read_only=True)
     image_path = serializers.SerializerMethodField()
     members_count = serializers.IntegerField(read_only=True)
     members = TeamMemberOutSerializer(source='memberships', many=True, read_only=True)
 
     class Meta:
         model = Team
-        fields = ('id', 'name', 'tournament_id', 'captain_email', 'captain_name', 'members_count', 'members', 'image_path')
+        fields = ('id', 'name', 'tournament', 'tournament_id', 'captain_email', 'captain_name', 'members_count', 'members', 'image_path')
 
     def get_image_path(self, obj):
         image = getattr(obj, 'image', None)
@@ -367,7 +374,7 @@ class EvaluationOutSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Evaluation
-        fields = ('id', 'submission_id', 'jury_id', 'team_name', 'round_title', 'tournament_id', 'status', 'criteria_scores', 'total_score', 'total_percentage', 'created_at')
+        fields = ('id', 'submission_id', 'jury_id', 'team_name', 'round_title', 'tournament_id', 'status', 'criteria_scores', 'total_score', 'total_percentage', 'comment', 'created_at')
 
     def get_status(self, obj):
         return SubmissionStatus.EVALUATED if obj.is_scored() else SubmissionStatus.PENDING

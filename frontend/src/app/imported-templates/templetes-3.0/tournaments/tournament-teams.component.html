@@ -1,0 +1,27 @@
+<div class="teams-page-wrapper" [@fadeIn]>
+  <div class="container">
+    <h1 class="main-title">Команди-учасниці турніру</h1>
+
+    <div class="teams-list" *ngIf="!isLoading; else loader">
+      <div class="table-header-row">
+        <span class="header-item col-rank">№ п/п</span>
+        <span class="header-item col-name">Назва команди</span>
+        <span class="header-item col-captain">Капітан</span>
+      </div>
+
+      <div class="team-pill-row" *ngFor="let team of teams; let i = index" [@listItem]>
+        <div class="rank-badge">{{ i + 1 }}.</div>
+        <div class="team-name-cell">{{ team.name }}</div>
+        <div class="captain-name-cell">{{ team.captain_name || '—' }}</div>
+      </div>
+
+      <div class="empty-msg" *ngIf="teams.length === 0">
+        Наразі немає зареєстрованих команд.
+      </div>
+    </div>
+  </div>
+</div>
+
+<ng-template #loader>
+  <div class="loading-container">Завантаження даних...</div>
+</ng-template>

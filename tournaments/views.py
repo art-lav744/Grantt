@@ -797,6 +797,22 @@ class LogoutView(APIView):
         return Response({"message": "Successfully logged out"}, status=status.HTTP_200_OK)
 
 
+
+
+class UserMeView(APIView):
+    permission_classes = [IsAuthenticatedJWT]
+
+    def get(self, request):
+        return Response(UserOutSerializer(request.user).data)
+
+    def patch(self, request):
+        allowed = {'nickname', 'full_name', 'discord_tag'}
+        for field in allowed:
+            if field in request.data:
+                setattr(request.user, field, (request.data.get(field) or '').strip())
+        request.user.save(update_fields=[field for field in allowed if field in request.data])
+        return Response(UserOutSerializer(request.user).data)
+
 class UserProfileImageUploadView(APIView):
     permission_classes = [IsAuthenticatedJWT]
     parser_classes = [MultiPartParser, FormParser]
@@ -818,7 +834,7 @@ class MyTeamInfoView(APIView):
             Team.objects.filter(captain=request.user)
             | Team.objects.filter(memberships__user=request.user)
         )
-        teams = teams.distinct().annotate(members_count=Count('memberships')).prefetch_related('memberships').order_by('name')
+        teams = teams.distinct().select_related('tournament').annotate(members_count=Count('memberships')).prefetch_related('memberships').order_by('name')
         return Response(TeamOutSerializer(teams, many=True).data)
 
 
@@ -833,6 +849,103 @@ class MyEvaluationsView(APIView):
             .order_by('submission__round__title', 'submission__team__name', '-created_at')
         )
         return Response(EvaluationOutSerializer(evaluations, many=True).data)
+
+
+class EvaluationDetailUpdateView(APIView):
+    permission_classes = [IsJury]
+
+    def get_object(self, request, evaluation_id):
+        return get_object_or_404(
+            Evaluation.objects
+            .filter(jury=request.user)
+            .select_related('submission__team', 'submission__round', 'submission__round__tournament')
+            .prefetch_related('criteria_scores__criterion'),
+            pk=evaluation_id,
+        )
+
+    def get(self, request, evaluation_id):
+        evaluation = self.get_object(request, evaluation_id)
+        evaluation.ensure_score_entries()
+        return Response(EvaluationOutSerializer(evaluation).data)
+
+    def patch(self, request, evaluation_id):
+        evaluation = self.get_object(request, evaluation_id)
+        criteria_scores = evaluation.ensure_score_entries()
+        scores_by_criterion = {item.criterion_id: item for item in criteria_scores}
+
+        for item in request.data.get('criteria_scores', []):
+            try:
+                criterion_id = int(item.get('criterion_id'))
+            except (TypeError, ValueError):
+                return Response({'detail': 'Invalid criterion'}, status=status.HTTP_400_BAD_REQUEST)
+            if criterion_id not in scores_by_criterion:
+                return Response({'detail': 'Invalid criterion'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                score_value = float(item.get('score') or 0)
+            except (TypeError, ValueError):
+                return Response({'detail': 'Invalid score'}, status=status.HTTP_400_BAD_REQUEST)
+            criterion_score = scores_by_criterion[criterion_id]
+            if score_value < 0 or score_value > criterion_score.criterion.max_score:
+                return Response({'detail': 'Score is outside criterion range'}, status=status.HTTP_400_BAD_REQUEST)
+
+            criterion_score.score = score_value
+            criterion_score.save(update_fields=['score'])
+
+        if 'comment' in request.data:
+            evaluation.comment = request.data.get('comment') or ''
+            evaluation.save(update_fields=['comment'])
+
+        evaluation = Evaluation.objects.select_related(
+            'submission__team',
+            'submission__round',
+            'submission__round__tournament',
+        ).prefetch_related('criteria_scores__criterion').get(pk=evaluation.pk)
+        return Response(EvaluationOutSerializer(evaluation).data)
+
+
+class TeamDetailAPIView(APIView):
+    permission_classes = [IsAuthenticatedJWT]
+
+    def get(self, request, team_id):
+        team = get_object_or_404(
+            Team.objects.select_related('captain', 'tournament')
+            .annotate(members_count=Count('memberships'))
+            .prefetch_related('memberships'),
+            pk=team_id,
+        )
+        team_payload = TeamOutSerializer(team).data
+        team_payload['tournament'] = {
+            'id': team.tournament_id,
+            'title': team.tournament.title,
+            'status': team.tournament.status,
+        }
+        team_payload['is_captain'] = team.captain_id == request.user.id
+        team_payload['status'] = 'completed' if team.tournament.end_time <= timezone.now() else 'in-progress'
+
+        rounds = Round.objects.filter(tournament=team.tournament).order_by('start_time', 'id')
+        active_round = rounds.filter(start_time__lte=timezone.now(), end_time__gte=timezone.now()).first()
+        team_payload['current_round_id'] = active_round.id if active_round else (rounds.first().id if rounds.exists() else None)
+        team_payload['rounds'] = RoundCreateSerializer(rounds, many=True).data
+
+        submissions = Submission.objects.filter(team=team).select_related('round').prefetch_related('evaluation').order_by('-created_at')
+        team_payload['submissions'] = [
+            {
+                'id': submission.id,
+                'round': submission.round_id,
+                'roundTitle': submission.round.title,
+                'createdAt': submission.created_at,
+                'githubLink': submission.github_link,
+                'videoLink': submission.video_link,
+                'description': submission.description,
+                'totalAvg': submission.total_avg,
+                'rawTotal': submission.raw_total,
+                'maxTotal': submission.max_total,
+                'criteriaPreview': submission.criteria_preview,
+            }
+            for submission in attach_submission_score_summaries(submissions)
+        ]
+        return Response(team_payload)
 
 
 class AdminTeamDetailView(APIView):
@@ -875,6 +988,33 @@ class TournamentListCreateView(APIView):
         tournament = serializer.save()
         tournament.teams_count = tournament.teams.count()
         return Response(TournamentOutSerializer(tournament).data, status=status.HTTP_201_CREATED)
+
+
+class TournamentDetailUpdateView(APIView):
+    def get_permissions(self):
+        if self.request.method in {'PATCH', 'PUT'}:
+            return [IsOrganizerOrAdmin()]
+        return [AllowAny()]
+
+    def get(self, request, tournament_id):
+        tournament = get_object_or_404(Tournament.objects.annotate(teams_count=Count('teams')), pk=tournament_id)
+        return Response(TournamentOutSerializer(tournament).data)
+
+    def patch(self, request, tournament_id):
+        tournament = get_object_or_404(Tournament.objects.annotate(teams_count=Count('teams')), pk=tournament_id)
+        serializer = TournamentCreateSerializer(tournament, data=request.data, partial=True, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        tournament = serializer.save()
+        tournament.teams_count = tournament.teams.count()
+        return Response(TournamentOutSerializer(tournament).data)
+
+    def put(self, request, tournament_id):
+        tournament = get_object_or_404(Tournament.objects.annotate(teams_count=Count('teams')), pk=tournament_id)
+        serializer = TournamentCreateSerializer(tournament, data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        tournament = serializer.save()
+        tournament.teams_count = tournament.teams.count()
+        return Response(TournamentOutSerializer(tournament).data)
 
 
 class TournamentStatusUpdateView(APIView):
@@ -1165,6 +1305,10 @@ class RoundCreateView(APIView):
 
 class RoundDetailView(APIView):
     permission_classes = [IsOrganizerOrAdmin]
+
+    def get(self, request, round_id):
+        round_obj = get_object_or_404(Round.objects.select_related('tournament'), pk=round_id)
+        return Response(RoundCreateSerializer(round_obj).data)
 
     def patch(self, request, round_id):
         round_obj = get_object_or_404(Round, pk=round_id)

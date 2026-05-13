@@ -1,0 +1,90 @@
+// Колірна палітра Grantt
+$bg-dark: #0b1723;
+$card-bg: #1a2b3c;
+$accent-blue: #38b6ff;
+$text-white: #ffffff;
+$text-dim: #8899aa;
+
+.evaluation-container {
+  padding: 40px 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  color: $text-white;
+}
+
+.header-section {
+  text-align: center;
+  margin-bottom: 30px;
+  h2 { font-size: 2rem; font-weight: 800; margin-bottom: 10px; }
+  .info-row { color: $accent-blue; display: flex; justify-content: center; gap: 20px; }
+}
+
+.card {
+  background: $card-bg;
+  padding: 25px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 25px;
+}
+
+.criteria-box {
+  margin-top: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 12px;
+  border-left: 4px solid $accent-blue;
+  .criteria-content { color: $text-dim; font-size: 0.95rem; }
+}
+
+.score-card {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  border: 1px solid transparent;
+  transition: 0.3s;
+
+  &:hover { border-color: $accent-blue; }
+
+  .score-header {
+    display: flex; justify-content: space-between; margin-bottom: 15px;
+    label { font-weight: 700; font-size: 1.1rem; }
+    .max-badge { color: $text-dim; font-size: 0.8rem; }
+  }
+}
+
+.input-controls {
+  display: flex; align-items: center; gap: 20px;
+  .score-slider {
+    flex: 1; height: 6px; border-radius: 5px; accent-color: $accent-blue; outline: none;
+  }
+  .score-number {
+    width: 70px; background: $bg-dark; border: 1px solid #334455; color: white;
+    padding: 8px; border-radius: 8px; text-align: center; font-weight: 700;
+  }
+}
+
+textarea {
+  width: 100%; background: $bg-dark; border: 1px solid #334455; color: white;
+  padding: 15px; border-radius: 12px; margin-top: 10px;
+}
+
+.summary-card {
+  margin-top: 30px; padding: 20px; background: linear-gradient(90deg, $card-bg, $bg-dark);
+  border-radius: 16px; text-align: right; border: 1px solid $accent-blue;
+  .total-text { font-size: 1.2rem; strong { font-size: 1.8rem; color: $accent-blue; } }
+}
+
+.action-link {
+  display: inline-block; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: 600;
+  &.github { background: #24292e; color: white; margin-right: 10px; }
+  &.video { background: #ff0000; color: white; }
+}
+
+.btn {
+  padding: 14px 28px; border-radius: 12px; font-weight: 800; border: none; cursor: pointer; transition: 0.3s;
+  &.btn-save { background: $accent-blue; color: white; box-shadow: 0 4px 15px rgba(56, 182, 255, 0.3); flex: 2; }
+  &.btn-back { background: #2a3b4c; color: white; flex: 1; margin-left: 10px; }
+}
+
+.actions { display: flex; margin-top: 20px; }

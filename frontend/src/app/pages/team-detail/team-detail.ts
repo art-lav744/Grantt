@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../services/api';
@@ -20,7 +20,8 @@ export class TeamDetail implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private api: ApiService
+    private api: ApiService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -32,10 +33,12 @@ export class TeamDetail implements OnInit {
         this.submissions = team?.submissions || [];
         this.isCaptain = !!team?.is_captain;
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.error = 'Не вдалося завантажити команду';
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }

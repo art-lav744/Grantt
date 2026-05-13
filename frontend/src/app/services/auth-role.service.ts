@@ -5,7 +5,7 @@ export type Role = 'guest' | 'participant' | 'jury' | 'organizer' | 'admin';
 @Injectable({ providedIn: 'root' })
 export class AuthRoleService {
   get token(): string | null {
-    return localStorage.getItem('access_token') || localStorage.getItem('token');
+    return localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('access');
   }
 
   get isLoggedIn(): boolean {

@@ -1,0 +1,221 @@
+$bg-page: #0d1f2d;
+$main1: #1a3a4a;
+$main3: #3ab8c8;
+$white: #ffffff;
+$accent-green: #2ecc71;
+$accent-gray: #95a5a6;
+
+.team-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px;
+  animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.team-hero {
+  height: 300px;
+  border-radius: 20px;
+  margin-bottom: 30px;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-color: $main1;
+  overflow: hidden;
+  border: 1px solid rgba($main3, 0.1);
+
+  &.empty {
+    background: linear-gradient(135deg, $main1 0%, #0a1a25 100%);
+  }
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  display: flex;
+  align-items: flex-end;
+  padding: 30px;
+}
+
+.team-title {
+  font-size: 36px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.tournament-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.status-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  background: rgba($white, 0.1);
+  border: 1px solid rgba($white, 0.2);
+
+  &.completed { color: $accent-gray; border-color: rgba($accent-gray, 0.3); }
+  &.in_progress, &:not(.completed) { 
+    color: $accent-green; 
+    border-color: rgba($accent-green, 0.3);
+    box-shadow: 0 0 10px rgba($accent-green, 0.1);
+  }
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.info-card {
+  background: $main1;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba($white, 0.05);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba($main3, 0.1);
+  border: 1px solid rgba($main3, 0.3);
+  color: $main3;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: $main3;
+    color: $main1;
+  }
+}
+
+.leaderboard-btn {
+  @extend .add-btn;
+  &:hover { transform: translateY(-2px); }
+}
+
+.data-table tbody tr {
+  animation: slideRight 0.4s ease-out forwards;
+  opacity: 0;
+  &:hover { background: rgba($white, 0.03); }
+}
+
+.modal-overlay {
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: $main1;
+  border: 1px solid rgba($main3, 0.2);
+  padding: 30px;
+  border-radius: 16px;
+  width: 400px;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.form-group {
+  margin-bottom: 15px;
+  label {
+    display: block;
+    font-size: 12px;
+    color: rgba($white, 0.6);
+    margin-bottom: 5px;
+  }
+}
+
+.form-input {
+  width: 100%;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba($white, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  color: white;
+  &:focus { border-color: $main3; outline: none; }
+}
+
+.btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.captain-badge {
+  background: $main3;
+  color: $bg-page;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  font-weight: bold;
+}
+
+@keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideRight { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* Додайте до вашого існуючого SCSS */
+
+.title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: $main3;
+
+  svg {
+    opacity: 0.8;
+  }
+}
+
+.info-row {
+  .date-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    
+    svg {
+      color: $main3;
+    }
+  }
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $accent-gray;
+  margin-right: 8px;
+  
+  &.active {
+    background: $accent-green;
+    box-shadow: 0 0 8px $accent-green;
+  }
+}
+
+.count-badge {
+  background: rgba($white, 0.05);
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: rgba($white, 0.6);
+  border: 1px solid rgba($white, 0.1);
+}

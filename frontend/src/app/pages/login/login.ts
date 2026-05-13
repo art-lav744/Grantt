@@ -41,14 +41,12 @@ export class Login {
       return;
     }
 
-    const payload = {
-      username: this.loginForm.value.username,
-      password: this.loginForm.value.password
-    };
-
     this.errorMessage = '';
 
-    this.api.login(payload).subscribe({
+    this.api.login({
+      email: this.loginForm.value.username,
+      password: this.loginForm.value.password
+    }).subscribe({
       next: (res: any) => {
         const token = res?.access || res?.token || res?.access_token;
 
@@ -65,20 +63,38 @@ export class Login {
           localStorage.setItem('role', String(res.role));
         }
 
-        if (res?.username) {
-          localStorage.setItem('username', String(res.username));
+        if (res?.nickname) {
+          localStorage.setItem('nickname', String(res.nickname));
+          localStorage.setItem('username', String(res.nickname));
+        }
+
+        if (res?.email) {
+          localStorage.setItem('email', String(res.email));
+        }
+
+        if (res?.user_id) {
+          localStorage.setItem('user_id', String(res.user_id));
         }
 
         this.router.navigate(['/dashboard']);
       },
       error: (err: any) => {
         console.error('Login error:', err);
-        this.errorMessage = err?.error?.detail || err?.error?.message || 'Невірний логін або пароль';
+        this.errorMessage = this.extractError(err) || 'Невірний email або пароль';
       }
     });
   }
 
   goToRegister(): void {
     this.router.navigate(['/register']);
+  }
+
+  private extractError(err: any): string {
+    const payload = err?.error;
+    if (!payload) return '';
+    if (typeof payload === 'string') return payload;
+    if (payload.detail || payload.message) return String(payload.detail || payload.message);
+    const firstValue = Object.values(payload)[0];
+    return Array.isArray(firstValue) ? String(firstValue[0]) : String(firstValue || '');
   }
 }

@@ -1,0 +1,113 @@
+// Оновлена палітра точно за кольорами з фото
+$card-bg: #1c323d;       // Приглушений синьо-сірий фон
+$input-bg: #15252e;      // Темніший фон інпутів
+$accent-teal: #4fd1d9;   // Яскрава бірюза
+$cancel-red: #ff5e5e;    // Червоний для бордера "Скасувати"
+$text-main: #ffffff;
+$text-muted: rgba($text-main, 0.5);
+
+.modal-card {
+  background: $card-bg;
+  padding: 40px;
+  border-radius: 24px;   // Більш плавне заокруглення як на фото
+  width: 440px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  font-family: 'Inter', sans-serif; // Або інший системний сан-серіф
+
+  h2 {
+    color: $text-main;
+    font-size: 28px;     // Більший розмір заголовка
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+
+  .modal-desc {
+    color: $text-muted;
+    font-size: 16px;
+    margin-bottom: 30px;
+  }
+}
+
+.form-group {
+  margin-bottom: 24px;
+  
+  label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: $text-muted;
+    margin-bottom: 10px;
+  }
+}
+
+.form-input {
+  width: 100%;
+  background: $input-bg;
+  border: 1px solid rgba($text-main, 0.05);
+  padding: 16px 20px;
+  border-radius: 12px;   // Радіус інпутів
+  color: white;
+  font-size: 16px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+
+  &::placeholder {
+    color: rgba($text-main, 0.2);
+  }
+
+  &:focus {
+    border-color: rgba($accent-teal, 0.3);
+    outline: none;
+  }
+
+  &.is-invalid {
+    border-color: rgba($cancel-red, 0.5);
+  }
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 35px;
+  gap: 20px;
+}
+
+.btn-confirm {
+  flex: 2;               // Кнопка ширша за "Скасувати"
+  background: $accent-teal;
+  color: #121f26;        // Темний текст на кнопці
+  border: none;
+  padding: 16px;
+  border-radius: 14px;   // Сильне заокруглення
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 16px;
+  transition: opacity 0.2s;
+
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.btn-cancel {
+  flex: 1;
+  background: transparent;
+  color: $cancel-red;
+  border: 2px solid $cancel-red; // Чіткий червоний борт
+  padding: 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 16px;
+
+  &:hover {
+    background: rgba($cancel-red, 0.05);
+  }
+}

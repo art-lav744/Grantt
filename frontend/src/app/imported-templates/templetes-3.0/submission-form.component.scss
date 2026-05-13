@@ -1,0 +1,171 @@
+// Дизайн-токени узгоджені з вашим AuthLayout
+$bg-dark: #0d1f2d;       // Збігається з --bg-page
+$panel-dark: #1a3a4a;    // Збігається з --main1
+$accent-blue: #3ab8c8;   // Збігається з --main3
+$text-main: #ffffff;
+$text-muted: rgba(255, 255, 255, 0.6);
+$input-bg: #0d1f2d;
+$danger: #ff6b6b;
+$warning-gold: #fbbf24;
+$border-color: rgba(58, 184, 200, 0.15);
+
+.submission-container {
+  display: block;
+  min-height: 100%;
+  background-color: $bg-dark;
+  color: $text-main;
+  font-family: 'Inter', sans-serif;
+  animation: fadeIn 0.4s ease-out;
+
+  .content {
+    display: flex;
+    justify-content: center;
+    padding-top: 20px;
+  }
+}
+
+// Картка завдання
+.task-card {
+  width: 100%;
+  max-width: 850px;
+  background-color: $panel-dark;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  border: 1px solid $border-color;
+
+  .card-header {
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid $border-color;
+
+    .tabs {
+      display: flex;
+
+      .tab-btn {
+        padding: 20px 24px;
+        background: none;
+        border: none;
+        color: $text-muted;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.95rem;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+
+        svg { width: 18px; height: 18px; stroke: currentColor; }
+
+        &.active {
+          color: $accent-blue;
+          &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: $accent-blue;
+          }
+        }
+
+        &:hover:not(.active) { color: $text-main; }
+      }
+    }
+
+    .timer {
+      background: $bg-dark;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid $border-color;
+      color: $accent-blue;
+      font-family: 'Inter', monospace;
+      font-weight: 700;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      svg { width: 16px; height: 16px; stroke: currentColor; }
+      &.expired { color: $danger; border-color: $danger; }
+    }
+  }
+}
+
+.card-body {
+  padding: 40px;
+  .tab-content { animation: fadeIn 0.3s ease-out; }
+  h1.title { font-size: 1.8rem; font-weight: 800; margin: 0 0 16px 0; }
+  .description { line-height: 1.6; color: rgba(255, 255, 255, 0.8); margin-bottom: 24px; }
+
+  .submission-alert {
+    padding: 18px;
+    background: rgba($accent-blue, 0.05);
+    border: 1px solid rgba($accent-blue, 0.2);
+    border-radius: 12px;
+    margin-bottom: 30px;
+    font-size: 0.95rem;
+    .url-label { color: $warning-gold; font-weight: 700; text-decoration: underline; }
+  }
+}
+
+form {
+  .form-group {
+    margin-bottom: 22px;
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: $text-muted;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-control {
+      width: 100%;
+      padding: 14px;
+      background-color: $input-bg;
+      border: 1px solid $border-color;
+      border-radius: 10px;
+      color: white;
+      box-sizing: border-box;
+      font-size: 1rem;
+      transition: all 0.2s;
+      &:focus { outline: none; border-color: $accent-blue; box-shadow: 0 0 0 3px rgba($accent-blue, 0.1); }
+      &.invalid { border-color: $danger; }
+    }
+    .error-text { display: block; color: $danger; font-size: 0.75rem; margin-top: 6px; }
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, $accent-blue 0%, #1e8fa0 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s;
+    &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba($accent-blue, 0.3); }
+    &:disabled { background: #444; color: #888; cursor: not-allowed; }
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: $accent-blue;
+}

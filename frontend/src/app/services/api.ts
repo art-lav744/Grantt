@@ -25,6 +25,10 @@ export class ApiService {
     return this.http.get<any[]>(`${this.apiUrl}/tournaments/`);
   }
 
+  createTournament(data: any) {
+    return this.http.post<any>(`${this.apiUrl}/tournaments/`, data, this.authHeaders());
+  }
+
   getTournament(id: number) {
     return this.http.get<any>(`${this.apiUrl}/tournaments/${id}/`);
   }
@@ -47,6 +51,28 @@ export class ApiService {
 
   getTournamentRounds(tournamentId: number) {
     return this.http.get<any[]>(`${this.apiUrl}/rounds/?tournament_id=${tournamentId}`);
+  }
+
+  getTournamentFiles(tournamentId: number) {
+    return this.http.get<any[]>(`${this.apiUrl}/tournaments/${tournamentId}/files/`, this.authHeaders());
+  }
+
+  uploadTournamentFile(tournamentId: number, data: { title: string; file_type: string; file: File }) {
+    const body = new FormData();
+    body.append('title', data.title);
+    body.append('file_type', data.file_type);
+    body.append('file', data.file);
+    return this.http.post<any>(`${this.apiUrl}/tournaments/${tournamentId}/files/`, body, this.authHeaders());
+  }
+
+  uploadTournamentImage(tournamentId: number, file: File) {
+    const body = new FormData();
+    body.append('file', file);
+    return this.http.post<any>(`${this.apiUrl}/tournaments/${tournamentId}/image/`, body, this.authHeaders());
+  }
+
+  getTournamentLeaderboard(tournamentId: number) {
+    return this.http.get<any>(`${this.apiUrl}/tournaments/${tournamentId}/leaderboard/`);
   }
 
   getRound(roundId: number) {
@@ -109,5 +135,13 @@ export class ApiService {
     return this.http.patch<any>(`${this.apiUrl}/jury/registrations/${registrationId}/review/`, { status }, this.authHeaders());
   }
 
+  applyAsJury(tournamentId: number) {
+    return this.http.post<any>(`${this.apiUrl}/jury/registrations/`, { tournament_id: tournamentId }, this.authHeaders());
+  }
+
 }
+
+@Injectable({
+  providedIn: 'root'
+})
 export class Api {}

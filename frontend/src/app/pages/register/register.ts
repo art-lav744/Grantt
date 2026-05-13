@@ -68,20 +68,27 @@ export class Register {
       return;
     }
 
-    const payload = {
-      username: this.registerForm.value.username,
-      email: this.registerForm.value.email,
-      password: this.registerForm.value.password
-    };
-
     this.errorMessage = '';
 
-    this.api.register(payload).subscribe({
+    this.api.register({
+      nickname: this.registerForm.value.username,
+      email: this.registerForm.value.email,
+      password: this.registerForm.value.password
+    }).subscribe({
       next: () => this.router.navigate(['/login']),
       error: (err: any) => {
         console.error('Register error:', err);
-        this.errorMessage = err?.error?.detail || err?.error?.message || 'Помилка реєстрації';
+        this.errorMessage = this.extractError(err) || 'Помилка реєстрації';
       }
     });
+  }
+
+  private extractError(err: any): string {
+    const payload = err?.error;
+    if (!payload) return '';
+    if (typeof payload === 'string') return payload;
+    if (payload.detail || payload.message) return String(payload.detail || payload.message);
+    const firstValue = Object.values(payload)[0];
+    return Array.isArray(firstValue) ? String(firstValue[0]) : String(firstValue || '');
   }
 }

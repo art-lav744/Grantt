@@ -1,0 +1,167 @@
+// Основні змінні згідно з макетом Figma
+$dark-bg: #0d1b2a;       // Глибокий темно-синій фон
+$panel-bg: #1b263b;      // Колір карток та бічної панелі
+$accent-teal: #415a77;   // Колір акцентів (кнопки, активні елементи)
+$text-primary: #e0e1dd;  // Світлий текст
+$text-muted: #778da9;    // Приглушений текст
+$border-color: rgba(255, 255, 255, 0.1);
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: $dark-bg;
+  color: $text-primary;
+}
+
+.container {
+  max-width: 1200px;
+}
+
+// Заголовок сторінки
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid $border-color;
+
+  h2 {
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+// Стилізація карток у стилі "Grantt"
+.card {
+  background-color: $panel-bg;
+  border: 1px solid $border-color;
+  border-radius: 12px;
+  color: $text-primary;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+  .card-header {
+    background-color: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid $border-color;
+    padding: 1.25rem;
+    
+    h5 { margin: 0; font-weight: 600; }
+  }
+}
+
+// Таблиця користувачів
+.table {
+  color: $text-primary;
+  margin: 0;
+
+  thead th {
+    background-color: rgba(0, 0, 0, 0.2);
+    color: $text-muted;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: none;
+    padding: 1rem;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+  }
+
+  td {
+    border: none;
+    padding: 1rem;
+    vertical-align: middle;
+  }
+}
+
+// Аватар (як у списку повідомлень у Figma)
+.avatar-sm {
+  width: 38px;
+  height: 38px;
+  background: $accent-teal;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+// Статуси
+.badge {
+  font-weight: 500;
+  padding: 0.4em 0.8em;
+  
+  &.status-active {
+    background: rgba(81, 207, 102, 0.15);
+    color: #51cf66;
+    border: 1px solid rgba(81, 207, 102, 0.3);
+  }
+  
+  &.status-blocked {
+    background: rgba(255, 107, 107, 0.15);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+  }
+
+  &.bg-purple { background-color: #6f42c1; }
+  &.bg-info { background-color: #0dcaf0; color: #000; }
+}
+
+// Елементи форми (Select, Input)
+.form-select, .form-control {
+  background-color: $dark-bg;
+  border: 1px solid $accent-teal;
+  color: $text-primary;
+  border-radius: 8px;
+
+  &:focus {
+    background-color: $dark-bg;
+    color: $text-primary;
+    border-color: lighten($accent-teal, 15%);
+    box-shadow: 0 0 0 0.25rem rgba($accent-teal, 0.2);
+  }
+
+  option { background: $panel-bg; }
+}
+
+// Кнопки
+.btn-primary {
+  background-color: $accent-teal;
+  border: none;
+  &:hover { background-color: lighten($accent-teal, 10%); }
+}
+
+.btn-outline-secondary {
+  color: $text-muted;
+  border-color: $text-muted;
+  &:hover { background-color: $text-muted; color: $dark-bg; }
+}
+
+// Список активних призначень
+.list-group-item {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.05);
+  color: $text-primary;
+  padding: 1rem 1.25rem;
+
+  &:last-child { border: none; }
+  
+  .badge-round {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: $text-muted;
+  }
+}

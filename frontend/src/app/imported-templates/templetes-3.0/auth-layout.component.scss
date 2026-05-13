@@ -1,0 +1,215 @@
+$main1: #1a3a4a;
+$main3: #3ab8c8;
+$bg-page: #0d1f2d;
+$white: #ffffff;
+$sidebar-collapsed: 52px; // Оновлено з 64px
+$sidebar-expanded: 220px;
+
+.auth-layout {
+  display: flex;
+  min-height: 100vh;
+  background: $bg-page;
+  font-family: 'Inter', sans-serif;
+}
+
+.sidebar {
+  width: $sidebar-collapsed; // Тепер 52px
+  background: $main1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+  transition: width 0.3s ease;
+  border-right: 1px solid rgba(58, 184, 200, 0.15);
+  position: sticky;
+  height: 100vh;
+  z-index: 100;
+  overflow: hidden;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.auth-layout.expanded .sidebar {
+  width: $sidebar-expanded;
+  align-items: flex-start;
+  padding: 20px 16px;
+}
+
+.sidebar-logo {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center; 
+  padding: 0;
+  gap: 10px;
+  margin-bottom: 32px;
+  margin-left: 7px;
+  width: 100%;
+  box-sizing: border-box;
+
+  .logo-img {
+    width: 40px; // Трохи зменшено для кращого вигляду в 52px
+    height: auto;
+    flex-shrink: 0;
+  }
+
+  .logo-text {
+    font-size: 20px;
+    font-weight: 700;
+    color: $main3;
+    white-space: nowrap;
+  }
+}
+
+.auth-layout.expanded .sidebar-logo {
+  justify-content: flex-start;
+  padding: 0 14px;
+  
+  .logo-img {
+    width: 36px; // Повертаємо стандартний розмір при розгортанні
+  }
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  flex: 1;
+  padding: 0 4px; // Зменшено відступи для вужчої панелі
+  box-sizing: border-box;
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px; // Трохи компактніше
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s;
+    white-space: nowrap;
+
+    svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      stroke: rgba(255, 255, 255, 0.6);
+    }
+
+    &:hover {
+      background: rgba(58, 184, 200, 0.12);
+      color: #fff;
+      svg { stroke: $main3; }
+    }
+
+    &.active {
+      background: rgba(58, 184, 200, 0.18);
+      color: #fff;
+      svg { stroke: $main3; }
+    }
+  }
+}
+
+.auth-layout.expanded .sidebar-nav {
+  padding: 0;
+  
+  .nav-item {
+    justify-content: flex-start;
+    padding: 10px 12px;
+    height: 44px;
+    border-left: 3px solid transparent;
+
+    &.active {
+      border-left-color: $main3;
+      padding-left: 9px;
+    }
+  }
+}
+
+.main-area {
+  margin-left: $sidebar-collapsed; // Тепер 52px
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+.auth-layout.expanded .main-area {
+  margin-left: $sidebar-expanded;
+}
+
+.topbar {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(58, 184, 200, 0.1);
+  background: $bg-page;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background 0.2s;
+
+    &:hover { background: rgba(58, 184, 200, 0.1); }
+  }
+
+  .user-name {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: $main3;
+    color: $main1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .avatar-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+}
+
+.content {
+  padding: 28px 32px;
+  flex: 1;
+  color: #fff;
+}
+
+.messages-container {
+  padding: 16px 32px 0 32px;
+
+  .message {
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+
+    &.success { background: rgba(58, 184, 200, 0.15); color: $main3; }
+    &.error { background: rgba(255, 107, 107, 0.15); color: #ff6b6b; }
+  }
+}

@@ -1,24 +1,39 @@
-<div class="container">
-  <a class="btn btn-outline" [routerLink]="['/tournaments', tournamentId]">← Назад до турніру</a>
+<div class="round-form-page">
+  <div class="card header-card">
+    <h1>Створити раунд</h1>
+    <p>Турнір #{{ tournamentId }}</p>
+  </div>
 
   <div class="card">
-    <h1>Додати раунд</h1>
     <p *ngIf="error" class="error-summary">{{ error }}</p>
 
     <form [formGroup]="form" (ngSubmit)="save()">
-      <label>Назва раунду</label>
-      <input class="form-control" formControlName="title" placeholder="Наприклад: Раунд 1">
+      <div class="form-group">
+        <label for="round-title">Назва раунду</label>
+        <input id="round-title" class="form-control" formControlName="title" placeholder="Наприклад: Раунд 1">
+      </div>
 
-      <label>Опис</label>
-      <textarea class="form-control" formControlName="description" placeholder="Завдання або короткий опис"></textarea>
+      <div class="form-group">
+        <label for="round-description">Опис або завдання</label>
+        <textarea id="round-description" class="form-control" formControlName="description" placeholder="Опишіть, що має зробити команда"></textarea>
+      </div>
 
-      <label>Початок</label>
-      <input class="form-control" type="datetime-local" formControlName="start">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="round-start">Початок</label>
+          <input id="round-start" class="form-control" type="datetime-local" formControlName="start">
+        </div>
 
-      <label>Кінець</label>
-      <input class="form-control" type="datetime-local" formControlName="end">
+        <div class="form-group">
+          <label for="round-end">Кінець</label>
+          <input id="round-end" class="form-control" type="datetime-local" formControlName="end">
+        </div>
+      </div>
 
-      <button class="btn" type="submit" [disabled]="saving">Створити</button>
+      <div class="btn-group-row">
+        <button class="btn" type="submit" [disabled]="form.invalid || saving">Створити раунд</button>
+        <a class="btn btn-secondary" [routerLink]="['/tournaments', tournamentId]">Назад до турніру</a>
+      </div>
     </form>
   </div>
 </div>

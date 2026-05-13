@@ -1,0 +1,294 @@
+<div class="profile-container">
+  <div class="profile-grid">
+    <aside class="profile-sidebar">
+      <div class="avatar-section">
+        <div class="avatar-circle">
+          {{ user.nickname | slice:0:1 | uppercase }}
+          <label class="edit-badge" for="avatar-upload">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+            </svg>
+          </label>
+          <input type="file" id="avatar-upload" (change)="onFileChange($event)" hidden>
+        </div>
+        <h1 class="nickname">{{ user.nickname }}</h1>
+        <a [href]="'mailto:' + user.email" class="email-link">{{ user.email }}</a>
+      </div>
+
+      <div class="info-list">
+        <div class="info-item">
+          <span class="flag-icon">🇺🇦</span>
+          <span>{{ user.country }}</span>
+        </div>
+        <div class="info-item">
+          <i class="far fa-user-circle"></i>
+          <span>Приєднався {{ user.joinDate }}</span>
+        </div>
+        <div class="info-item logout" (click)="logout()">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Вихід</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="profile-content">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Команди</span>
+          <span class="stat-value">{{ stats.teamsCount }}</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Подачі</span>
+          <span class="stat-value">{{ stats.submissionsCount }}</span>
+        </div>
+      </div>
+
+      <div class="activity-section">
+        <h3>Історія сабмітів</h3>
+        <div class="heatmap-container">
+          <div class="months">
+            <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+            <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+          </div>
+          <div class="heatmap-grid">
+            <div class="cell" *ngFor="let i of [].constructor(150)"></div>
+          </div>
+          <input type="range" class="history-slider" min="0" max="100" value="50">
+        </div>
+      </div>
+
+      <section class="edit-section">
+        <h3>Редагувати профіль</h3>
+        <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+          <div class="form-row">
+            <div class="field-group">
+              <label>Нікнейм</label>
+              <input type="text" formControlName="nickname">
+            </div>
+            <div class="field-group">
+              <label>Країна</label>
+              <select formControlName="country">
+                <option value="Австралія">Австралія</option>
+                <option value="Австрія">Австрія</option>
+                <option value="Азербайджан">Азербайджан</option>
+                <option value="Албанія">Албанія</option>
+                <option value="Алжир">Алжир</option>
+                <option value="Ангола">Ангола</option>
+                <option value="Андорра">Андорра</option>
+                <option value="Антигуа і Барбуда">Антигуа і Барбуда</option>
+                <option value="Аргентина">Аргентина</option>
+                <option value="Вірменія">Вірменія</option>
+                <option value="Афганістан">Афганістан</option>
+                <option value="Багамські Острови">Багамські Острови</option>
+                <option value="Бангладеш">Бангладеш</option>
+                <option value="Барбадос">Барбадос</option>
+                <option value="Бахрейн">Бахрейн</option>
+                <option value="Бельгія">Бельгія</option>
+                <option value="Беліз">Беліз</option>
+                <option value="Бенін">Бенін</option>
+                <option value="Білорусь">Білорусь</option>
+                <option value="Болгарія">Болгарія</option>
+                <option value="Болівія">Болівія</option>
+                <option value="Боснія і Герцеговина">Боснія і Герцеговина</option>
+                <option value="Ботсвана">Ботсвана</option>
+                <option value="Бразилія">Бразилія</option>
+                <option value="Бруней">Бруней</option>
+                <option value="Буркіна-Фасо">Буркіна-Фасо</option>
+                <option value="Бурунді">Бурунді</option>
+                <option value="Бутан">Бутан</option>
+                <option value="Вануату">Вануату</option>
+                <option value="Ватикан">Ватикан</option>
+                <option value="Велика Британія">Велика Британія</option>
+                <option value="Венесуела">Венесуела</option>
+                <option value="В'єтнам">В'єтнам</option>
+                <option value="Вірменія">Вірменія</option>
+                <option value="Габон">Габон</option>
+                <option value="Гаїті">Гаїті</option>
+                <option value="Гамбія">Гамбія</option>
+                <option value="Гана">Гана</option>
+                <option value="Гаяна">Гаяна</option>
+                <option value="Гватемала">Гватемала</option>
+                <option value="Гвінея">Гвінея</option>
+                <option value="Гвінея-Бісау">Гвінея-Бісау</option>
+                <option value="Гондурас">Гондурас</option>
+                <option value="Гренада">Гренада</option>
+                <option value="Греція">Греція</option>
+                <option value="Грузія">Грузія</option>
+                <option value="Данія">Данія</option>
+                <option value="Джибуті">Джибуті</option>
+                <option value="Домініка">Домініка</option>
+                <option value="Домініканська Республіка">Домініканська Республіка</option>
+                <option value="Еквадор">Еквадор</option>
+                <option value="Екваторіальна Гвінея">Екваторіальна Гвінея</option>
+                <option value="Еритрея">Еритрея</option>
+                <option value="Естонія">Естонія</option>
+                <option value="Ефіопія">Ефіопія</option>
+                <option value="Єгипет">Єгипет</option>
+                <option value="Ємен">Ємен</option>
+                <option value="Замбія">Замбія</option>
+                <option value="Зімбабве">Зімбабве</option>
+                <option value="Ізраїль">Ізраїль</option>
+                <option value="Індія">Індія</option>
+                <option value="Індонезія">Індонезія</option>
+                <option value="Ірак">Ірак</option>
+                <option value="Іран">Іран</option>
+                <option value="Ірландія">Ірландія</option>
+                <option value="Ісландія">Ісландія</option>
+                <option value="Іспанія">Іспанія</option>
+                <option value="Італія">Італія</option>
+                <option value="Йорданія">Йорданія</option>
+                <option value="Казахстан">Казахстан</option>
+                <option value="Камбоджа">Камбоджа</option>
+                <option value="Камерун">Камерун</option>
+                <option value="Канада">Канада</option>
+                <option value="Кабо-Верде">Кабо-Верде</option>
+                <option value="Катар">Катар</option>
+                <option value="Кенія">Кенія</option>
+                <option value="Киргизстан">Киргизстан</option>
+                <option value="Китай">Китай</option>
+                <option value="Кіпр">Кіпр</option>
+                <option value="Кірибаті">Кірибаті</option>
+                <option value="Колумбія">Колумбія</option>
+                <option value="Коморські Острови">Коморські Острови</option>
+                <option value="Конго (Браззавіль)">Конго (Браззавіль)</option>
+                <option value="Конго (Кіншаса)">Конго (Кіншаса)</option>
+                <option value="Коста-Рика">Коста-Рика</option>
+                <option value="Кот-д'Івуар">Кот-д'Івуар</option>
+                <option value="Куба">Куба</option>
+                <option value="Кувейт">Кувейт</option>
+                <option value="Лаос">Лаос</option>
+                <option value="Латвія">Латвія</option>
+                <option value="Лесото">Лесото</option>
+                <option value="Литва">Литва</option>
+                <option value="Ліберія">Ліберія</option>
+                <option value="Ліван">Ліван</option>
+                <option value="Лівія">Лівія</option>
+                <option value="Ліхтенштейн">Ліхтенштейн</option>
+                <option value="Люксембург">Люксембург</option>
+                <option value="Мврикій">Маврикій</option>
+                <option value="Мавританія">Мавританія</option>
+                <option value="Мадагаскар">Мадагаскар</option>
+                <option value="Малаві">Малаві</option>
+                <option value="Малайзія">Малайзія</option>
+                <option value="Малі">Малі</option>
+                <option value="Мальдіви">Мальдіви</option>
+                <option value="Мальта">Мальта</option>
+                <option value="Марокко">Марокко</option>
+                <option value="Маршаллові Острови">Маршаллові Острови</option>
+                <option value="Мексика">Мексика</option>
+                <option value="Мікронезія">Мікронезія</option>
+                <option value="Мозамбік">Мозамбік</option>
+                <option value="Молдова">Молдова</option>
+                <option value="Монако">Монако</option>
+                <option value="Монголія">Монголія</option>
+                <option value="М'янма">М'янма</option>
+                <option value="Намібія">Намібія</option>
+                <option value="Науру">Науру</option>
+                <option value="Непал">Непал</option>
+                <option value="Нігер">Нігер</option>
+                <option value="Нігерія">Нігерія</option>
+                <option value="Нідерланди">Нідерланди</option>
+                <option value="Нікарагуа">Нікарагуа</option>
+                <option value="Німеччина">Німеччина</option>
+                <option value="Нова Зеландія">Нова Зеландія</option>
+                <option value="Норвегія">Норвегія</option>
+                <option value="ОАЕ">ОАЕ</option>
+                <option value="Оман">Оман</option>
+                <option value="Пакистан">Пакистан</option>
+                <option value="Палау">Палау</option>
+                <option value="Палестина">Палестина</option>
+                <option value="Панама">Панама</option>
+                <option value="Папуа-Нова Гвінея">Папуа-Нова Гвінея</option>
+                <option value="Парагвай">Парагвай</option>
+                <option value="Перу">Перу</option>
+                <option value="Південна Корея">Південна Корея</option>
+                <option value="Південний Судан">Південний Судан</option>
+                <option value="Південно-Африканська Республіка">Південно-Африканська Республіка</option>
+                <option value="Північна Корея">Північна Корея</option>
+                <option value="Північна Македонія">Північна Македонія</option>
+                <option value="Польща">Польща</option>
+                <option value="Португалія">Португалія</option>
+                <option value="Руанда">Руанда</option>
+                <option value="Румунія">Румунія</option>
+                <option value="Сальвадор">Сальвадор</option>
+                <option value="Самоа">Самоа</option>
+                <option value="Сан-Марино">Сан-Марино</option>
+                <option value="Сан-Томе і Принсіпі">Сан-Томе і Принсіпі</option>
+                <option value="Саудівська Аравія">Саудівська Аравія</option>
+                <option value="Сейшельські Острови">Сейшельські Острови</option>
+                <option value="Сенегал">Сенегал</option>
+                <option value="Сент-Вінсент і Гренадіни">Сент-Вінсент і Гренадіни</option>
+                <option value="Сент-Кіттс і Невіс">Сент-Кіттс і Невіс</option>
+                <option value="Сент-Люсія">Сент-Люсія</option>
+                <option value="Сербія">Сербія</option>
+                <option value="Сінгапур">Сінгапур</option>
+                <option value="Сирія">Сирія</option>
+                <option value="Словаччина">Словаччина</option>
+                <option value="Словенія">Словенія</option>
+                <option value="Соломонові Острови">Соломонові Острови</option>
+                <option value="Сомалі">Сомалі</option>
+                <option value="Судан">Судан</option>
+                <option value="Суринам">Суринам</option>
+                <option value="Східний Тимор">Східний Тимор</option>
+                <option value="США">США</option>
+                <option value="Сьєрра-Леоне">Сьєрра-Леоне</option>
+                <option value="Таджикистан">Таджикистан</option>
+                <option value="Таїланд">Таїланд</option>
+                <option value="Танзанія">Танзанія</option>
+                <option value="Того">Того</option>
+                <option value="Тонга">Тонга</option>
+                <option value="Тринідад і Тобаго">Тринідад і Тобаго</option>
+                <option value="Тувалу">Тувалу</option>
+                <option value="Туніс">Туніс</option>
+                <option value="Туреччина">Туреччина</option>
+                <option value="Туркменістан">Туркменістан</option>
+                <option value="Уганда">Уганда</option>
+                <option value="Угорщина">Угорщина</option>
+                <option value="Узбекистан">Узбекистан</option>
+                <option value="Україна">Україна</option>
+                <option value="Уругвай">Уругвай</option>
+                <option value="Фіджі">Фіджі</option>
+                <option value="Філіппіни">Філіппіни</option>
+                <option value="Фінляндія">Фінляндія</option>
+                <option value="Франція">Франція</option>
+                <option value="Хорватія">Хорватія</option>
+                <option value="Центральноафриканська Республіка">Центральноафриканська Республіка</option>
+                <option value="Чад">Чад</option>
+                <option value="Чехія">Чехія</option>
+                <option value="Чилі">Чилі</option>
+                <option value="Чорногорія">Чорногорія</option>
+                <option value="Швейцарія">Швейцарія</option>
+                <option value="Швеція">Швеція</option>
+                <option value="Шрі-Ланка">Шрі-Ланка</option>
+                <option value="Ямайка">Ямайка</option>
+                <option value="Японія">Японія</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="field-group">
+              <label>Discord Tag</label>
+              <input type="text" formControlName="discord_tag">
+            </div>
+            <div class="field-group">
+              <label>Завантажити новий аватар</label>
+              <div class="custom-file-upload">
+                <label for="file-input-footer" class="file-label-svg">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <span>Оберіть файл</span>
+                </label>
+                <input type="file" id="file-input-footer" (change)="onFileChange($event)" hidden>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn-save">Зберегти зміни</button>
+        </form>
+      </section>
+    </main>
+  </div>
+</div>

@@ -10,6 +10,9 @@ import { CommonModule } from '@angular/common';
   styleUrl: './app.scss',
 })
 export class App {
+  isExpanded = false;
+  messages: { text: string; type: 'success' | 'error' }[] = [];
+
   constructor(private router: Router) {}
 
   get isLoggedIn(): boolean {
@@ -28,6 +31,22 @@ export class App {
     return this.role === 'jury' || this.role === 'organizer';
   }
 
+  get userName(): string {
+    return localStorage.getItem('nickname') || localStorage.getItem('username') || 'Grantt';
+  }
+
+  get userInitial(): string {
+    return this.userName.slice(0, 1).toUpperCase();
+  }
+
+  get profileImage(): string {
+    return localStorage.getItem('profile_image') || '';
+  }
+
+  toggleSidebar(): void {
+    this.isExpanded = !this.isExpanded;
+  }
+
   logout(): void {
     localStorage.removeItem('access_token');
     localStorage.removeItem('token');
@@ -36,8 +55,11 @@ export class App {
     localStorage.removeItem('refresh');
     localStorage.removeItem('role');
     localStorage.removeItem('nickname');
+    localStorage.removeItem('username');
     localStorage.removeItem('user_id');
     localStorage.removeItem('email');
+    localStorage.removeItem('user');
+    localStorage.removeItem('current_user');
     this.router.navigate(['/login']);
   }
 }

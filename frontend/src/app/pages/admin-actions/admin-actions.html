@@ -1,81 +1,110 @@
-<a routerLink="/dashboard" class="btn btn-outline">← Назад</a>
+<div class="container admin-page">
+  <div class="header-flex">
+    <h2>
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Панель адміна / організатора
+    </h2>
+    <a routerLink="/dashboard" class="btn btn-outline-secondary">Назад до Dashboard</a>
+  </div>
 
-<section>
-  <h1>Дії адміна / організатора</h1>
+  <div *ngIf="message" class="alert success">{{ message }}</div>
+  <div *ngIf="error" class="alert error">{{ error }}</div>
 
-  <div *ngIf="message" class="success">{{ message }}</div>
-  <div *ngIf="error" class="error">{{ error }}</div>
+  <div class="admin-grid">
+    <section class="card">
+      <div class="card-header">
+        <h5>Статус турніру</h5>
+      </div>
+      <div class="card-body">
+        <label>
+          Турнір
+          <select class="form-select" [(ngModel)]="selectedTournamentId" name="selectedTournamentId">
+            <option [ngValue]="null">Оберіть турнір</option>
+            <option *ngFor="let tournament of tournaments" [ngValue]="tournament.id">
+              {{ tournament.title }} - {{ tournament.status }}
+            </option>
+          </select>
+        </label>
 
-  <section>
-    <h2>Змінити статус турніру</h2>
+        <label>
+          Новий статус
+          <select class="form-select" [(ngModel)]="selectedStatus" name="selectedStatus">
+            <option value="registration">registration</option>
+            <option value="open">open</option>
+            <option value="closed">closed</option>
+            <option value="archived">archived</option>
+          </select>
+        </label>
 
-    <label>
-      Турнір
-      <select [(ngModel)]="selectedTournamentId" name="selectedTournamentId">
-        <option [ngValue]="null">Оберіть турнір</option>
-        <option *ngFor="let tournament of tournaments" [ngValue]="tournament.id">
-          {{ tournament.title }} — {{ tournament.status }}
-        </option>
-      </select>
-    </label>
+        <button class="btn btn-primary" type="button" (click)="updateStatus()">Оновити статус</button>
+      </div>
+    </section>
 
-    <label>
-      Новий статус
-      <select [(ngModel)]="selectedStatus" name="selectedStatus">
-        <option value="registration">registration</option>
-        <option value="open">open</option>
-        <option value="closed">closed</option>
-        <option value="archived">archived</option>
-      </select>
-    </label>
+    <section class="card">
+      <div class="card-header">
+        <h5>Розподіл робіт</h5>
+      </div>
+      <div class="card-body">
+        <label>
+          ID раунду
+          <input class="form-control" type="number" [(ngModel)]="selectedRoundId" name="selectedRoundId">
+        </label>
 
-    <button type="button" (click)="updateStatus()">Оновити статус</button>
-  </section>
+        <button class="btn btn-primary" type="button" (click)="distributeRound()">Розподілити</button>
+      </div>
+    </section>
 
-  <section>
-    <h2>Розподілити роботи раунду між журі</h2>
+    <section class="card">
+      <div class="card-header">
+        <h5>Видалення команди</h5>
+      </div>
+      <div class="card-body">
+        <label>
+          ID команди
+          <input class="form-control" type="number" [(ngModel)]="teamIdToDelete" name="teamIdToDelete">
+        </label>
 
-    <label>
-      ID раунду
-      <input type="number" [(ngModel)]="selectedRoundId" name="selectedRoundId" />
-    </label>
+        <button class="btn btn-danger" type="button" (click)="deleteTeam()">Видалити команду</button>
+      </div>
+    </section>
+  </div>
 
-    <button type="button" (click)="distributeRound()">Розподілити</button>
-  </section>
-
-  <section>
-    <h2>Видалити команду</h2>
-
-    <label>
-      ID команди
-      <input type="number" [(ngModel)]="teamIdToDelete" name="teamIdToDelete" />
-    </label>
-
-    <button type="button" (click)="deleteTeam()">Видалити команду</button>
-  </section>
-
-  <section>
-    <h2>Заявки журі</h2>
-
-    <div *ngIf="pendingJuryRegistrations.length === 0">
-      Немає заявок на підтвердження.
+  <section class="card jury-card">
+    <div class="card-header">
+      <h5>Заявки журі</h5>
     </div>
 
-    <table *ngIf="pendingJuryRegistrations.length > 0">
-      <tr>
-        <th>Журі</th>
-        <th>Турнір</th>
-        <th>Дія</th>
-      </tr>
+    <div class="table-responsive" *ngIf="pendingJuryRegistrations.length > 0; else noJuryRequests">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Журі</th>
+            <th>Турнір</th>
+            <th class="text-right">Дії</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let registration of pendingJuryRegistrations">
+            <td>
+              <div class="user-cell">
+                <div class="avatar-sm">{{ (registration.jury_nickname || registration.jury_email || '?').slice(0, 1).toUpperCase() }}</div>
+                <span>{{ registration.jury_nickname || registration.jury_email }}</span>
+              </div>
+            </td>
+            <td>{{ registration.tournament_title }}</td>
+            <td class="text-right">
+              <button class="btn btn-primary" type="button" (click)="reviewJuryRegistration(registration.id, 'approved')">Підтвердити</button>
+              <button class="btn btn-outline-secondary" type="button" (click)="reviewJuryRegistration(registration.id, 'rejected')">Відхилити</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-      <tr *ngFor="let registration of pendingJuryRegistrations">
-        <td>{{ registration.jury_nickname || registration.jury_email }}</td>
-        <td>{{ registration.tournament_title }}</td>
-        <td>
-          <button type="button" (click)="reviewJuryRegistration(registration.id, 'approved')">Підтвердити</button>
-          <button type="button" (click)="reviewJuryRegistration(registration.id, 'rejected')">Відхилити</button>
-        </td>
-      </tr>
-    </table>
+    <ng-template #noJuryRequests>
+      <div class="empty-state">
+        <p>Немає заявок на підтвердження.</p>
+      </div>
+    </ng-template>
   </section>
-</section>
+</div>

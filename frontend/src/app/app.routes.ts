@@ -13,21 +13,30 @@ import { AdminActions } from './pages/admin-actions/admin-actions';
 import { TournamentEdit } from './pages/tournament-edit/tournament-edit';
 import { RoundCreate } from './pages/round-create/round-create';
 import { RoundEdit } from './pages/round-edit/round-edit';
+import { Leaderboard } from './pages/leaderboard/leaderboard';
 import { adminOrganizerGuard, authGuard, juryGuard } from './guards/role.guard';
 
 export const routes: Routes = [
   { path: '', component: Tournaments },
+  { path: 'tournaments', component: Tournaments },
   { path: 'login', component: Login },
   { path: 'register', component: Register },
-  { path: 'tournaments/:id', component: TournamentDetail },
+  { path: 'tournaments/create', component: TournamentEdit, canActivate: [adminOrganizerGuard] },
   { path: 'tournaments/edit/:id', component: TournamentEdit, canActivate: [adminOrganizerGuard] },
+  { path: 'tournaments/:id/leaderboard', component: Leaderboard },
+  { path: 'tournaments/:id', component: TournamentDetail },
   { path: 'tournaments/:id/create-team', component: CreateTeam, canActivate: [authGuard] },
+  { path: 'tournaments/:id/register', component: CreateTeam, canActivate: [authGuard] },
+  { path: 'tournaments/:id/create-round', component: RoundCreate, canActivate: [adminOrganizerGuard] },
   { path: 'rounds/create/:id', component: RoundCreate, canActivate: [adminOrganizerGuard] },
   { path: 'rounds/edit/:id', component: RoundEdit, canActivate: [adminOrganizerGuard] },
-  { path: 'teams/:id', component: TeamDetail },
+  { path: 'teams/:id', component: TeamDetail, canActivate: [authGuard] },
   { path: 'teams/:teamId/rounds/:roundId/submit', component: SubmissionForm, canActivate: [authGuard] },
   { path: 'dashboard', component: Dashboard, canActivate: [authGuard] },
   { path: 'dashboard/tournaments', component: Tournaments, canActivate: [authGuard] },
+  { path: 'dashboard/tournaments/:id', component: TournamentDetail, canActivate: [authGuard] },
+  { path: 'dashboard/teams/:id', component: TeamDetail, canActivate: [authGuard] },
+  { path: 'dashboard/teams/:teamId/rounds/:roundId/submit', component: SubmissionForm, canActivate: [authGuard] },
   { path: 'jury/evaluations', component: JuryEvaluations, canActivate: [juryGuard] },
   { path: 'jury/evaluations/:id', component: EvaluationForm, canActivate: [juryGuard] },
   { path: 'admin/actions', component: AdminActions, canActivate: [adminOrganizerGuard] },

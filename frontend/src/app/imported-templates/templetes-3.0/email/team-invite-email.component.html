@@ -1,0 +1,37 @@
+<div style="background-color: #0b1a24; padding: 40px 10px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0;">
+    <div style="max-width: 550px; margin: 0 auto; background-color: #132c3d; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid #1e3a4d;">
+        
+        <div style="padding: 30px; text-align: center; background-color: #132c3d;">
+            <img [src]="logoUrl" alt="Grantt Logo" style="width: 120px; height: auto; margin-bottom: 15px;">
+            <h1 style="margin: 0; color: #ffffff; font-size: 26px; letter-spacing: 1px;">Нове запрошення!</h1>
+        </div>
+
+        <div style="padding: 0 40px 40px 40px; color: #e0e6ed; line-height: 1.6; text-align: center;">
+            <p style="font-size: 18px; color: #2dbcc4; font-weight: 500;">Привіт!</p>
+            
+            <p style="margin-bottom: 20px;">
+                Користувач <strong style="color: #ffffff;">{{ inviterName }}</strong> запрошує вас приєднатися до команди:
+            </p>
+            
+            <div style="background: rgba(45, 188, 196, 0.1); border: 1px solid #2dbcc4; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <p style="font-size: 24px; color: #ffffff; font-weight: bold; margin: 0;">{{ teamName }}</p>
+            </div>
+            
+            <p style="margin-bottom: 30px;">Щоб стати частиною команди та отримати доступ до кабінету турніру, натисніть кнопку нижче:</p>
+            
+            <a [href]="acceptUrl" 
+               style="display: inline-block; background-color: #2dbcc4; color: #132c3d !important; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; transition: background 0.3s ease;">
+               ПРИЙНЯТИ ЗАПРОШЕННЯ
+            </a>
+            
+            <p style="margin-top: 40px; font-size: 12px; color: #6b8291; border-top: 1px solid #1e3a4d; padding-top: 20px;">
+                Якщо кнопка не працює, скопіюйте це посилання: <br>
+                <a [href]="acceptUrl" style="color: #2dbcc4; text-decoration: none; word-break: break-all;">{{ acceptUrl }}</a>
+            </p>
+        </div>
+
+        <div style="padding: 20px; text-align: center; font-size: 11px; color: #526675; background-color: #0d1f2b;">
+            © 2026 Система турнірів <strong>Grantt</strong>. Це автоматичне повідомлення.
+        </div>
+    </div>
+</div>

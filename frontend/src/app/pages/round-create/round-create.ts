@@ -26,7 +26,7 @@ export class RoundCreate {
     this.tournamentId = Number(this.route.snapshot.paramMap.get('id'));
     this.form = this.fb.group({
       title: ['', Validators.required],
-      description: [''],
+      description: ['', Validators.required],
       start: ['', Validators.required],
       end: ['', Validators.required]
     });
@@ -41,17 +41,32 @@ export class RoundCreate {
     this.saving = true;
     this.error = '';
 
+    const value = this.form.value;
     this.api.createRound({
-      ...this.form.value,
+      title: value.title,
+      description: value.description,
+      requirements: value.description || value.title,
+      start_time: value.start,
+      end_time: value.end,
+      status: 'draft',
       tournament: this.tournamentId,
-      tournament_id: this.tournamentId
+      criteria_definition: 'Technical | 100\nFunctionality | 100'
     }).subscribe({
       next: () => this.router.navigate(['/tournaments', this.tournamentId]),
       error: (err: any) => {
         console.error('Round create error:', err);
-        this.error = err?.error?.detail || 'Не вдалося створити раунд.';
+        this.error = this.extractError(err) || 'Не вдалося створити раунд.';
         this.saving = false;
       }
     });
+  }
+
+  private extractError(err: any): string {
+    const payload = err?.error;
+    if (!payload) return '';
+    if (typeof payload === 'string') return payload;
+    if (payload.detail || payload.message) return String(payload.detail || payload.message);
+    const firstValue = Object.values(payload)[0];
+    return Array.isArray(firstValue) ? String(firstValue[0]) : String(firstValue || '');
   }
 }

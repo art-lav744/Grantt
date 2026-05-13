@@ -15,6 +15,14 @@ export class JuryEvaluations implements OnInit {
   loading = true;
   error = '';
 
+  get doneCount(): number {
+    return this.evaluations.filter(item => item?.is_scored || ['done', 'scored', 'completed'].includes(String(item?.status || '').toLowerCase())).length;
+  }
+
+  get pendingCount(): number {
+    return Math.max(this.evaluations.length - this.doneCount, 0);
+  }
+
   constructor(private api: ApiService) {}
 
   ngOnInit(): void {

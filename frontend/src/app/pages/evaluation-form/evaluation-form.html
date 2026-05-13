@@ -1,38 +1,76 @@
-<a routerLink="/jury/evaluations" class="btn btn-outline">← До списку оцінювань</a>
+<div class="evaluation-container">
+  <a routerLink="/jury/evaluations" class="back-link">Назад до списку</a>
 
-<section>
-  <h1>Форма оцінювання</h1>
+  <div class="header-section">
+    <h2>Оцінювання роботи</h2>
+    <div class="info-row" *ngIf="evaluation">
+      <span>Команда: <strong>{{ evaluation?.submission?.team?.name || evaluation?.team_name || '—' }}</strong></span>
+      <span>Раунд: <strong>{{ evaluation?.submission?.round?.title || evaluation?.round_title || '—' }}</strong></span>
+    </div>
+  </div>
 
-  <div *ngIf="loading">Завантаження...</div>
-  <div *ngIf="error">{{ error }}</div>
+  <div *ngIf="loading" class="loader">Завантаження...</div>
+  <div *ngIf="error" class="error-state">{{ error }}</div>
 
-  <form *ngIf="evaluation && !loading" (ngSubmit)="save()">
-    <p><strong>Команда:</strong> {{ evaluation.team_name || '—' }}</p>
-    <p><strong>Раунд:</strong> {{ evaluation.round_title || '—' }}</p>
+  <ng-container *ngIf="evaluation && !loading">
+    <div class="card info-card">
+      <h3 class="card-title">Опис роботи</h3>
+      <p class="description">{{ evaluation?.submission?.description || evaluation?.description || 'Опис не надано' }}</p>
 
-    <div *ngFor="let criterion of criteriaScores" class="field">
-      <label>
-        {{ criterion.name }} / {{ criterion.max_score }}
-        <input
-          type="number"
-          name="criterion_{{ criterion.criterion_id }}"
-          [(ngModel)]="criterion.score"
-          [min]="0"
-          [max]="criterion.max_score"
-          step="0.1"
-        />
-      </label>
+      <div *ngIf="evaluation?.criteria_definition || evaluation?.submission?.round?.criteria_definition" class="criteria-box">
+        <h4 class="criteria-label">Критерії раунду</h4>
+        <div class="criteria-content">{{ evaluation?.criteria_definition || evaluation?.submission?.round?.criteria_definition }}</div>
+      </div>
+
+      <div class="links-box">
+        <a *ngIf="evaluation?.submission?.github_link || evaluation?.github_link" [href]="evaluation?.submission?.github_link || evaluation?.github_link" target="_blank" class="action-link github">GitHub репозиторій</a>
+        <a *ngIf="evaluation?.submission?.video_link || evaluation?.video_link" [href]="evaluation?.submission?.video_link || evaluation?.video_link" target="_blank" class="action-link video">Відео презентація</a>
+      </div>
     </div>
 
-    <div class="field">
-      <label>
-        Коментар
-        <textarea name="comment" [(ngModel)]="comment" rows="4"></textarea>
-      </label>
-    </div>
+    <form (ngSubmit)="save()" class="evaluation-form">
+      <div *ngFor="let criterion of criteriaScores" class="score-card">
+        <div class="score-header">
+          <label [for]="'criterion_' + criterion.criterion_id">{{ criterion.name || criterion.criterion?.name }}</label>
+          <span class="max-badge">max {{ criterion.max_score || criterion.criterion?.max_score }}</span>
+        </div>
 
-    <button type="submit" [disabled]="saving">
-      {{ saving ? 'Збереження...' : 'Зберегти оцінку' }}
-    </button>
-  </form>
-</section>
+        <div class="input-controls">
+          <input
+            type="range"
+            [id]="'criterion_slider_' + criterion.criterion_id"
+            name="criterion_slider_{{ criterion.criterion_id }}"
+            [(ngModel)]="criterion.score"
+            [min]="0"
+            [max]="criterion.max_score || criterion.criterion?.max_score"
+            step="0.5"
+            class="score-slider"
+          >
+
+          <input
+            type="number"
+            [id]="'criterion_' + criterion.criterion_id"
+            name="criterion_{{ criterion.criterion_id }}"
+            [(ngModel)]="criterion.score"
+            [min]="0"
+            [max]="criterion.max_score || criterion.criterion?.max_score"
+            step="0.1"
+            class="score-number"
+          >
+        </div>
+      </div>
+
+      <div class="comment-group">
+        <label for="comment">Коментар судді</label>
+        <textarea id="comment" name="comment" [(ngModel)]="comment" rows="4" placeholder="Напишіть ваші враження..."></textarea>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-save" [disabled]="saving">
+          {{ saving ? 'Збереження...' : 'Зберегти оцінку' }}
+        </button>
+        <a routerLink="/jury/evaluations" class="btn btn-back">Назад</a>
+      </div>
+    </form>
+  </ng-container>
+</div>

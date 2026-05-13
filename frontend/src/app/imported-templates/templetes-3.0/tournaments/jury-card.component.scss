@@ -1,0 +1,131 @@
+$card-bg: #162e3e;
+$accent-teal: #4fd1c5;
+$text-main: #ffffff;
+$text-muted: rgba(255, 255, 255, 0.6);
+
+.tournament-card {
+  background: $card-bg;
+  border-radius: 24px;
+  overflow: hidden;
+  min-height: 320px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  flex-direction: column;
+  color: $text-main;
+
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.card-header-gradient {
+  height: 100px;
+  position: relative;
+}
+
+.header-overlay {
+  position: absolute;
+  inset: 0;
+  padding: 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.score-preview {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 10px;
+  border-radius: 8px;
+  .score-val { font-weight: 900; color: #68d391; font-size: 1.1rem; }
+  .score-max { color: rgba(255,255,255,0.5); font-size: 0.8rem; }
+}
+
+.card-content {
+  padding: 1.2rem;
+  flex: 1;
+
+  .team-title {
+    margin: 0 0 5px 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .round-info {
+    font-size: 0.85rem;
+    color: $accent-teal;
+    margin-bottom: 10px;
+  }
+
+  .description {
+    font-size: 0.9rem;
+    color: $text-muted;
+    line-height: 1.5;
+    margin: 0;
+  }
+}
+
+.card-footer {
+  padding: 1rem 1.2rem;
+  background: rgba(15, 23, 42, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.links-group {
+  display: flex;
+  gap: 12px;
+
+  .icon-link {
+    color: $text-muted;
+    transition: 0.3s;
+    &:hover { color: $accent-teal; transform: scale(1.1); }
+  }
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 12px;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+
+  &.evaluate {
+    background: $accent-teal;
+    color: #0d1b2a;
+    &:hover { background: lighten($accent-teal, 10%); }
+  }
+
+  &.edit {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    &:hover { background: rgba(255, 255, 255, 0.15); }
+  }
+}
+
+.fade-in { animation: fadeInUp 0.5s ease-out forwards; }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

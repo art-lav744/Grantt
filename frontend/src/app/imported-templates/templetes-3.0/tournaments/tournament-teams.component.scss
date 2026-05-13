@@ -1,0 +1,77 @@
+.teams-page-wrapper {
+  padding: 40px 20px;
+  min-height: 100vh;
+  color: white;
+}
+
+.main-title {
+  font-size: 48px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 50px;
+  letter-spacing: -1px;
+}
+
+.teams-list {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.table-header-row {
+  display: flex;
+  padding: 0 40px 10px 40px;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.8;
+  
+  .header-item {
+    &.col-rank { width: 80px; }
+    &.col-name { flex: 2; }
+    &.col-captain { flex: 1; text-align: right; }
+  }
+}
+
+.team-pill-row {
+  display: flex;
+  align-items: center;
+  background: #1c3d52; // Темно-синій колір з вашого фото
+  margin-bottom: 12px;
+  padding: 15px 40px;
+  border-radius: 50px; // Робимо плашку закругленою як на фото
+  transition: transform 0.2s, background 0.2s;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  &:hover {
+    background: lighten(#1c3d52, 5%);
+    transform: scale(1.01);
+  }
+
+  .rank-badge {
+    width: 80px;
+    font-size: 32px;
+    font-weight: 800;
+    color: #ffffff;
+    font-family: 'Arial Black', sans-serif;
+  }
+
+  .team-name-cell {
+    flex: 2;
+    font-size: 28px;
+    font-weight: 600;
+  }
+
+  .captain-name-cell {
+    flex: 1;
+    font-size: 20px;
+    text-align: right;
+    opacity: 0.9;
+    font-weight: 400;
+  }
+}
+
+.loading-container, .empty-msg {
+  text-align: center;
+  padding: 50px;
+  font-size: 20px;
+  opacity: 0.5;
+}

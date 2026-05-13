@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 
 function getStoredToken(): string | null {
-  return localStorage.getItem('access_token') || localStorage.getItem('token');
+  return localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('access');
 }
 
 function isAuthEndpoint(url: string): boolean {

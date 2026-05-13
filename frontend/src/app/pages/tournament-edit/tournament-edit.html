@@ -1,26 +1,89 @@
-<div class="container">
-  <a class="btn btn-outline" [routerLink]="['/tournaments', tournamentId]">← Назад до турніру</a>
+<div class="tournament-container">
+  <div class="figma-card">
+    <div class="card-header">
+      <svg class="header-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      <h2>{{ isCreate ? 'Новий турнір' : 'Редагування турніру' }}</h2>
+    </div>
 
-  <div class="card">
-    <h1>Редагування турніру</h1>
-    <p *ngIf="loading">Завантаження...</p>
+    <div *ngIf="loading" class="loader">Завантаження...</div>
     <p *ngIf="error" class="error-summary">{{ error }}</p>
 
     <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()">
-      <label>Назва</label>
-      <input class="form-control" formControlName="title" placeholder="Назва турніру">
+      <div class="input-wrapper">
+        <label for="title">Назва</label>
+        <input id="title" formControlName="title" placeholder="Назва турніру">
+      </div>
 
-      <label>Опис</label>
-      <textarea class="form-control" formControlName="description" placeholder="Опис турніру"></textarea>
+      <div class="input-wrapper">
+        <label for="description">Опис</label>
+        <textarea id="description" formControlName="description" placeholder="Опис турніру"></textarea>
+      </div>
 
-      <label>Статус</label>
-      <select class="form-control" formControlName="status">
-        <option value="registration">Реєстрація</option>
-        <option value="active">Активний</option>
-        <option value="completed">Завершений</option>
-      </select>
+      <div class="input-wrapper">
+        <label for="status">Статус</label>
+        <select id="status" formControlName="status">
+          <option value="draft">Чернетка</option>
+          <option value="registration">Реєстрація</option>
+          <option value="active">Активний</option>
+          <option value="completed">Завершений</option>
+        </select>
+      </div>
 
-      <button class="btn" type="submit" [disabled]="saving">Зберегти</button>
+      <div class="form-grid">
+        <div class="input-wrapper">
+          <label for="reg_start">Початок реєстрації</label>
+          <input id="reg_start" type="datetime-local" formControlName="reg_start">
+        </div>
+
+        <div class="input-wrapper">
+          <label for="reg_end">Кінець реєстрації</label>
+          <input id="reg_end" type="datetime-local" formControlName="reg_end">
+        </div>
+
+        <div class="input-wrapper">
+          <label for="start_time">Початок турніру</label>
+          <input id="start_time" type="datetime-local" formControlName="start_time">
+        </div>
+
+        <div class="input-wrapper">
+          <label for="end_time">Кінець турніру</label>
+          <input id="end_time" type="datetime-local" formControlName="end_time">
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="input-wrapper">
+          <label for="max_teams">Максимум команд</label>
+          <input id="max_teams" type="number" min="1" formControlName="max_teams">
+        </div>
+
+        <div class="input-wrapper">
+          <label for="max_rounds">Максимум раундів</label>
+          <input id="max_rounds" type="number" min="1" formControlName="max_rounds">
+        </div>
+
+        <div class="input-wrapper">
+          <label for="min_team_members">Мінімум учасників</label>
+          <input id="min_team_members" type="number" min="1" formControlName="min_team_members">
+        </div>
+
+        <div class="input-wrapper">
+          <label for="max_team_members">Максимум учасників</label>
+          <input id="max_team_members" type="number" min="1" formControlName="max_team_members">
+        </div>
+      </div>
+
+      <label class="checkbox-row">
+        <input type="checkbox" formControlName="hide_teams_until_registration_end">
+        <span>Приховати команди до завершення реєстрації</span>
+      </label>
+
+      <div class="action-bar">
+        <button class="btn-primary" type="submit" [disabled]="form.invalid || saving">
+          {{ saving ? 'Збереження...' : 'Зберегти' }}
+        </button>
+        <a class="btn-secondary" [routerLink]="isCreate ? ['/dashboard'] : ['/tournaments', tournamentId]">Назад</a>
+      </div>
     </form>
   </div>
 </div>

@@ -1,8 +1,226 @@
-section { margin: 18px 0; }
-label { display: block; margin: 10px 0; }
-input, select { display: block; width: 100%; max-width: 520px; padding: 8px; margin-top: 4px; }
-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-.success { color: #146c2e; margin: 10px 0; }
-.error { color: #b00020; margin: 10px 0; }
-button { margin: 4px 8px 4px 0; }
+$dark-bg: #0d1b2a;
+$panel-bg: #1b263b;
+$accent-teal: #415a77;
+$text-primary: #e0e1dd;
+$text-muted: #778da9;
+$border-color: rgba(255, 255, 255, 0.1);
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: $dark-bg;
+  color: $text-primary;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+.header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid $border-color;
+
+  h2 {
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.card {
+  background-color: $panel-bg;
+  border: 1px solid $border-color;
+  border-radius: 12px;
+  color: $text-primary;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+
+  .card-header {
+    background-color: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid $border-color;
+    padding: 1.25rem;
+
+    h5 {
+      margin: 0;
+      font-weight: 600;
+    }
+  }
+
+  .card-body {
+    padding: 1.25rem;
+  }
+}
+
+label {
+  display: block;
+  color: $text-muted;
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.form-select,
+.form-control {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  background-color: $dark-bg;
+  border: 1px solid $accent-teal;
+  color: $text-primary;
+  border-radius: 8px;
+  padding: 11px 12px;
+
+  &:focus {
+    background-color: $dark-bg;
+    color: $text-primary;
+    border-color: #5f7a9d;
+    box-shadow: 0 0 0 0.25rem rgba($accent-teal, 0.2);
+    outline: none;
+  }
+
+  option {
+    background: $panel-bg;
+  }
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: $text-primary;
+  margin: 0;
+
+  thead th {
+    background-color: rgba(0, 0, 0, 0.2);
+    color: $text-muted;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: none;
+    padding: 1rem;
+    text-align: left;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.02);
+    }
+  }
+
+  td {
+    border: none;
+    padding: 1rem;
+    vertical-align: middle;
+  }
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-sm {
+  width: 38px;
+  height: 38px;
+  background: $accent-teal;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.btn {
+  display: inline-block;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  border: 0;
+  margin: 4px;
+}
+
+.btn-primary {
+  background-color: $accent-teal;
+  color: #fff;
+
+  &:hover {
+    background-color: #557394;
+  }
+}
+
+.btn-danger {
+  background: rgba(255, 107, 107, 0.18);
+  color: #ffb3b3;
+  border: 1px solid rgba(255, 107, 107, 0.35);
+}
+
+.btn-outline-secondary {
+  color: $text-muted;
+  border: 1px solid $text-muted;
+  background: transparent;
+
+  &:hover {
+    background-color: $text-muted;
+    color: $dark-bg;
+  }
+}
+
+.alert,
+.empty-state {
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.alert.success {
+  background: rgba(81, 207, 102, 0.15);
+  color: #8ce99a;
+}
+
+.alert.error {
+  background: rgba(255, 107, 107, 0.15);
+  color: #ffa8a8;
+}
+
+.empty-state {
+  color: $text-muted;
+  text-align: center;
+}
+
+.text-right {
+  text-align: right !important;
+}
+
+@media (max-width: 900px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .header-flex {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

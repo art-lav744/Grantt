@@ -1,32 +1,49 @@
-<div class="container">
-  <a class="btn btn-outline" [routerLink]="tournamentId ? ['/tournaments', tournamentId] : ['/']">← Назад</a>
+<div class="round-form-page">
+  <div class="card header-card">
+    <h1>Редагувати раунд</h1>
+    <p>Раунд #{{ roundId }}</p>
+  </div>
 
   <div class="card">
-    <h1>Редагувати раунд</h1>
-    <p *ngIf="loading">Завантаження...</p>
+    <div *ngIf="loading" class="loader">Завантаження...</div>
     <p *ngIf="error" class="error-summary">{{ error }}</p>
 
     <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()">
-      <label>Назва раунду</label>
-      <input class="form-control" formControlName="title">
+      <div class="form-group">
+        <label for="round-title">Назва раунду</label>
+        <input id="round-title" class="form-control" formControlName="title">
+      </div>
 
-      <label>Опис</label>
-      <textarea class="form-control" formControlName="description"></textarea>
+      <div class="form-group">
+        <label for="round-description">Опис</label>
+        <textarea id="round-description" class="form-control" formControlName="description"></textarea>
+      </div>
 
-      <label>Початок</label>
-      <input class="form-control" type="datetime-local" formControlName="start">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="round-start">Початок</label>
+          <input id="round-start" class="form-control" type="datetime-local" formControlName="start">
+        </div>
 
-      <label>Кінець</label>
-      <input class="form-control" type="datetime-local" formControlName="end">
+        <div class="form-group">
+          <label for="round-end">Кінець</label>
+          <input id="round-end" class="form-control" type="datetime-local" formControlName="end">
+        </div>
+      </div>
 
-      <label>Статус</label>
-      <select class="form-control" formControlName="status">
-        <option value="pending">Очікує</option>
-        <option value="active">Активний</option>
-        <option value="completed">Завершений</option>
-      </select>
+      <div class="form-group">
+        <label for="round-status">Статус</label>
+        <select id="round-status" class="form-control" formControlName="status">
+          <option value="pending">Очікує</option>
+          <option value="active">Активний</option>
+          <option value="completed">Завершений</option>
+        </select>
+      </div>
 
-      <button class="btn" type="submit" [disabled]="saving">Зберегти</button>
+      <div class="btn-group-row">
+        <button class="btn" type="submit" [disabled]="form.invalid || saving">Зберегти</button>
+        <a class="btn btn-secondary" [routerLink]="tournamentId ? ['/tournaments', tournamentId] : ['/']">Назад</a>
+      </div>
     </form>
   </div>
 </div>
