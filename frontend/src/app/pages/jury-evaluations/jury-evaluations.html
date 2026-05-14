@@ -24,18 +24,48 @@
 
   <h3 class="section-subtitle fade-in-delayed">Роботи для оцінювання</h3>
 
+  <div class="work-controls fade-in-delayed" *ngIf="!loading && evaluations.length > 0">
+    <div class="filter-bar" aria-label="Фільтр робіт за статусом">
+      <button
+        *ngFor="let filter of statusFilters"
+        type="button"
+        class="filter-pill"
+        [class.active]="activeFilter === filter.value"
+        (click)="setFilter(filter.value)"
+      >
+        <span>{{ filter.label }}</span>
+        <strong>{{ filterCount(filter.value) }}</strong>
+      </button>
+    </div>
+
+    <div class="sort-bar" aria-label="Сортування робіт">
+      <span>Сортувати:</span>
+      <button
+        *ngFor="let option of sortOptions"
+        type="button"
+        class="sort-pill"
+        [class.active]="activeSort === option.value"
+        (click)="setSort(option.value)"
+      >
+        {{ option.label }}
+      </button>
+    </div>
+  </div>
+
   <div *ngIf="error" class="error-state">{{ error }}</div>
 
   <div class="tournaments-grid" *ngIf="loading">
     <div class="tournament-card skeleton" *ngFor="let item of [1,2,3]"></div>
   </div>
 
-  <div class="tournaments-grid" *ngIf="!loading && evaluations.length > 0">
-    <div *ngFor="let evaluation of evaluations; let i = index" class="tournament-card-wrapper" [style.animation-delay]="(i * 0.1) + 's'">
+  <div class="tournaments-grid" *ngIf="!loading && filteredEvaluations.length > 0">
+    <div *ngFor="let evaluation of filteredEvaluations; let i = index" class="tournament-card-wrapper" [style.animation-delay]="(i * 0.1) + 's'">
       <div class="tournament-card">
         <div class="card-header">
           <div class="header-overlay">
-            <span class="status-badge">{{ evaluation.status || 'pending' }}</span>
+            <span class="status-badge" [attr.data-status]="evaluationViewStatus(evaluation)">
+              {{ evaluationStatusLabel(evaluation) }}
+            </span>
           </div>
         </div>
         <div class="card-footer">
@@ -55,5 +85,8 @@
 
   <div class="empty-state fade-in" *ngIf="!loading && evaluations.length === 0 && !error">
     <p>Вам ще не призначено робіт для оцінювання.</p>
+  </div>
+  <div class="empty-state fade-in" *ngIf="!loading && evaluations.length > 0 && filteredEvaluations.length === 0 && !error">
+    <p>Немає робіт з таким статусом.</p>
   </div>
 </div>

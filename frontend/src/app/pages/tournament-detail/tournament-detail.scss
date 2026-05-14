@@ -147,6 +147,7 @@ table {
   font-weight: 600;
   transition: 0.2s;
   &:hover { background: #4299e1; transform: translateY(-1px); }
+  &:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 }
 
 .btn-icon {
@@ -169,6 +170,80 @@ table {
   .icon { width: 18px; height: 18px; fill: currentColor; }
 }
 
+.upload-form {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 22px;
+  padding: 18px;
+  border: 1px solid rgba($accent, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+
+  label {
+    display: grid;
+    gap: 8px;
+    color: $text-muted;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  input,
+  select {
+    width: 100%;
+    background: #0f232e;
+    color: $text-main;
+    border: 1px solid rgba($text-muted, 0.28);
+    border-radius: 8px;
+    padding: 10px 12px;
+    outline: none;
+
+    &:focus {
+      border-color: $accent;
+      box-shadow: 0 0 0 2px rgba($accent, 0.12);
+    }
+  }
+}
+
+.upload-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(140px, 0.7fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: end;
+}
+
+.file-picker {
+  input {
+    display: none;
+  }
+
+  span {
+    display: block;
+    min-height: 40px;
+    padding: 10px 12px;
+    border: 1px dashed rgba($text-muted, 0.38);
+    border-radius: 8px;
+    color: $text-main;
+    cursor: pointer;
+  }
+}
+
+.success-msg,
+.error-msg {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+.success-msg {
+  color: #9ae6b4;
+  background: rgba(72, 187, 120, 0.1);
+}
+
+.error-msg {
+  color: #feb2b2;
+  background: rgba(245, 101, 101, 0.12);
+}
+
 .actions-cell { text-align: right; }
 .text-muted { color: $text-muted; }
 .team-name { font-weight: 600; }
@@ -180,3 +255,9 @@ table {
   font-size: 0.85rem;
 }
 .file-type { color: $accent; font-weight: bold; font-size: 0.9rem; }
+
+@media (max-width: 760px) {
+  .upload-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -42,8 +42,12 @@ export class TournamentDetail implements OnInit {
     return this.role === 'jury';
   }
 
+  get canUploadFiles(): boolean {
+    return this.canManageRounds;
+  }
+
   get canRegisterTeam(): boolean {
-    return this.isLoggedIn() && String(this.tournament?.status || '').toLowerCase() === 'registration';
+    return this.isLoggedIn() && this.role === 'participant' && String(this.tournament?.status || '').toLowerCase() === 'registration';
   }
 
   ngOnInit(): void {
@@ -173,8 +177,20 @@ export class TournamentDetail implements OnInit {
   private normalizeTournament(item: any): any {
     return {
       ...item,
-      banner_url: item?.banner_url || item?.cover_image_path || ''
+      banner_url: this.toMediaUrl(item?.banner_url || item?.cover_image_path || '')
     };
+  }
+
+  fileUrl(file: any): string {
+    return this.toMediaUrl(file?.file_url || file?.download_url || file?.url || file?.file || '');
+  }
+
+  private toMediaUrl(value: any): string {
+    if (!value) return '';
+    const url = String(value);
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+    if (url.startsWith('/')) return `http://127.0.0.1:8000${url}`;
+    return `http://127.0.0.1:8000/${url}`;
   }
 
   private normalizeRound(round: any): any {

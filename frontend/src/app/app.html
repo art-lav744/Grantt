@@ -11,9 +11,14 @@
         <span *ngIf="isExpanded">Турніри</span>
       </a>
 
-      <a *ngIf="isLoggedIn" routerLink="/dashboard" routerLinkActive="active" class="nav-item" title="Профіль">
+      <a *ngIf="isLoggedIn" routerLink="/profile" routerLinkActive="active" class="nav-item" title="Профіль">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span *ngIf="isExpanded">Профіль</span>
+      </a>
+
+      <a *ngIf="isLoggedIn && isParticipant" routerLink="/dashboard" routerLinkActive="active" class="nav-item" title="Мої команди">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-8 0v2"/><circle cx="12" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M2 21v-2a4 4 0 0 1 3-3.87"/><path d="M8 3.13a4 4 0 0 0 0 7.75"/></svg>
+        <span *ngIf="isExpanded">Мої команди</span>
       </a>
 
       <a *ngIf="isLoggedIn && isJuryOrOrganizer" routerLink="/jury/evaluations" routerLinkActive="active" class="nav-item" title="Оцінювання">
@@ -31,7 +36,7 @@
   <div class="main-area">
     <div class="topbar">
       <div class="topbar-right" *ngIf="isLoggedIn; else guestLinks">
-        <a routerLink="/dashboard" class="user-info">
+        <a routerLink="/profile" class="user-info">
           <span class="user-name">{{ userName }}</span>
           <div *ngIf="!profileImage" class="avatar-placeholder">{{ userInitial }}</div>
           <img *ngIf="profileImage" [src]="profileImage" class="avatar-img" alt="Avatar">

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -30,7 +30,8 @@ export class SubmissionForm implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private api: ApiService
+    private api: ApiService,
+    private cdr: ChangeDetectorRef
   ) {
     this.submissionForm = this.fb.group({
       github_link: ['', [Validators.required, this.githubValidator]],
@@ -55,6 +56,7 @@ export class SubmissionForm implements OnInit, OnDestroy {
         this.roundEnd = this.tournament?.end_time ? new Date(this.tournament.end_time) : null;
         this.updateCountdown();
         this.timerId = setInterval(() => this.updateCountdown(), 30000);
+        this.cdr.detectChanges();
       },
       error: () => {
         this.error = 'Не вдалося завантажити завдання';
@@ -63,6 +65,7 @@ export class SubmissionForm implements OnInit, OnDestroy {
           description: '',
           requirements: []
         };
+        this.cdr.detectChanges();
       }
     });
   }
@@ -102,9 +105,13 @@ export class SubmissionForm implements OnInit, OnDestroy {
     }).subscribe({
       next: () => {
         this.success = 'Роботу успішно відправлено';
+        this.cdr.detectChanges();
         this.router.navigate(['/teams', this.teamId]);
       },
-      error: (err: any) => this.error = this.extractError(err) || 'Не вдалося відправити роботу'
+      error: (err: any) => {
+        this.error = this.extractError(err) || 'Не вдалося відправити роботу';
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -127,6 +134,7 @@ export class SubmissionForm implements OnInit, OnDestroy {
     if (!this.roundEnd || Number.isNaN(this.roundEnd.getTime())) {
       this.isExpired = false;
       this.countdownText = 'Термін активний';
+      this.cdr.detectChanges();
       return;
     }
 
@@ -134,6 +142,7 @@ export class SubmissionForm implements OnInit, OnDestroy {
     if (diffMs <= 0) {
       this.isExpired = true;
       this.countdownText = 'Термін завершено';
+      this.cdr.detectChanges();
       return;
     }
 
@@ -141,6 +150,7 @@ export class SubmissionForm implements OnInit, OnDestroy {
     const minutes = Math.floor((diffMs % 3600000) / 60000);
     this.isExpired = false;
     this.countdownText = `Залишилось ${hours} год ${minutes} хв`;
+    this.cdr.detectChanges();
   }
 
   private extractError(err: any): string {

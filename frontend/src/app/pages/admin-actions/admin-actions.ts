@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -14,14 +14,16 @@ import { ApiService } from '../../services/api';
 export class AdminActions implements OnInit {
   tournaments: any[] = [];
   pendingJuryRegistrations: any[] = [];
+  rounds: any[] = [];
+  teams: any[] = [];
   selectedTournamentId: number | null = null;
   selectedStatus = 'registration';
   selectedRoundId: number | null = null;
-  teamIdToDelete: number | null = null;
+  selectedTeamIdToDelete: number | null = null;
   message = '';
   error = '';
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.loadTournaments();
@@ -30,15 +32,48 @@ export class AdminActions implements OnInit {
 
   loadTournaments(): void {
     this.api.getTournaments().subscribe({
-      next: (items: any) => this.tournaments = items,
+      next: (items: any) => { this.tournaments = items; this.cdr.detectChanges(); },
       error: () => this.error = 'Не вдалося завантажити турніри.'
     });
   }
 
   loadPendingJuryRegistrations(): void {
     this.api.getPendingJuryRegistrations().subscribe({
-      next: (items: any) => this.pendingJuryRegistrations = items,
+      next: (items: any) => { this.pendingJuryRegistrations = items; this.cdr.detectChanges(); },
       error: () => this.pendingJuryRegistrations = []
+    });
+  }
+
+
+  onTournamentChanged(): void {
+    this.selectedRoundId = null;
+    this.selectedTeamIdToDelete = null;
+    this.rounds = [];
+    this.teams = [];
+    if (!this.selectedTournamentId) {
+      this.cdr.detectChanges();
+      return;
+    }
+    this.api.getTournamentRounds(this.selectedTournamentId).subscribe({
+      next: (items: any) => {
+        this.rounds = Array.isArray(items) ? items : [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.rounds = [];
+        this.cdr.detectChanges();
+      }
+    });
+
+    this.api.getTournamentTeams(this.selectedTournamentId).subscribe({
+      next: (items: any) => {
+        this.teams = Array.isArray(items) ? items : [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.teams = [];
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -74,16 +109,22 @@ export class AdminActions implements OnInit {
   }
 
   deleteTeam(): void {
-    if (!this.teamIdToDelete) {
-      this.error = 'Введіть ID команди.';
+    if (!this.selectedTournamentId) {
+      this.error = 'Оберіть турнір.';
       return;
     }
 
-    this.api.deleteTeam(this.teamIdToDelete).subscribe({
+    if (!this.selectedTeamIdToDelete) {
+      this.error = 'Оберіть команду з цього турніру.';
+      return;
+    }
+
+    this.api.deleteTeam(this.selectedTeamIdToDelete).subscribe({
       next: () => {
         this.message = 'Команду видалено.';
         this.error = '';
-        this.teamIdToDelete = null;
+        this.selectedTeamIdToDelete = null;
+        this.onTournamentChanged();
       },
       error: () => this.error = 'Не вдалося видалити команду.'
     });

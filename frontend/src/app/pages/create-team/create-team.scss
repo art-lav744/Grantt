@@ -6,17 +6,17 @@
 .registration-container {
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   padding: 40px 20px;
-  background-color: #0b1e2d; // Колір фону сторінки
-  min-height: calc(100vh - 80px); // Адаптація під layout
+  background-color: #0b1e2d;
+  min-height: calc(100vh - 80px);
 }
 
 .registration-card {
   width: 100%;
   max-width: 550px;
-  background: #1a365d; // Колір картки з макету
-  border-radius: 24px;
+  background: #1a365d;
+  border-radius: 18px;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 
@@ -71,17 +71,23 @@
 
 .styled-input {
   width: 100%;
-  padding: 14px 25px;
+  padding: 14px 18px;
   background: #ffffff;
-  border: none;
-  border-radius: 30px; // Овальна форма як у Figma
+  border: 1px solid transparent;
+  border-radius: 12px;
   font-size: 1rem;
   color: #1a202c;
   box-sizing: border-box;
   outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
 
   &::placeholder {
     color: #a0aec0;
+  }
+
+  &:focus {
+    border-color: #3ab8c8;
+    box-shadow: 0 0 0 3px rgba(58, 184, 200, 0.2);
   }
 }
 
@@ -107,15 +113,79 @@
   }
 }
 
+.members-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 16px;
+
+  h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 1.15rem;
+  }
+}
+
+.member-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+
+.btn-add,
+.btn-remove,
+.btn-submit,
+.btn-link {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+}
+
+.btn-add {
+  padding: 10px 14px;
+  background: rgba(58, 184, 200, 0.14);
+  border-color: rgba(58, 184, 200, 0.42);
+  color: #6ee7f0;
+
+  &:hover:not(:disabled) {
+    background: rgba(58, 184, 200, 0.24);
+    transform: translateY(-1px);
+  }
+}
+
+.btn-remove {
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+
+  &:hover:not(:disabled) {
+    background: rgba(245, 101, 101, 0.16);
+    border-color: rgba(245, 101, 101, 0.45);
+    color: #feb2b2;
+  }
+}
+
+.action-row {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
 .btn-submit {
   width: 100%;
   padding: 16px;
-  background: #3182ce; // Синій акцент
+  background: linear-gradient(135deg, #2f9cd8 0%, #3ab8c8 100%);
   color: #fff;
-  border: none;
-  border-radius: 30px;
+  border-color: rgba(255, 255, 255, 0.12);
   font-size: 1.1rem;
-  font-weight: 600;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -124,12 +194,50 @@
   transition: background 0.2s;
 
   &:hover:not(:disabled) {
-    background: #2b6cb0;
+    background: linear-gradient(135deg, #2689c3 0%, #2ca9b9 100%);
+    transform: translateY(-1px);
   }
 
   &:disabled {
     background: #4a5568;
     opacity: 0.5;
     cursor: not-allowed;
+  }
+}
+
+.btn-link {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 16px;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #cbd5e1;
+
+  &:hover {
+    color: #fff;
+    border-color: rgba(58, 184, 200, 0.55);
+    background: rgba(58, 184, 200, 0.08);
+  }
+}
+
+.btn-add:disabled,
+.btn-remove:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 620px) {
+  .registration-card .card-body {
+    padding: 20px 22px 32px;
+  }
+
+  .members-header,
+  .member-row {
+    grid-template-columns: 1fr;
+  }
+
+  .members-header {
+    align-items: stretch;
   }
 }

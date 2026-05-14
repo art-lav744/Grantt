@@ -1,57 +1,59 @@
 <div class="registration-container">
   <div class="registration-card">
     <div class="tournament-photo-area">
-      <ng-container *ngIf="tournament.imageUrl; else noPhoto">
-        <img [src]="tournament.imageUrl" alt="Tournament cover">
-      </ng-container>
-      <ng-template #noPhoto>
-        <div class="photo-placeholder">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <circle cx="8.5" cy="8.5" r="1.5"></circle>
-            <polyline points="21 15 16 10 5 21"></polyline>
-          </svg>
-          <p>Зображення турніру</p>
-        </div>
-      </ng-template>
+      <img *ngIf="tournament?.imageUrl" [src]="tournament.imageUrl" [alt]="tournament?.title">
+      <div *ngIf="!tournament?.imageUrl" class="photo-placeholder">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/><path d="M4 22h16"/></svg>
+        <p>{{ tournament?.title || 'Турнір' }}</p>
+      </div>
     </div>
 
-    <header class="card-header">
-      <h2>Зареєструвати команду на турнір</h2>
-    </header>
+    <div class="card-header">
+      <h2>Реєстрація команди</h2>
+      <p *ngIf="tournament">{{ tournament.title }}</p>
+    </div>
 
     <div class="card-body">
-      <form [formGroup]="teamForm" (ngSubmit)="onSubmit()">
-        
+      <div *ngIf="loading" class="info-box">Завантаження...</div>
+      <div *ngIf="error" class="error-summary">{{ error }}</div>
+
+      <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()">
         <div class="form-group">
-          <label for="teamName">Назва вашої команди:</label>
-          <input 
-            id="teamName"
-            type="text" 
-            formControlName="team_name" 
-            class="styled-input" 
-            placeholder="Наприклад: CyberDragons">
+          <label for="team-name">Назва вашої команди</label>
+          <input id="team-name" class="styled-input" formControlName="name" placeholder="Наприклад: CyberDragons">
         </div>
 
         <div class="info-box">
           <div class="info-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="16" x2="12" y2="12"></line>
-              <line x1="12" y1="8" x2="12.01" y2="8"></line>
-            </svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
           </div>
           <p class="info-text">
-            Ви як капітан зможете запросити інших учасників за їхнім Email в панелі керування командами після підтвердження реєстрації.
+            Разом із капітаном у команді має бути від {{ minMembers }} до {{ maxMembers }} учасників.
           </p>
         </div>
 
-        <button type="submit" class="btn-submit" [disabled]="teamForm.invalid">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          Підтвердити реєстрацію
-        </button>
+        <div formArrayName="members" class="members-block">
+          <div class="members-header">
+            <h3>Учасники</h3>
+            <button type="button" class="btn-add" (click)="addMember()" [disabled]="!canAddMember || !isRegistrationOpen">Додати учасника</button>
+          </div>
+
+          <div class="member-row" *ngFor="let member of members.controls; let i = index" [formGroupName]="i">
+            <div class="form-group">
+              <label [for]="'member-email-' + i">Email</label>
+              <input [id]="'member-email-' + i" class="styled-input" type="email" formControlName="email" placeholder="member@example.com">
+            </div>
+
+            <button type="button" class="btn-remove" (click)="removeMember(i)" [disabled]="members.length <= minMembers - 1 || !isRegistrationOpen">Прибрати</button>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button class="btn-submit" type="submit" [disabled]="form.invalid || saving || !isRegistrationOpen">
+            {{ saving ? 'Створення...' : 'Створити та продовжити' }}
+          </button>
+          <a class="btn-link" [routerLink]="['/tournaments', tournamentId]">Назад до турніру</a>
+        </div>
       </form>
     </div>
   </div>

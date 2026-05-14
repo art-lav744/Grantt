@@ -31,6 +31,10 @@ export class App {
     return this.role === 'jury' || this.role === 'organizer';
   }
 
+  get isParticipant(): boolean {
+    return this.role === 'participant';
+  }
+
   get userName(): string {
     return localStorage.getItem('nickname') || localStorage.getItem('username') || 'Grantt';
   }

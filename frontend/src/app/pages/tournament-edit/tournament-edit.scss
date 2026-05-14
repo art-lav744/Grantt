@@ -82,8 +82,9 @@ $border-color: rgba(255, 255, 255, 0.1);
   }
 
   textarea {
+    resize: none;
     min-height: 130px;
-    resize: vertical;
+    max-height: 130px;
   }
 
   option {
@@ -175,3 +176,6 @@ $border-color: rgba(255, 255, 255, 0.1);
     flex-direction: column;
   }
 }
+
+select option { background: #102535; color: #ffffff; }
+.action-bar { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }

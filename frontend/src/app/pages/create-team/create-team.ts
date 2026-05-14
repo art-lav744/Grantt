@@ -27,10 +27,7 @@ export class CreateTeam implements OnInit {
     private cdr: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
-      name: [''],
-      team_name: ['', [Validators.required, Validators.minLength(3)]],
-      captain_name: [localStorage.getItem('nickname') || localStorage.getItem('username') || '', Validators.required],
-      captain_email: [localStorage.getItem('email') || '', [Validators.required, Validators.email]],
+      name: ['', [Validators.required, Validators.minLength(3)]],
       members: this.fb.array([])
     });
   }
@@ -51,6 +48,25 @@ export class CreateTeam implements OnInit {
     return this.members.length + 1 < this.maxMembers;
   }
 
+  get role(): string {
+    return (localStorage.getItem('role') || '').toLowerCase();
+  }
+
+  get canCreateTeam(): boolean {
+    return !this.role || this.role === 'participant';
+  }
+
+  get isRegistrationOpen(): boolean {
+    if (!this.tournament) return true;
+    const status = String(this.tournament?.status || this.tournament?.logical_status || '').toLowerCase();
+    if (['closed', 'archived', 'finished', 'completed'].includes(status)) return false;
+
+    const regEnd = this.tournament?.reg_end ? new Date(this.tournament.reg_end) : null;
+    if (regEnd && !Number.isNaN(regEnd.getTime()) && regEnd.getTime() <= Date.now()) return false;
+
+    return ['registration', 'open', 'active', 'running', ''].includes(status);
+  }
+
   ngOnInit(): void {
     this.tournamentId = Number(this.route.snapshot.paramMap.get('id'));
     if (!this.tournamentId) {
@@ -59,12 +75,25 @@ export class CreateTeam implements OnInit {
       return;
     }
 
+    if (!this.canCreateTeam) {
+      this.error = 'Адмін, організатор або журі не можуть реєструватися як учасники турніру.';
+      this.loading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+
     this.api.getTournament(this.tournamentId).subscribe({
       next: (tournament: any) => {
-        this.tournament = { ...tournament, imageUrl: tournament?.imageUrl || tournament?.banner_url || tournament?.cover_url || tournament?.image || '' };
-        this.form.patchValue({ team_name: this.form.value.name || this.form.value.team_name });
+        this.tournament = {
+          ...tournament,
+          imageUrl: tournament?.imageUrl || tournament?.banner_url || tournament?.cover_image_path || tournament?.image || ''
+        };
         this.ensureMinimumMembers();
         this.loading = false;
+        if (!this.isRegistrationOpen) {
+          this.error = 'Реєстрацію на цей турнір завершено. Змінювати склад команди більше не можна.';
+          this.form.disable();
+        }
         this.cdr.detectChanges();
       },
       error: () => {
@@ -76,19 +105,28 @@ export class CreateTeam implements OnInit {
   }
 
   addMember(): void {
-    if (!this.canAddMember) return;
+    if (!this.canAddMember || !this.isRegistrationOpen) return;
     this.members.push(this.fb.group({
-      full_name: [''],
-      team_name: ['', [Validators.required, Validators.minLength(3)]],
       email: ['', [Validators.required, Validators.email]]
     }));
   }
 
   removeMember(index: number): void {
+    if (!this.isRegistrationOpen) return;
     this.members.removeAt(index);
   }
 
   save(): void {
+    if (!this.canCreateTeam) {
+      this.error = 'Тільки учасник може створити команду для участі в турнірі.';
+      return;
+    }
+
+    if (!this.isRegistrationOpen) {
+      this.error = 'Реєстрацію на цей турнір завершено. Створити або змінити команду вже не можна.';
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -100,10 +138,13 @@ export class CreateTeam implements OnInit {
 
     this.api.createTeam({
       tournament_id: this.tournamentId,
-      name: value.name || value.team_name,
-      captain_name: value.captain_name,
-      captain_email: value.captain_email,
-      members: value.members || []
+      name: value.name,
+      captain_name: localStorage.getItem('nickname') || localStorage.getItem('username') || '',
+      captain_email: localStorage.getItem('email') || '',
+      members: (value.members || []).map((member: any) => ({
+        email: member.email,
+        full_name: member.full_name || member.email
+      }))
     }).subscribe({
       next: (team: any) => this.router.navigate(['/teams', team.id]),
       error: (err: any) => {
@@ -112,14 +153,6 @@ export class CreateTeam implements OnInit {
         this.cdr.detectChanges();
       }
     });
-  }
-
-  get teamForm(): FormGroup {
-    return this.form;
-  }
-
-  onSubmit(): void {
-    this.save();
   }
 
   private ensureMinimumMembers(): void {

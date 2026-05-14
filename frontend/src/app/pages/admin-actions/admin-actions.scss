@@ -36,6 +36,13 @@ $border-color: rgba(255, 255, 255, 0.1);
   }
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .admin-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -177,6 +184,17 @@ label {
   border: 1px solid rgba(255, 107, 107, 0.35);
 }
 
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hint {
+  margin: -6px 0 0;
+  color: $text-muted;
+  font-size: 0.86rem;
+}
+
 .btn-outline-secondary {
   color: $text-muted;
   border: 1px solid $text-muted;
@@ -223,4 +241,30 @@ label {
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+.form-select option,
+select option {
+  background: #102535;
+  color: #ffffff;
+}
+
+.card-body {
+  display: grid;
+  gap: 16px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+}
+
+.text-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }

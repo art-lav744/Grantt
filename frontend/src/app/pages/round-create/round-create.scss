@@ -129,3 +129,20 @@ $text-muted: #cbd5e1;
     flex-direction: column;
   }
 }
+
+.form-control option,
+select option {
+  background: #102535;
+  color: #ffffff;
+}
+
+.btn-group-row {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+textarea.form-control {
+  resize: none !important;
+  min-height: 120px;
+  max-height: 120px;
+}

@@ -54,3 +54,26 @@ export const juryGuard: CanActivateFn = () => {
     queryParams: { forbidden: 'jury' }
   });
 };
+
+export const participantGuard: CanActivateFn = () => {
+  const router = inject(Router);
+  const token = localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('access');
+
+  if (!token) {
+    return router.createUrlTree(['/login']);
+  }
+
+  if (hasAnyRole(['participant'])) {
+    return true;
+  }
+
+  if (hasAnyRole(['admin', 'organizer'])) {
+    return router.createUrlTree(['/admin/actions']);
+  }
+
+  if (hasAnyRole(['jury'])) {
+    return router.createUrlTree(['/jury/evaluations']);
+  }
+
+  return router.createUrlTree(['/tournaments']);
+};

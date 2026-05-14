@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -21,7 +21,8 @@ export class RoundCreate {
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private api: ApiService
+    private api: ApiService,
+    private cdr: ChangeDetectorRef
   ) {
     this.tournamentId = Number(this.route.snapshot.paramMap.get('id'));
     this.form = this.fb.group({
@@ -46,8 +47,8 @@ export class RoundCreate {
       title: value.title,
       description: value.description,
       requirements: value.description || value.title,
-      start_time: value.start,
-      end_time: value.end,
+      start_time: this.toApiDateTime(value.start),
+      end_time: this.toApiDateTime(value.end),
       status: 'draft',
       tournament: this.tournamentId,
       criteria_definition: 'Technical | 100\nFunctionality | 100'
@@ -57,8 +58,15 @@ export class RoundCreate {
         console.error('Round create error:', err);
         this.error = this.extractError(err) || 'Не вдалося створити раунд.';
         this.saving = false;
+        this.cdr.detectChanges();
       }
     });
+  }
+
+  private toApiDateTime(value: any): string {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
   }
 
   private extractError(err: any): string {

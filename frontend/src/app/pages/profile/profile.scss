@@ -1,0 +1,13 @@
+:host { display:block; min-height:100vh; background:#0b1220; color:#fff; }
+.profile-page { padding: 32px; }
+.profile-card { max-width: 620px; background:#183545; border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:28px; box-shadow:0 18px 50px rgba(0,0,0,.22); }
+h1 { margin:0 0 8px; font-size:32px; }
+.muted { color:#a9bac7; }
+form { display:grid; gap:18px; margin-top:22px; }
+label { display:grid; gap:8px; color:#a9bac7; text-transform:uppercase; font-size:13px; letter-spacing:.06em; }
+input { background:#102535; color:#fff; border:1px solid rgba(255,255,255,.14); border-radius:10px; padding:13px 15px; font-size:15px; }
+input:focus { outline:none; border-color:#33b8d8; box-shadow:0 0 0 3px rgba(51,184,216,.18); }
+button { justify-self:start; background:#1fb6d5; color:#fff; border:0; border-radius:10px; padding:12px 22px; font-weight:700; cursor:pointer; }
+button:disabled { opacity:.55; cursor:not-allowed; }
+.error { color:#ffb3b3; background:rgba(255,80,80,.12); border:1px solid rgba(255,80,80,.22); border-radius:10px; padding:12px; }
+.success { color:#b7f5ce; background:rgba(64,210,120,.12); border:1px solid rgba(64,210,120,.22); border-radius:10px; padding:12px; }

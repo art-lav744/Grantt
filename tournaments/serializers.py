@@ -26,7 +26,7 @@ from .utils import (
 class TournamentShortSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tournament
-        fields = ('id', 'title', 'status')
+        fields = ('id', 'title', 'status', 'logical_status', 'reg_end')
 
 
 class UserOutSerializer(serializers.ModelSerializer):

@@ -1,69 +1,293 @@
-$dark-bg: #0d1b2a;
-$card-bg: #1b263b;
-$accent-blue: #00b4d8;
-$light-blue-text: #e0fbff; // Новий колір для тексту та іконок
-$soft-blue-accent: #caf0f8;
+$dark-bg: #0d1f2d;
+$panel-bg: #183545;
+$panel-soft: #1d4360;
+$accent: #3ab8c8;
+$text: #f8fafc;
+$muted: rgba(248, 250, 252, 0.68);
+$border: rgba(58, 184, 200, 0.16);
 
 :host {
   display: block;
   min-height: 100vh;
-  background-color: $dark-bg;
-  color: #e0e1dd;
+  background: $dark-bg;
+  color: $text;
 }
 
-.info-card {
-  // Змінюємо тональність карток на більш "світло-блакитну" в деталях
-  .card-header {
-    color: $soft-blue-accent;
-    border-bottom: 1px solid rgba($soft-blue-accent, 0.2);
-    font-size: 0.9rem;
+.team-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.team-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  padding: 28px;
+  border: 1px solid $border;
+  border-radius: 14px;
+  background: linear-gradient(135deg, $panel-bg 0%, #1f4267 100%);
+
+  h1 {
+    margin: 6px 0 0;
+    font-size: 2rem;
+  }
+}
+
+.eyebrow {
+  margin: 0;
+  color: $accent;
+  font-weight: 700;
+}
+
+.team-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  color: $text;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s, border-color 0.2s;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
-  .list-group-item {
-    color: $light-blue-text;
-    strong { color: #fff; }
-    small { color: rgba($light-blue-text, 0.7); }
+  &.primary {
+    background: linear-gradient(135deg, #2f9cd8 0%, $accent 100%);
   }
+
+  &.secondary {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+  }
+}
+
+.notice {
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(251, 191, 36, 0.26);
+  border-radius: 10px;
+  background: rgba(251, 191, 36, 0.08);
+  color: #fde68a;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.panel {
+  background: $panel-bg;
+  border: 1px solid $border;
+  border-radius: 12px;
+  padding: 20px;
+
+  h2 {
+    margin: 0 0 16px;
+    font-size: 1rem;
+    color: #dff8ff;
+  }
+}
+
+.info-column {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.person-card {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+
+  strong {
+    color: $text;
+  }
+
+  small {
+    color: $muted;
+  }
+}
+
+.person-card.compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.member-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-bottom: 12px;
+
+  input {
+    min-width: 0;
+    background: $dark-bg;
+    border: 1px solid $border;
+    color: $text;
+    border-radius: 10px;
+    padding: 10px 12px;
+    outline: none;
+
+    &:focus {
+      border-color: rgba($accent, 0.75);
+      box-shadow: 0 0 0 3px rgba($accent, 0.12);
+    }
+  }
+
+  button {
+    border: 0;
+    border-radius: 10px;
+    background: rgba($accent, 0.18);
+    color: #b8f7ff;
+    font-weight: 800;
+    padding: 0 14px;
+    cursor: pointer;
+  }
+}
+
+.remove-member {
+  border: 1px solid rgba(245, 101, 101, 0.36);
+  border-radius: 8px;
+  background: rgba(245, 101, 101, 0.12);
+  color: #fecaca;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.member-form button:disabled,
+.remove-member:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.success-text,
+.error-text {
+  margin: 0 0 10px;
+  font-size: 0.86rem;
+}
+
+.success-text {
+  color: #9ae6b4;
+}
+
+.error-text {
+  color: #feb2b2;
+}
+
+.role-label {
+  color: $accent;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.member-list {
+  display: grid;
+  gap: 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    padding: 13px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+  }
+
+  th {
+    color: $muted;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+  }
+}
+
+.score-tag {
+  display: inline-flex;
+  min-width: 40px;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba($accent, 0.16);
+  color: #b8f7ff;
+  border: 1px solid rgba($accent, 0.5);
+  font-weight: 800;
+}
+
+.links {
+  display: flex;
+  gap: 12px;
 }
 
 .svg-link {
   width: 22px;
   height: 22px;
   fill: none;
-  stroke: $accent-blue;
+  stroke: $accent;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  margin-right: 12px;
-  transition: stroke 0.3s ease;
-
-  &:hover { stroke: #fff; }
 }
 
-.score-tag {
-  background: rgba($accent-blue, 0.2);
-  color: $soft-blue-accent;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-weight: bold;
-  border: 1px solid $accent-blue;
+.empty-text,
+.state-block {
+  color: $muted;
 }
 
-.main-grid {
-  display: grid;
-  grid-template-columns: 350px 1fr;
-  gap: 24px;
-  animation: fadeInUp 0.6s ease-out;
-  @media (max-width: 992px) { grid-template-columns: 1fr; }
+.state-block {
+  padding: 40px;
 }
 
-.header-card {
-  background: linear-gradient(135deg, $card-bg 0%, #1e3a5f 100%);
-  border-radius: 16px;
-  h1 { color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-}
+@media (max-width: 900px) {
+  .team-page {
+    padding: 20px;
+  }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  .team-hero,
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-hero {
+    flex-direction: column;
+  }
+
+  .member-form,
+  .person-card.compact {
+    grid-template-columns: 1fr;
+  }
 }

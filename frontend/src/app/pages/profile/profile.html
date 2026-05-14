@@ -1,0 +1,26 @@
+<div class="profile-page">
+  <section class="profile-card">
+    <h1>Профіль</h1>
+    <p class="muted">Тут можна змінити ім’я, ПІБ і Discord тег.</p>
+
+    <div *ngIf="loading" class="muted">Завантаження...</div>
+    <p *ngIf="error" class="error">{{ error }}</p>
+    <p *ngIf="message" class="success">{{ message }}</p>
+
+    <form *ngIf="!loading" [formGroup]="form" (ngSubmit)="save()">
+      <label>
+        Нікнейм
+        <input formControlName="nickname" placeholder="Ваш нікнейм">
+      </label>
+      <label>
+        ПІБ
+        <input formControlName="full_name" placeholder="Ваше ім’я">
+      </label>
+      <label>
+        Discord тег
+        <input formControlName="discord_tag" placeholder="name#0000 або @name">
+      </label>
+      <button type="submit" [disabled]="form.invalid || saving">{{ saving ? 'Збереження...' : 'Зберегти' }}</button>
+    </form>
+  </section>
+</div>

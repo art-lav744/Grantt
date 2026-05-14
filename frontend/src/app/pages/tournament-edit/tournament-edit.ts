@@ -95,10 +95,10 @@ export class TournamentEdit implements OnInit {
       title: value.title,
       description: value.description,
       status: this.toApiStatus(value.status),
-      reg_start: value.reg_start,
-      reg_end: value.reg_end,
-      start_time: value.start_time,
-      end_time: value.end_time,
+      reg_start: this.toApiDateTime(value.reg_start),
+      reg_end: this.toApiDateTime(value.reg_end),
+      start_time: this.toApiDateTime(value.start_time),
+      end_time: this.toApiDateTime(value.end_time),
       max_teams: value.max_teams,
       max_rounds: value.max_rounds,
       min_team_members: value.min_team_members,
@@ -119,6 +119,13 @@ export class TournamentEdit implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+
+  private toApiDateTime(value: any): string {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
   }
 
   private toDateTimeLocal(value: any): string {

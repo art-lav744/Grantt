@@ -25,12 +25,20 @@ export class ApiService {
     return this.http.get<any[]>(`${this.apiUrl}/tournaments/`);
   }
 
+  getMe() {
+    return this.http.get<any>(`${this.apiUrl}/users/me/`, this.authHeaders());
+  }
+
+  updateMe(payload: any) {
+    return this.http.patch<any>(`${this.apiUrl}/users/me/`, payload, this.authHeaders());
+  }
+
   createTournament(data: any) {
     return this.http.post<any>(`${this.apiUrl}/tournaments/`, data, this.authHeaders());
   }
 
   getTournament(id: number) {
-    return this.http.get<any>(`${this.apiUrl}/tournaments/${id}/`);
+    return this.http.get<any>(`${this.apiUrl}/tournaments/${id}/`, this.authHeaders());
   }
 
   updateTournament(id: number, data: any) {
@@ -46,11 +54,11 @@ export class ApiService {
   }
 
   getTournamentTeams(id: number) {
-    return this.http.get<any[]>(`${this.apiUrl}/tournaments/${id}/teams/`);
+    return this.http.get<any[]>(`${this.apiUrl}/tournaments/${id}/teams/`, this.authHeaders());
   }
 
   getTournamentRounds(tournamentId: number) {
-    return this.http.get<any[]>(`${this.apiUrl}/rounds/?tournament_id=${tournamentId}`);
+    return this.http.get<any[]>(`${this.apiUrl}/rounds/?tournament_id=${tournamentId}`, this.authHeaders());
   }
 
   getTournamentFiles(tournamentId: number) {
@@ -88,11 +96,19 @@ export class ApiService {
   }
 
   getTeam(teamId: number) {
-    return this.http.get<any>(`${this.apiUrl}/teams/${teamId}/`);
+    return this.http.get<any>(`${this.apiUrl}/teams/${teamId}/`, this.authHeaders());
   }
 
   createTeam(data: any) {
     return this.http.post<any>(`${this.apiUrl}/teams/`, data, this.authHeaders());
+  }
+
+  addTeamMember(teamId: number, data: { email: string; full_name?: string }) {
+    return this.http.post<any>(`${this.apiUrl}/teams/${teamId}/members/`, data, this.authHeaders());
+  }
+
+  deleteTeamMember(teamId: number, memberId: number) {
+    return this.http.delete<any>(`${this.apiUrl}/teams/${teamId}/members/${memberId}/`, this.authHeaders());
   }
 
   getMyTeams() {

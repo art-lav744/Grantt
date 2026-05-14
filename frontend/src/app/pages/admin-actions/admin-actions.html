@@ -4,7 +4,10 @@
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       Панель адміна / організатора
     </h2>
-    <a routerLink="/dashboard" class="btn btn-outline-secondary">Назад до Dashboard</a>
+    <div class="header-actions">
+      <a routerLink="/tournaments/create" class="btn btn-primary">Створити турнір</a>
+      <a routerLink="/dashboard" class="btn btn-outline-secondary">Назад до Dashboard</a>
+    </div>
   </div>
 
   <div *ngIf="message" class="alert success">{{ message }}</div>
@@ -18,7 +21,7 @@
       <div class="card-body">
         <label>
           Турнір
-          <select class="form-select" [(ngModel)]="selectedTournamentId" name="selectedTournamentId">
+          <select class="form-select" [(ngModel)]="selectedTournamentId" (ngModelChange)="onTournamentChanged()" name="selectedTournamentId">
             <option [ngValue]="null">Оберіть турнір</option>
             <option *ngFor="let tournament of tournaments" [ngValue]="tournament.id">
               {{ tournament.title }} - {{ tournament.status }}
@@ -46,8 +49,13 @@
       </div>
       <div class="card-body">
         <label>
-          ID раунду
-          <input class="form-control" type="number" [(ngModel)]="selectedRoundId" name="selectedRoundId">
+          Раунд
+          <select class="form-select" [(ngModel)]="selectedRoundId" name="selectedRoundId">
+            <option [ngValue]="null">Оберіть турнір і раунд</option>
+            <option *ngFor="let round of rounds" [ngValue]="round.id">
+              {{ round.title }} - {{ round.status }}
+            </option>
+          </select>
         </label>
 
         <button class="btn btn-primary" type="button" (click)="distributeRound()">Розподілити</button>
@@ -60,11 +68,18 @@
       </div>
       <div class="card-body">
         <label>
-          ID команди
-          <input class="form-control" type="number" [(ngModel)]="teamIdToDelete" name="teamIdToDelete">
+          Команда в обраному турнірі
+          <select class="form-select" [(ngModel)]="selectedTeamIdToDelete" name="selectedTeamIdToDelete" [disabled]="!selectedTournamentId || teams.length === 0">
+            <option [ngValue]="null">{{ selectedTournamentId ? 'Оберіть команду' : 'Спочатку оберіть турнір' }}</option>
+            <option *ngFor="let team of teams" [ngValue]="team.id">
+              {{ team.name }}{{ team.captain_email ? ' - ' + team.captain_email : '' }}
+            </option>
+          </select>
         </label>
 
-        <button class="btn btn-danger" type="button" (click)="deleteTeam()">Видалити команду</button>
+        <p class="hint" *ngIf="selectedTournamentId && teams.length === 0">У цьому турнірі немає зареєстрованих команд.</p>
+
+        <button class="btn btn-danger" type="button" (click)="deleteTeam()" [disabled]="!selectedTeamIdToDelete">Видалити команду</button>
       </div>
     </section>
   </div>

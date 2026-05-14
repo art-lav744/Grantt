@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -22,11 +22,32 @@ export class EvaluationForm implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private api: ApiService
+    private api: ApiService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
+    this.route.paramMap.subscribe(params => {
+      const id = Number(params.get('id'));
+      this.loadEvaluation(id);
+    });
+  }
+
+  private loadEvaluation(id: number): void {
+    this.evaluation = null;
+    this.criteriaScores = [];
+    this.comment = '';
+    this.error = '';
+    this.loading = true;
+    this.saving = false;
+    this.cdr.detectChanges();
+
+    if (!id) {
+      this.error = 'Оцінювання не знайдено.';
+      this.loading = false;
+      this.cdr.detectChanges();
+      return;
+    }
 
     this.api.getEvaluation(id).subscribe({
       next: (evaluation: any) => {
@@ -34,10 +55,12 @@ export class EvaluationForm implements OnInit {
         this.criteriaScores = (evaluation.criteria_scores || []).map((item: any) => ({ ...item }));
         this.comment = evaluation.comment || '';
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.error = 'Не вдалося завантажити оцінювання.';
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -63,6 +86,7 @@ export class EvaluationForm implements OnInit {
       error: (err: any) => {
         this.error = err?.error?.detail || 'Не вдалося зберегти оцінку.';
         this.saving = false;
+        this.cdr.detectChanges();
       }
     });
   }

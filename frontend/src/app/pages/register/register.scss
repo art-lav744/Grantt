@@ -1,13 +1,22 @@
 // Reusing core styles to ensure consistency
 $main1: #1a3a4a;
 $main3: #3ab8c8;
-$bg-page: #e5e5e5;
+$bg-page: #0d1f2d;
 $white: #ffffff;
 $error: #ff8a80;
 
+:host {
+  display: block;
+  min-height: calc(100vh - 56px);
+  margin: -28px -32px;
+}
+
 .page-wrapper {
-  background-color: $bg-page;
-  min-height: 100vh;
+  background:
+    linear-gradient(rgba(8, 26, 38, 0.5), rgba(8, 26, 38, 0.58)),
+    url('/assets/background_for_home.png') center / cover no-repeat,
+    $bg-page;
+  min-height: calc(100vh - 56px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -191,5 +200,11 @@ h2 {
     background: rgba(255, 255, 255, 0.15);
     color: rgba(255, 255, 255, 0.4);
     cursor: not-allowed;
+  }
+}
+
+@media (max-width: 720px) {
+  :host {
+    margin: -20px -16px;
   }
 }

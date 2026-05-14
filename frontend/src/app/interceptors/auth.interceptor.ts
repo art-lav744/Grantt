@@ -35,12 +35,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         router.navigate(['/login']);
       }
 
-      if (error.status === 403) {
-        router.navigate(['/dashboard'], {
-          queryParams: { forbidden: 'admin' }
-        });
-      }
-
       return throwError(() => error);
     })
   );

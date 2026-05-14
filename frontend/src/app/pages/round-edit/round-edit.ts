@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -24,7 +24,8 @@ export class RoundEdit implements OnInit {
     private fb: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
-    private api: ApiService
+    private api: ApiService,
+    private cdr: ChangeDetectorRef
   ) {
     this.roundId = Number(this.route.snapshot.paramMap.get('id'));
     this.form = this.fb.group({
@@ -49,10 +50,12 @@ export class RoundEdit implements OnInit {
           status: this.toFormStatus(round?.status)
         });
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.error = 'Не вдалося завантажити раунд.';
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -71,8 +74,8 @@ export class RoundEdit implements OnInit {
       title: value.title,
       description: value.description,
       requirements: this.originalRound?.requirements || value.description || value.title,
-      start_time: value.start,
-      end_time: value.end,
+      start_time: this.toApiDateTime(value.start),
+      end_time: this.toApiDateTime(value.end),
       status: this.toApiStatus(value.status),
       criteria_definition: this.originalRound?.evaluation_criteria || 'Technical | 100\nFunctionality | 100'
     }).subscribe({
@@ -81,6 +84,7 @@ export class RoundEdit implements OnInit {
         console.error('Round update error:', err);
         this.error = this.extractError(err) || 'Не вдалося зберегти раунд.';
         this.saving = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -103,6 +107,12 @@ export class RoundEdit implements OnInit {
     if (status === 'completed') return 'closed';
     if (status === 'active') return 'active';
     return 'draft';
+  }
+
+  private toApiDateTime(value: any): string {
+    if (!value) return '';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
   }
 
   private extractError(err: any): string {

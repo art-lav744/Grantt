@@ -1,7 +1,7 @@
 <div class="container">
   
   <div class="banner-container" [style.background-image]="tournament.banner_url ? 'url(' + tournament.banner_url + ')' : null">
-    <input type="file" class="banner-input" accept="image/*" (change)="onBannerSelected($event)">
+    <input *ngIf="canManageRounds" type="file" class="banner-input" accept="image/*" (change)="onBannerSelected($event)">
     <div class="banner-content" *ngIf="!tournament.banner_url">
       <svg class="icon-lg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
       <span>Натисніть, щоб додати банер турніру</span>
@@ -19,11 +19,13 @@
         <p><strong>Реєстрація:</strong> {{ tournament.reg_start | date:'dd.MM.yyyy' }} — {{ tournament.reg_end | date:'dd.MM.yyyy' }}</p>
         <p><strong>Статус:</strong> <span class="status-tag">{{ tournament.status }}</span></p>
       </div>
-      <div class="actions" *ngIf="canManageRounds">
-        <button class="btn-icon" [routerLink]="['/tournaments/edit', tournament.id]" title="Редагувати турнір">
+      <div class="actions" *ngIf="canManageRounds || canRegisterTeam || isJury">
+        <button class="btn-icon" *ngIf="canManageRounds" [routerLink]="['/tournaments/edit', tournament.id]" title="Редагувати турнір">
           <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
         </button>
-        <button class="btn" [routerLink]="['/rounds/create', tournament.id]">Додати раунд</button>
+        <button class="btn" *ngIf="canManageRounds" [routerLink]="['/rounds/create', tournament.id]">Додати раунд</button>
+        <button class="btn" *ngIf="canRegisterTeam" [routerLink]="['/tournaments', tournament.id, 'create-team']">Брати участь</button>
+        <button class="btn btn-secondary" *ngIf="isJury && !canManageRounds" type="button" (click)="applyAsJury()">Подати заявку журі</button>
       </div>
     </div>
   </div>
@@ -86,8 +88,42 @@
     </div>
   </div>
 
-  <div class="card" *ngIf="canAccessFiles">
+  <div class="card" *ngIf="canAccessFiles || canUploadFiles">
     <h2>Файли турніру</h2>
+
+    <form *ngIf="canUploadFiles" class="upload-form" (ngSubmit)="uploadFile()">
+      <div class="upload-grid">
+        <label>
+          Назва файлу
+          <input type="text" name="fileTitle" [(ngModel)]="fileTitle" placeholder="Наприклад: Регламент">
+        </label>
+
+        <label>
+          Тип
+          <select name="fileType" [(ngModel)]="fileType">
+            <option value="document">Документ</option>
+            <option value="rules">Правила</option>
+            <option value="presentation">Презентація</option>
+            <option value="archive">Архів</option>
+            <option value="other">Інше</option>
+          </select>
+        </label>
+
+        <label class="file-picker">
+          Файл
+          <input type="file" (change)="onFileSelected($event)">
+          <span>{{ selectedFile?.name || 'Оберіть файл' }}</span>
+        </label>
+      </div>
+
+      <button class="btn" type="submit" [disabled]="uploadingFile || !selectedFile || !fileTitle.trim()">
+        {{ uploadingFile ? 'Завантаження...' : 'Додати файл' }}
+      </button>
+    </form>
+
+    <p *ngIf="message" class="success-msg">{{ message }}</p>
+    <p *ngIf="error" class="error-msg">{{ error }}</p>
+
     <div class="table-responsive">
       <table *ngIf="files.length > 0; else noFiles">
         <thead>
@@ -102,12 +138,12 @@
             <td>{{ file.title }}</td>
             <td class="file-type">{{ file.file_type }}</td>
             <td class="actions-cell">
-              <button class="btn-icon" title="Відкрити">
+              <a class="btn-icon" [href]="fileUrl(file)" target="_blank" rel="noopener" title="Відкрити" *ngIf="fileUrl(file)">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
-              </button>
-              <button class="btn-icon" title="Завантажити">
+              </a>
+              <a class="btn-icon" [href]="fileUrl(file)" download title="Завантажити" *ngIf="fileUrl(file)">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-              </button>
+              </a>
             </td>
           </tr>
         </tbody>

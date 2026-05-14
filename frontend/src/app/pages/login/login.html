@@ -1,7 +1,7 @@
 <div class="page-wrapper">
   <div class="card shadow-container">
     <div class="logo-area">
-      <img src="templetes_angular\media_photos_etc\logo_grantt.png" alt="Grantt logo" class="logo-img"> <!-- change-for-assets/logo -->
+      <img src="/assets/logo_grantt.png" alt="Grantt logo" class="logo-img">
     </div>
 
     <h2>Увійти в акаунт Grantt</h2>
@@ -50,7 +50,7 @@
       <button class="btn" type="submit" [disabled]="loginForm.invalid">Увійти</button>
       
       <div class="footer-link">
-        Не маєте акаунту? <span>Зареєструватися</span>
+        Не маєте акаунту? <span (click)="goToRegister()">Зареєструватися</span>
       </div>
     </form>
   </div>

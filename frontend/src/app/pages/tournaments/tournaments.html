@@ -1,16 +1,32 @@
 <div class="tournaments-container">
-  <h1 class="page-title" *ngIf="tournaments.length > 0">Список турнірів</h1>
+  <div class="page-header">
+    <h1 class="page-title" *ngIf="tournaments.length > 0">Список турнірів</h1>
+    <a *ngIf="isAdminOrOrganizer" class="create-tournament-btn" routerLink="/tournaments/create">Створити турнір</a>
+  </div>
 
-  <div class="tournaments-grid" *ngIf="!isLoading && tournaments.length > 0; else emptyState">
+  <div class="filter-bar" *ngIf="!isLoading && tournaments.length > 0" aria-label="Фільтр турнірів за статусом">
+    <button
+      *ngFor="let filter of statusFilters"
+      type="button"
+      class="filter-pill"
+      [class.active]="activeStatus === filter.value"
+      (click)="applyFilter(filter.value)"
+    >
+      <span>{{ filter.label }}</span>
+      <strong>{{ statusCount(filter.value) }}</strong>
+    </button>
+  </div>
+
+  <div class="tournaments-grid" *ngIf="!isLoading && filteredTournaments.length > 0; else emptyState">
     <a 
-      *ngFor="let t of tournaments" 
+      *ngFor="let t of filteredTournaments"
       class="tournament-card" 
       [routerLink]="['/tournaments', t.id]"
     >
       <div class="card-header">
         <div class="header-overlay">
-          <span class="status-badge" [attr.data-status]="t.status">
-            {{ t.status }}
+          <span class="status-badge" [attr.data-status]="t.viewStatus">
+            {{ statusLabel(t) }}
           </span>
           <div class="registration-dates">
             <p>Кінець реєстрації</p>
@@ -31,10 +47,14 @@
   </div>
 
   <ng-template #emptyState>
-    <div class="empty-state" *ngIf="!isLoading">
+    <div class="empty-state" *ngIf="!isLoading && tournaments.length === 0">
       <div class="empty-icon">📂</div>
       <p>Турнірів поки немає.</p>
     </div>
     <div class="loader" *ngIf="isLoading">Завантаження...</div>
+    <div class="empty-state" *ngIf="!isLoading && tournaments.length > 0 && filteredTournaments.length === 0">
+      <div class="empty-icon">📂</div>
+      <p>Немає турнірів з таким статусом.</p>
+    </div>
   </ng-template>
 </div>

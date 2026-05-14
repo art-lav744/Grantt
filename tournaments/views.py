@@ -948,6 +948,55 @@ class TeamDetailAPIView(APIView):
         return Response(team_payload)
 
 
+class TeamMemberListCreateView(APIView):
+    permission_classes = [IsAuthenticatedJWT]
+
+    def post(self, request, team_id):
+        team = get_object_or_404(Team.objects.select_related('captain', 'tournament'), pk=team_id)
+        if team.captain_id != request.user.id:
+            return Response({'detail': 'Only the team captain can add members'}, status=status.HTTP_403_FORBIDDEN)
+
+        registration_error = tournament_registration_error(team.tournament, now=timezone.now())
+        if registration_error:
+            return Response({'detail': registration_error}, status=status.HTTP_400_BAD_REQUEST)
+
+        if team.memberships.count() + 1 >= team.tournament.max_team_members:
+            return Response({'detail': 'Team member limit reached'}, status=status.HTTP_400_BAD_REQUEST)
+
+        email = normalize_email_value(request.data.get('email') or '')
+        if not email:
+            return Response({'email': ['This field is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        if Team.objects.filter(tournament=team.tournament, captain_email=email).exists() or TeamMember.objects.filter(team__tournament=team.tournament, email=email).exists():
+            return Response({'detail': 'User is already registered in this tournament'}, status=status.HTTP_400_BAD_REQUEST)
+
+        linked_user = User.objects.filter(email__iexact=email).first()
+        member = TeamMember.objects.create(
+            team=team,
+            email=email,
+            full_name=request.data.get('full_name') or email,
+            user=linked_user,
+        )
+        return Response({'id': member.id, 'full_name': member.full_name, 'email': member.email, 'user_id': member.user_id}, status=status.HTTP_201_CREATED)
+
+
+class TeamMemberDetailView(APIView):
+    permission_classes = [IsAuthenticatedJWT]
+
+    def delete(self, request, team_id, member_id):
+        team = get_object_or_404(Team.objects.select_related('captain', 'tournament'), pk=team_id)
+        if team.captain_id != request.user.id:
+            return Response({'detail': 'Only the team captain can remove members'}, status=status.HTTP_403_FORBIDDEN)
+
+        registration_error = tournament_registration_error(team.tournament, now=timezone.now())
+        if registration_error:
+            return Response({'detail': registration_error}, status=status.HTTP_400_BAD_REQUEST)
+
+        member = get_object_or_404(TeamMember, pk=member_id, team=team)
+        member.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class AdminTeamDetailView(APIView):
     permission_classes = [IsAdmin]
 
@@ -1568,5 +1617,4 @@ def evaluation_detail(request, eval_id):
         'criteria_max_total': sum(item.criterion.max_score for item in criteria_scores),
         'criteria_definition': _criteria_definition_from_round(evaluation.submission.round),
     })
-
 

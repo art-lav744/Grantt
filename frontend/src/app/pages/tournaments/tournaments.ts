@@ -14,8 +14,19 @@ export class Tournaments implements OnInit {
   tournaments: any[] = [];
   filteredTournaments: any[] = [];
   activeStatus: 'all' | 'registration' | 'running' | 'finished' = 'all';
+  readonly statusFilters: Array<{ value: 'all' | 'registration' | 'running' | 'finished'; label: string }> = [
+    { value: 'all', label: 'Усі' },
+    { value: 'registration', label: 'Реєстрація' },
+    { value: 'running', label: 'Активні' },
+    { value: 'finished', label: 'Завершені' }
+  ];
   isLoading = true;
   errorMessage = '';
+
+  get isAdminOrOrganizer(): boolean {
+    const role = (localStorage.getItem('role') || '').toLowerCase();
+    return role === 'admin' || role === 'organizer';
+  }
 
   constructor(
     private api: ApiService,
@@ -54,6 +65,14 @@ export class Tournaments implements OnInit {
     }
 
     this.filteredTournaments = this.tournaments.filter(tournament => tournament.viewStatus === status);
+  }
+
+  statusCount(status: 'all' | 'registration' | 'running' | 'finished'): number {
+    if (status === 'all') {
+      return this.tournaments.length;
+    }
+
+    return this.tournaments.filter(tournament => tournament.viewStatus === status).length;
   }
 
   statusLabel(tournament: any): string {

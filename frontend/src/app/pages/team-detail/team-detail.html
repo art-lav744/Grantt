@@ -1,89 +1,100 @@
-<div class="container mt-4" *ngIf="team">
-  <div class="card header-card mb-4">
-    <div class="card-body d-flex justify-content-between align-items-center">
-      <div>
-        <h1>{{ team.name }}</h1>
-        <p class="lead">
-          <strong>{{ team.tournament?.title }}</strong>
-          <span *ngIf="team.organization" class="badge badge-outline ml-2">{{ team.organization }}</span>
-        </p>
-      </div>
-      <div class="actions" *ngIf="isCaptain">
-        <button class="btn btn-primary" (click)="goToSubmit()">
-          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m14-7-5-5-5 5m5-5v12"/></svg>
-          Подати роботу
-        </button>
-        <button class="btn btn-outline-light" (click)="goToAddMember()">
-          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-          Додати учасника
-        </button>
-      </div>
+<div class="team-page" *ngIf="team; else stateBlock">
+  <section class="team-hero">
+    <div>
+      <p class="eyebrow">{{ team.tournament?.title }}</p>
+      <h1>{{ team.name }}</h1>
     </div>
-  </div>
 
-  <div class="main-grid">
-    <aside class="sidebar">
-      <div class="card info-card mb-4">
-        <div class="card-header">Інформація</div>
-        <ul class="list-group">
-          <li class="list-group-item">
-            <strong>Капітан:</strong><br>
-            {{ team.captain_name }}<br>
-            <small>{{ team.captain_email }}</small>
-          </li>
-        </ul>
-      </div>
+    <div class="team-actions" *ngIf="isCaptain">
+      <button class="action-btn primary" type="button" (click)="goToSubmit()" [disabled]="!canSubmitWork">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m14-7-5-5-5 5m5-5v12"/></svg>
+        Подати роботу
+      </button>
 
-      <div class="card info-card">
-        <div class="card-header">Учасники</div>
-        <ul class="list-group">
-          <li *ngFor="let member of team.members" class="list-group-item d-flex justify-content-between">
+      <button class="action-btn secondary" type="button" [disabled]="!canManageMembers">
+        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+        Додати учасника
+      </button>
+    </div>
+  </section>
+
+  <p class="notice" *ngIf="isCaptain && !canManageMembers">
+    Додавати або прибирати учасників можна тільки до завершення реєстрації.
+  </p>
+
+  <div class="team-grid">
+    <aside class="info-column">
+      <section class="panel">
+        <h2>Інформація</h2>
+        <div class="person-card">
+          <span class="role-label">Капітан</span>
+          <strong>{{ team.captain_name || 'Капітан' }}</strong>
+          <small>{{ team.captain_email }}</small>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Учасники</h2>
+        <form class="member-form" *ngIf="isCaptain" (ngSubmit)="addMember()">
+          <input type="email" name="memberEmail" [(ngModel)]="memberEmail" placeholder="email учасника" [disabled]="!canManageMembers || memberSaving">
+          <button type="submit" [disabled]="!canManageMembers || memberSaving || !memberEmail.trim()">Додати</button>
+        </form>
+        <p class="success-text" *ngIf="memberMessage">{{ memberMessage }}</p>
+        <p class="error-text" *ngIf="memberError">{{ memberError }}</p>
+        <div class="member-list" *ngIf="team.members?.length > 0; else noMembers">
+          <div class="person-card compact" *ngFor="let member of team.members">
             <div>
-              <strong>{{ member.full_name }}</strong><br>
+              <strong>{{ member.full_name || member.email }}</strong>
               <small>{{ member.email }}</small>
             </div>
-            <span *ngIf="member.isCaptain" class="badge badge-warning">Cap</span>
-          </li>
-        </ul>
-      </div>
-    </aside>
-
-    <section class="content">
-      <div class="card info-card">
-        <div class="card-header">Історія подач</div>
-        <div class="card-body">
-          <div class="table-responsive" *ngIf="submissions && submissions.length > 0">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Раунд</th>
-                  <th>Дата</th>
-                  <th>Оцінка</th>
-                  <th>Матеріали</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let sub of submissions">
-                  <td>{{ sub.roundTitle }}</td>
-                  <td>{{ sub.createdAt | date:'dd.MM.yyyy' }}</td>
-                  <td><span class="score-tag">{{ sub.totalAvg }}</span></td>
-                  <td class="links">
-                    <a [href]="sub.githubLink" target="_blank" title="GitHub">
-                      <svg class="svg-link" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-                    </a>
-                    <a *ngIf="sub.videoLink" [href]="sub.videoLink" target="_blank" title="Video">
-                      <svg class="svg-link" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
-                    </a>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div *ngIf="!submissions || submissions.length === 0" class="text-center p-4">
-             Подач поки немає
+            <button class="remove-member" type="button" *ngIf="isCaptain" (click)="removeMember(member)" [disabled]="!canManageMembers">Прибрати</button>
           </div>
         </div>
+        <ng-template #noMembers>
+          <p class="empty-text">Додаткових учасників ще немає.</p>
+        </ng-template>
+      </section>
+    </aside>
+
+    <section class="panel submissions-panel">
+      <h2>Історія подач</h2>
+      <div class="table-responsive" *ngIf="submissions && submissions.length > 0; else noSubmissions">
+        <table>
+          <thead>
+            <tr>
+              <th>Раунд</th>
+              <th>Дата</th>
+              <th>Оцінка</th>
+              <th>Матеріали</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let sub of submissions">
+              <td>{{ sub.roundTitle }}</td>
+              <td>{{ sub.createdAt | date:'dd.MM.yyyy' }}</td>
+              <td><span class="score-tag">{{ sub.totalAvg || '...' }}</span></td>
+              <td class="links">
+                <a *ngIf="sub.githubLink" [href]="sub.githubLink" target="_blank" rel="noopener" title="GitHub">
+                  <svg class="svg-link" viewBox="0 0 24 24"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.44 5.44 0 0 0 3.5 8.55c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                </a>
+                <a *ngIf="sub.videoLink" [href]="sub.videoLink" target="_blank" rel="noopener" title="Video">
+                  <svg class="svg-link" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
+      <ng-template #noSubmissions>
+        <p class="empty-text">Подач поки немає.</p>
+      </ng-template>
     </section>
   </div>
 </div>
+
+<ng-template #stateBlock>
+  <div class="state-block">
+    <p *ngIf="loading">Завантаження команди...</p>
+    <p *ngIf="error">{{ error }}</p>
+  </div>
+</ng-template>

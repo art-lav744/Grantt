@@ -7,8 +7,79 @@
 .page-title {
   color: #ffffff;
   font-size: 2rem;
-  margin-bottom: 2rem;
+  margin: 0;
   font-weight: 800;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 2rem;
+}
+
+.create-tournament-btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2f9cd8 0%, #3ab8c8 100%);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: transform 0.2s, filter 0.2s;
+
+  &:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+  }
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -0.75rem 0 2rem;
+}
+
+.filter-pill {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid rgba(58, 184, 200, 0.28);
+  border-radius: 10px;
+  background: rgba(22, 46, 62, 0.72);
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+
+  strong {
+    min-width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #4fd1c5;
+    font-size: 12px;
+  }
+
+  &:hover,
+  &.active {
+    transform: translateY(-1px);
+    background: rgba(58, 184, 200, 0.22);
+    border-color: rgba(79, 209, 197, 0.72);
+    color: #fff;
+  }
 }
 
 .tournaments-grid {
@@ -70,9 +141,20 @@
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.2);
 
-  &[data-status="Active"] {
+  &[data-status="Active"],
+  &[data-status="running"] {
     background: rgba(72, 187, 120, 0.3);
     border-color: #48bb78;
+  }
+
+  &[data-status="registration"] {
+    background: rgba(66, 153, 225, 0.28);
+    border-color: #4299e1;
+  }
+
+  &[data-status="finished"] {
+    background: rgba(160, 174, 192, 0.24);
+    border-color: #a0aec0;
   }
 }
 
