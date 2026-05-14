@@ -256,6 +256,66 @@ table {
 }
 .file-type { color: $accent; font-weight: bold; font-size: 0.9rem; }
 
+/* ====================== КРОПЕР ====================== */
+.cropper-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cropper-overlay {
+  background: $card-bg;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 1000px;
+  width: 95%;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+}
+
+.cropper-content {
+  text-align: center;
+}
+
+.cropper-preview {
+  background: #0a1a24;
+  padding: 12px;
+  border-radius: 8px;
+  margin: 16px 0;
+  cursor: grab;
+}
+
+.crop-canvas {
+  max-width: 100%;
+  height: auto;
+  border: 2px solid $accent;
+  border-radius: 6px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+  user-select: none;
+}
+
+.zoom-control {
+  margin: 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-direction: column;
+}
+
+.zoom-control span {
+  color: $text-muted;
+  font-size: 0.95rem;
+}
+
+.cropper-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
 @media (max-width: 760px) {
   .upload-grid {
     grid-template-columns: 1fr;

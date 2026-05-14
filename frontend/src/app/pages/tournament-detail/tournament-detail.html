@@ -1,16 +1,68 @@
 <div class="container">
   
-  <div class="banner-container" [style.background-image]="tournament.banner_url ? 'url(' + tournament.banner_url + ')' : null">
-    <input *ngIf="canManageRounds" type="file" class="banner-input" accept="image/*" (change)="onBannerSelected($event)">
-    <div class="banner-content" *ngIf="!tournament.banner_url">
+  <!-- БАНЕР -->
+  <div class="banner-container" 
+       [style.background-image]="tournament.banner_url ? 'url(' + tournament.banner_url + ')' : null">
+
+    <input *ngIf="canManageRounds" 
+           type="file" 
+           class="banner-input" 
+           accept="image/*" 
+           (change)="onBannerSelected($event)">
+
+    <div class="banner-content" *ngIf="!tournament.banner_url && !showCropper">
       <svg class="icon-lg" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
       <span>Натисніть, щоб додати банер турніру</span>
     </div>
-    <div class="banner-overlay" *ngIf="tournament.banner_url">
+
+    <!-- КРОПЕР -->
+    <div class="cropper-modal" *ngIf="showCropper">
+      <div class="cropper-overlay">
+        <div class="cropper-content">
+          <h3>Обріжте та відмасштабуйте банер</h3>
+          <small>Рекомендований розмір: 1200 × 450 px</small>
+
+          <div class="cropper-preview">
+            <img #cropperImage 
+                 [src]="cropImageSrc" 
+                 (load)="onCropImageLoad()"
+                 style="display: none;">
+
+            <canvas #cropperCanvas 
+                    class="crop-canvas"
+                    (mousedown)="onMouseDown($event)"
+                    (mousemove)="onMouseMove($event)"
+                    (mouseup)="onMouseUp()"
+                    (mouseleave)="onMouseUp()">
+            </canvas>
+          </div>
+
+          <div class="zoom-control">
+            <span>Масштаб: {{ (scale * 100).toFixed(0) }}%</span>
+            <input type="range" 
+                   [(ngModel)]="scale" 
+                   (input)="onScaleChange()"
+                   [min]="minScale" 
+                   [max]="maxScale" 
+                   step="0.01">
+          </div>
+
+          <div class="cropper-actions">
+            <button class="btn btn-secondary" (click)="cancelBannerCrop()">Скасувати</button>
+            <button class="btn" (click)="confirmBannerCrop()" [disabled]="isCropping">
+              {{ isCropping ? 'Збереження...' : 'Зберегти банер' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="banner-overlay" *ngIf="tournament.banner_url && !showCropper">
       <div class="edit-badge">Змінити зображення</div>
     </div>
   </div>
 
+  <!-- Інформація про турнір -->
   <div class="card">
     <div class="header-flex">
       <div class="info">
@@ -30,6 +82,7 @@
     </div>
   </div>
 
+  <!-- Команди-учасниці -->
   <div class="card">
     <h2>Команди-учасниці</h2>
     <div class="table-responsive">
@@ -56,35 +109,6 @@
         </tbody>
       </table>
       <ng-template #noTeams><p class="empty-msg">Команд ще не зареєстровано.</p></ng-template>
-    </div>
-  </div>
-
-  <div class="card" *ngIf="canManageRounds">
-    <h2>Раунди</h2>
-    <div class="table-responsive">
-      <table *ngIf="rounds.length > 0; else noRounds">
-        <thead>
-          <tr>
-            <th>Назва</th>
-            <th>Статус</th>
-            <th>Терміни</th>
-            <th class="actions-cell"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let round of rounds">
-            <td>{{ round.title }}</td>
-            <td><span class="status-tag">{{ round.status }}</span></td>
-            <td class="text-small">{{ round.start }} — {{ round.end }}</td>
-            <td class="actions-cell">
-              <button class="btn-icon" [routerLink]="['/rounds/edit', round.id]">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <ng-template #noRounds><p class="empty-msg">Раунди ще не створені.</p></ng-template>
     </div>
   </div>
 
@@ -121,7 +145,7 @@
       </button>
     </form>
 
-    <p *ngIf="message" class="success-msg">{{ message }}</p>
+<p *ngIf="message" class="success-msg">{{ message }}</p>
     <p *ngIf="error" class="error-msg">{{ error }}</p>
 
     <div class="table-responsive">
@@ -138,12 +162,23 @@
             <td>{{ file.title }}</td>
             <td class="file-type">{{ file.file_type }}</td>
             <td class="actions-cell">
-              <a class="btn-icon" [href]="fileUrl(file)" target="_blank" rel="noopener" title="Відкрити" *ngIf="fileUrl(file)">
+              <!-- Відкрити -->
+              <a class="btn-icon" 
+                 [href]="fileUrl(file)" 
+                 target="_blank" 
+                 rel="noopener" 
+                 title="Відкрити"
+                 *ngIf="fileUrl(file)">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
               </a>
-              <a class="btn-icon" [href]="fileUrl(file)" download title="Завантажити" *ngIf="fileUrl(file)">
+
+              <!-- Завантажити -->
+              <button class="btn-icon" 
+                      (click)="downloadFile(file)" 
+                      title="Завантажити"
+                      *ngIf="fileUrl(file)">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-              </a>
+              </button>
             </td>
           </tr>
         </tbody>

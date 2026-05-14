@@ -1,7 +1,8 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+
 import { ApiService } from '../../services/api';
 
 @Component({
@@ -12,6 +13,9 @@ import { ApiService } from '../../services/api';
   styleUrl: './tournament-detail.scss',
 })
 export class TournamentDetail implements OnInit {
+  @ViewChild('cropperCanvas') cropperCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('cropperImage') cropperImage!: ElementRef<HTMLImageElement>;
+
   tournament: any = { banner_url: '', title: '', description: '', reg_start: null, reg_end: null, status: '' };
   teams: any[] = [];
   rounds: any[] = [];
@@ -19,10 +23,30 @@ export class TournamentDetail implements OnInit {
   error = '';
   message = '';
   canAccessFiles = false;
+
   selectedFile: File | null = null;
   fileTitle = '';
   fileType = 'document';
   uploadingFile = false;
+
+  // Кропер банера
+  showCropper = false;
+  selectedBannerFile: File | null = null;
+  cropImageSrc: string = '';
+  isCropping = false;
+
+  // Параметри масштабування та позиції
+  scale = 1;
+  minScale = 0.5;
+  maxScale = 5;
+  offsetX = 0;
+  offsetY = 0;
+  isDragging = false;
+  lastX = 0;
+  lastY = 0;
+
+  private readonly targetWidth = 1200;
+  private readonly targetHeight = 450;
 
   constructor(
     private route: ActivatedRoute,
@@ -47,7 +71,8 @@ export class TournamentDetail implements OnInit {
   }
 
   get canRegisterTeam(): boolean {
-    return this.isLoggedIn() && this.role === 'participant' && String(this.tournament?.status || '').toLowerCase() === 'registration';
+    return this.isLoggedIn() && this.role === 'participant' && 
+           String(this.tournament?.status || '').toLowerCase() === 'registration';
   }
 
   ngOnInit(): void {
@@ -73,10 +98,7 @@ export class TournamentDetail implements OnInit {
         this.teams = Array.isArray(teams) ? teams : [];
         this.cdr.detectChanges();
       },
-      error: () => {
-        this.teams = [];
-        this.cdr.detectChanges();
-      }
+      error: () => { this.teams = []; this.cdr.detectChanges(); }
     });
 
     this.api.getTournamentRounds(id).subscribe({
@@ -84,40 +106,161 @@ export class TournamentDetail implements OnInit {
         this.rounds = Array.isArray(rounds) ? rounds.map((round: any) => this.normalizeRound(round)) : [];
         this.cdr.detectChanges();
       },
-      error: () => {
-        this.rounds = [];
-        this.cdr.detectChanges();
-      }
+      error: () => { this.rounds = []; this.cdr.detectChanges(); }
     });
 
     this.loadFiles(id);
   }
 
+  // ==================== КРОПЕР БАНЕРА ====================
   onBannerSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (!file || !this.tournament?.id || !this.canManageRounds) return;
+    if (!file || !this.canManageRounds) return;
+
+    this.selectedBannerFile = file;
+    this.scale = 1;
+    this.offsetX = 0;
+    this.offsetY = 0;
 
     const reader = new FileReader();
-    reader.onload = () => {
-      this.tournament = { ...this.tournament, banner_url: reader.result as string };
+    reader.onload = (e) => {
+      this.cropImageSrc = e.target?.result as string;
+      this.showCropper = true;
       this.cdr.detectChanges();
     };
     reader.readAsDataURL(file);
+  }
 
-    if (this.canManageRounds) {
-      this.api.uploadTournamentImage(this.tournament.id, file).subscribe({
+  onCropImageLoad(): void {
+    this.drawCanvas();
+  }
+
+  private drawCanvas(): void {
+    const canvas = this.cropperCanvas.nativeElement;
+    const ctx = canvas.getContext('2d')!;
+    const img = this.cropperImage.nativeElement;
+
+    canvas.width = this.targetWidth;
+    canvas.height = this.targetHeight;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const scaledWidth = img.width * this.scale;
+    const scaledHeight = img.height * this.scale;
+
+    const x = (canvas.width - scaledWidth) / 2 + this.offsetX;
+    const y = (canvas.height - scaledHeight) / 2 + this.offsetY;
+
+    ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+  }
+
+  onScaleChange(): void {
+    this.drawCanvas();
+  }
+
+  onMouseDown(e: MouseEvent): void {
+    this.isDragging = true;
+    this.lastX = e.clientX;
+    this.lastY = e.clientY;
+    this.cropperCanvas.nativeElement.style.cursor = 'grabbing';
+  }
+
+  onMouseMove(e: MouseEvent): void {
+    if (!this.isDragging) return;
+
+    this.offsetX += (e.clientX - this.lastX);
+    this.offsetY += (e.clientY - this.lastY);
+
+    this.lastX = e.clientX;
+    this.lastY = e.clientY;
+
+    this.drawCanvas();
+  }
+
+  onMouseUp(): void {
+    this.isDragging = false;
+    if (this.cropperCanvas?.nativeElement) {
+      this.cropperCanvas.nativeElement.style.cursor = 'grab';
+    }
+  }
+
+  async confirmBannerCrop(): Promise<void> {
+    if (!this.cropperCanvas || !this.selectedBannerFile || !this.tournament?.id) return;
+
+    this.isCropping = true;
+    this.cdr.detectChanges();
+
+    const canvas = this.cropperCanvas.nativeElement;
+    const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+    this.tournament = { ...this.tournament, banner_url: croppedDataUrl };
+
+    try {
+      const response = await fetch(croppedDataUrl);
+      const blob = await response.blob();
+      const croppedFile = new File([blob], this.selectedBannerFile.name, { type: 'image/jpeg' });
+
+      this.api.uploadTournamentImage(this.tournament.id, croppedFile).subscribe({
         next: (updated: any) => {
           this.tournament = this.normalizeTournament(updated);
-          this.cdr.detectChanges();
+          this.resetCropper();
         },
         error: () => {
           this.error = 'Не вдалося зберегти банер турніру';
-          this.cdr.detectChanges();
+          this.resetCropper();
         }
       });
+    } catch {
+      this.error = 'Помилка обробки зображення';
+      this.resetCropper();
     }
   }
+
+  cancelBannerCrop(): void {
+    this.resetCropper();
+  }
+
+  private resetCropper(): void {
+    this.showCropper = false;
+    this.cropImageSrc = '';
+    this.selectedBannerFile = null;
+    this.isCropping = false;
+    this.scale = 1;
+    this.offsetX = 0;
+    this.offsetY = 0;
+    this.cdr.detectChanges();
+  }
+  // =====================================================
+
+  // ==================== ЗАВАНТАЖЕННЯ ФАЙЛУ ====================
+  downloadFile(file: any): void {
+    const url = this.fileUrl(file);
+    if (!url) return;
+
+    const fileName = file.title || file.original_name || file.name || `file_${Date.now()}`;
+
+    fetch(url)
+      .then(response => {
+        if (!response.ok) throw new Error('Помилка мережі');
+        return response.blob();
+      })
+      .then(blob => {
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+      })
+      .catch(() => {
+        this.error = 'Не вдалося завантажити файл. Спробуйте відкрити його в новій вкладці.';
+        this.cdr.detectChanges();
+      });
+  }
+  // =====================================================
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -136,6 +279,7 @@ export class TournamentDetail implements OnInit {
     this.error = '';
     this.message = '';
     this.uploadingFile = true;
+
     this.api.uploadTournamentFile(this.tournament.id, {
       title: this.fileTitle.trim(),
       file_type: this.fileType || 'document',
