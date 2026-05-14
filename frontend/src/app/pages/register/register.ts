@@ -12,6 +12,7 @@ import { ApiService } from '../../services/api';
   styleUrls: ['./register.scss']
 })
 export class Register {
+  private readonly allowedEmailDomains = ['gmail.com', 'outlook.com', 'hotmail.com', 'live.com', 'yahoo.com', 'icloud.com', 'ukr.net'];
   registerForm: FormGroup;
   visiblePasswords: { [key: string]: boolean } = {
     password: false,
@@ -26,7 +27,7 @@ export class Register {
   ) {
     this.registerForm = this.fb.group({
       username: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
+      email: ['', [Validators.required, Validators.email, this.emailLikeDjangoValidator.bind(this)]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', Validators.required],
       termsAccepted: [false, Validators.requiredTrue]
@@ -39,6 +40,21 @@ export class Register {
 
     if (password && confirmPassword && password.value !== confirmPassword.value) {
       return { mismatch: true };
+    }
+
+    return null;
+  }
+
+  emailLikeDjangoValidator(control: AbstractControl): ValidationErrors | null {
+    const value = String(control.value || '').trim().toLowerCase();
+    if (!value) return null;
+    if (/[А-Яа-яЁёІіЇїЄєҐґ]/.test(value)) {
+      return { cyrillicEmail: true };
+    }
+
+    const domain = value.split('@')[1] || '';
+    if (domain && !this.allowedEmailDomains.includes(domain)) {
+      return { unsupportedDomain: true };
     }
 
     return null;

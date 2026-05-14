@@ -23,7 +23,7 @@
       class="tournament-card" 
       [routerLink]="['/tournaments', t.id]"
     >
-      <div class="card-header">
+      <div class="card-header" [style.background-image]="t.bannerUrl ? 'url(' + t.bannerUrl + ')' : null">
         <div class="header-overlay">
           <span class="status-badge" [attr.data-status]="t.viewStatus">
             {{ statusLabel(t) }}

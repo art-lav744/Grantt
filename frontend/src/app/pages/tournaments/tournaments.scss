@@ -115,6 +115,8 @@
 .card-header {
   height: 200px;
   background: linear-gradient(135deg, #1e3a4d 0%, #2c7a7b 50%, #4fd1c5 100%);
+  background-size: cover;
+  background-position: center;
   position: relative;
 }
 

@@ -152,9 +152,18 @@ def _user_can_access_tournament_files(user, tournament):
         return False
     if getattr(user, 'is_admin_like', False) or getattr(user, 'is_superuser', False):
         return True
-    if _get_user_tournament_team(user, tournament) is None:
+    if user.role == UserRole.JURY:
+        return (
+            tournament.jury_members.filter(pk=user.pk).exists()
+            or JuryTournamentRegistration.objects.filter(
+                tournament=tournament,
+                jury=user,
+                status=JuryRegistrationStatus.APPROVED,
+            ).exists()
+        )
+    if user.role != UserRole.PARTICIPANT:
         return False
-    return tournament.rounds.filter(start_time__lte=timezone.now(), end_time__gte=timezone.now()).exists()
+    return _get_user_tournament_team(user, tournament) is not None
 
 
 @login_required
@@ -776,6 +785,19 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        link = request.build_absolute_uri(f'/verify/{uid}/{token}/')
+        send_mail(
+            subject='Підтвердіть вашу реєстрацію',
+            message=(
+                f'Вітаємо, {user.nickname}!\n\n'
+                f'Для підтвердження email перейдіть за посиланням:\n{link}\n\n'
+                'Посилання дійсне 24 години.'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+        )
         return Response(UserOutSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
@@ -824,6 +846,39 @@ class UserProfileImageUploadView(APIView):
         content = process_square_image(file)
         request.user.profile_image.save(content.name, content, save=True)
         return Response(UserOutSerializer(request.user).data)
+
+
+class StaffRoleAssignmentView(APIView):
+    permission_classes = [IsOrganizerOrAdmin]
+
+    def post(self, request):
+        email = normalize_email_value(request.data.get('email') or '')
+        role = (request.data.get('role') or '').strip()
+
+        if not email:
+            return Response({'email': ['This field is required.']}, status=status.HTTP_400_BAD_REQUEST)
+        if role not in {UserRole.ADMIN, UserRole.JURY}:
+            return Response({'role': ['Allowed roles: admin, jury.']}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            return Response({'detail': 'User with this email was not found'}, status=status.HTTP_404_NOT_FOUND)
+        if user.role == UserRole.ORGANIZER:
+            return Response({'detail': 'Organizer role cannot be changed from this panel'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.role = role
+        user.is_staff = role == UserRole.ADMIN
+        user.is_verified = True
+        user.save(update_fields=['role', 'is_staff', 'is_verified'])
+        return Response(UserOutSerializer(user).data)
+
+
+class StaffAssignableUsersView(APIView):
+    permission_classes = [IsOrganizerOrAdmin]
+
+    def get(self, request):
+        users = User.objects.exclude(role=UserRole.ORGANIZER).order_by('email')
+        return Response(UserOutSerializer(users, many=True).data)
 
 
 class MyTeamInfoView(APIView):
@@ -971,6 +1026,9 @@ class TeamMemberListCreateView(APIView):
             return Response({'detail': 'User is already registered in this tournament'}, status=status.HTTP_400_BAD_REQUEST)
 
         linked_user = User.objects.filter(email__iexact=email).first()
+        if linked_user and linked_user.role != UserRole.PARTICIPANT:
+            return Response({'detail': 'Users with admin, organizer, or jury roles cannot be added to a team'}, status=status.HTTP_400_BAD_REQUEST)
+
         member = TeamMember.objects.create(
             team=team,
             email=email,
@@ -1617,4 +1675,3 @@ def evaluation_detail(request, eval_id):
         'criteria_max_total': sum(item.criterion.max_score for item in criteria_scores),
         'criteria_definition': _criteria_definition_from_round(evaluation.submission.round),
     })
-

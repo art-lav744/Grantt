@@ -108,6 +108,8 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError('Користувача не знайдено') from exc
         if not user.check_password(password):
             raise serializers.ValidationError('Невірний пароль')
+        if not user.is_verified:
+            raise serializers.ValidationError('Спочатку підтвердіть email.')
         attrs['user'] = user
         return attrs
 
@@ -217,6 +219,8 @@ class TeamCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError('Капітан з таким email вже має команду на цей турнір.')
 # Перевірка по User об'єкту для автентифікованих користувачів
         if self.context.get('request') and self.context['request'].user.is_authenticated:
+            if self.context['request'].user.role != UserRole.PARTICIPANT:
+                raise serializers.ValidationError('Тільки учасники можуть створювати команди.')
             if Team.objects.filter(tournament=tournament, captain=self.context['request'].user).exists():
                 raise serializers.ValidationError('Ви вже маєте команду на цей турнір.')
 #members email check
@@ -237,7 +241,15 @@ class TeamCreateSerializer(serializers.Serializer):
         if already_registered:
             raise serializers.ValidationError(f'Учасники з email {", ".join(already_registered)} вже зареєстровані у цьому турнірі')
 
-        user_ids = list(User.objects.filter(email__in=all_emails).values_list('id', flat=True))
+        users_by_email = {user.email.lower(): user for user in User.objects.filter(email__in=all_emails)}
+        blocked_staff = [
+            email for email, user in users_by_email.items()
+            if user.role in {UserRole.ADMIN, UserRole.ORGANIZER, UserRole.JURY}
+        ]
+        if blocked_staff:
+            raise serializers.ValidationError(f'Користувачів з ролями admin/organizer/jury не можна додавати до команди: {", ".join(blocked_staff)}')
+
+        user_ids = [user.id for user in users_by_email.values()]
         if user_ids and TeamMember.objects.filter(team__tournament=tournament, user_id__in=user_ids).exists():
             raise serializers.ValidationError('Один з користувачів вже є учасником команди у цьому турнірі.')
 

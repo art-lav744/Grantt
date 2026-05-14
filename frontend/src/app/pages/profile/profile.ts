@@ -33,9 +33,7 @@ export class Profile implements OnInit {
           full_name: user?.full_name || '',
           discord_tag: user?.discord_tag || ''
         });
-        localStorage.setItem('nickname', user?.nickname || '');
-        localStorage.setItem('email', user?.email || '');
-        localStorage.setItem('role', user?.role || '');
+        this.deferStoredUserUpdate(user);
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -57,8 +55,7 @@ export class Profile implements OnInit {
     this.message = '';
     this.api.updateMe(this.form.value).subscribe({
       next: (user: any) => {
-        localStorage.setItem('nickname', user?.nickname || '');
-        localStorage.setItem('profile_image', user?.profile_image_path || '');
+        this.deferStoredUserUpdate(user);
         this.message = 'Профіль збережено.';
         this.saving = false;
         this.cdr.detectChanges();
@@ -78,5 +75,14 @@ export class Profile implements OnInit {
     if (payload.detail || payload.message) return String(payload.detail || payload.message);
     const firstValue = Object.values(payload)[0];
     return Array.isArray(firstValue) ? String(firstValue[0]) : String(firstValue || '');
+  }
+
+  private deferStoredUserUpdate(user: any): void {
+    setTimeout(() => {
+      localStorage.setItem('nickname', user?.nickname || '');
+      localStorage.setItem('email', user?.email || '');
+      localStorage.setItem('role', user?.role || '');
+      localStorage.setItem('profile_image', user?.profile_image_path || '');
+    });
   }
 }

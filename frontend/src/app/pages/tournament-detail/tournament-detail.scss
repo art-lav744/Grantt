@@ -107,6 +107,14 @@ $border: rgba(255, 255, 255, 0.05);
   strong { color: $text-main; }
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
 .status-tag {
   background: rgba($accent, 0.1);
   color: $accent;
@@ -159,7 +167,6 @@ table {
   cursor: pointer;
   transition: 0.2s;
   display: inline-flex;
-  margin-left: 8px;
 
   &:hover {
     color: $accent;

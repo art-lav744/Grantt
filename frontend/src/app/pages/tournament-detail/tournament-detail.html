@@ -71,10 +71,11 @@
         <p><strong>Реєстрація:</strong> {{ tournament.reg_start | date:'dd.MM.yyyy' }} — {{ tournament.reg_end | date:'dd.MM.yyyy' }}</p>
         <p><strong>Статус:</strong> <span class="status-tag">{{ tournament.status }}</span></p>
       </div>
-      <div class="actions" *ngIf="canManageRounds || canRegisterTeam || isJury">
+      <div class="actions">
         <button class="btn-icon" *ngIf="canManageRounds" [routerLink]="['/tournaments/edit', tournament.id]" title="Редагувати турнір">
           <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
         </button>
+        <button class="btn btn-secondary" [routerLink]="['/tournaments', tournament.id, 'leaderboard']">Лідерборд</button>
         <button class="btn" *ngIf="canManageRounds" [routerLink]="['/rounds/create', tournament.id]">Додати раунд</button>
         <button class="btn" *ngIf="canRegisterTeam" [routerLink]="['/tournaments', tournament.id, 'create-team']">Брати участь</button>
         <button class="btn btn-secondary" *ngIf="isJury && !canManageRounds" type="button" (click)="applyAsJury()">Подати заявку журі</button>

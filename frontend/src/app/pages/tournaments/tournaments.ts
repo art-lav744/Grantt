@@ -94,7 +94,16 @@ export class Tournaments implements OnInit {
 
     return {
       ...tournament,
+      bannerUrl: this.toMediaUrl(tournament?.banner_url || tournament?.cover_image_path || ''),
       viewStatus
     };
+  }
+
+  private toMediaUrl(value: any): string {
+    if (!value) return '';
+    const url = String(value);
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+    if (url.startsWith('/')) return `http://127.0.0.1:8000${url}`;
+    return `http://127.0.0.1:8000/${url}`;
   }
 }

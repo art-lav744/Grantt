@@ -11,10 +11,6 @@
         Подати роботу
       </button>
 
-      <button class="action-btn secondary" type="button" [disabled]="!canManageMembers">
-        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
-        Додати учасника
-      </button>
     </div>
   </section>
 
@@ -29,7 +25,6 @@
         <div class="person-card">
           <span class="role-label">Капітан</span>
           <strong>{{ team.captain_name || 'Капітан' }}</strong>
-          <small>{{ team.captain_email }}</small>
         </div>
       </section>
 
@@ -45,7 +40,6 @@
           <div class="person-card compact" *ngFor="let member of team.members">
             <div>
               <strong>{{ member.full_name || member.email }}</strong>
-              <small>{{ member.email }}</small>
             </div>
             <button class="remove-member" type="button" *ngIf="isCaptain" (click)="removeMember(member)" [disabled]="!canManageMembers">Прибрати</button>
           </div>

@@ -1,6 +1,12 @@
 :host { display:block; min-height:100vh; background:#0b1220; color:#fff; }
-.profile-page { padding: 32px; }
-.profile-card { max-width: 620px; background:#183545; border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:28px; box-shadow:0 18px 50px rgba(0,0,0,.22); }
+.profile-page {
+  min-height: calc(100vh - 56px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 32px;
+}
+.profile-card { width:100%; max-width: 620px; background:#183545; border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:28px; box-shadow:0 18px 50px rgba(0,0,0,.22); }
 h1 { margin:0 0 8px; font-size:32px; }
 .muted { color:#a9bac7; }
 form { display:grid; gap:18px; margin-top:22px; }

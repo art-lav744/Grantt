@@ -155,6 +155,14 @@ export class ApiService {
     return this.http.post<any>(`${this.apiUrl}/jury/registrations/`, { tournament_id: tournamentId }, this.authHeaders());
   }
 
+  assignStaffRole(data: { email: string; role: 'admin' | 'jury' }) {
+    return this.http.post<any>(`${this.apiUrl}/staff/roles/`, data, this.authHeaders());
+  }
+
+  getAssignableUsers() {
+    return this.http.get<any[]>(`${this.apiUrl}/staff/users/`, this.authHeaders());
+  }
+
 }
 
 @Injectable({

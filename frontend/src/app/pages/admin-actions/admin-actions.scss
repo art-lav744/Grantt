@@ -50,6 +50,19 @@ $border-color: rgba(255, 255, 255, 0.1);
   margin-bottom: 24px;
 }
 
+.staff-card {
+  margin-bottom: 24px;
+}
+
+.role-form {
+  grid-template-columns: minmax(220px, 1fr) minmax(160px, 220px) auto;
+  align-items: end;
+
+  label {
+    margin-bottom: 0;
+  }
+}
+
 .card {
   background-color: $panel-bg;
   border: 1px solid $border-color;
@@ -234,6 +247,10 @@ label {
 
 @media (max-width: 900px) {
   .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .role-form {
     grid-template-columns: 1fr;
   }
 

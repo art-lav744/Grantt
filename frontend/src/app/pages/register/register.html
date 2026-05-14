@@ -50,6 +50,8 @@
         <div *ngIf="registerForm.get(controlName)?.touched && registerForm.get(controlName)?.errors" class="error-text">
           <small *ngIf="registerForm.get(controlName)?.errors?.['required']">Це поле обов'язкове</small>
           <small *ngIf="registerForm.get(controlName)?.errors?.['email']">Некоректний email</small>
+          <small *ngIf="registerForm.get(controlName)?.errors?.['cyrillicEmail']">Email не повинен містити кирилицю</small>
+          <small *ngIf="registerForm.get(controlName)?.errors?.['unsupportedDomain']">Дозволені лише gmail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, ukr.net</small>
           <small *ngIf="controlName === 'confirmPassword' && registerForm.errors?.['mismatch']">Паролі не збігаються</small>
         </div>
       </div>

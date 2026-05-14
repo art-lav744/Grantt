@@ -2,56 +2,102 @@
   <a [routerLink]="['/tournaments', tournamentId]" class="back-button">Назад до турніру</a>
 
   <header class="leaderboard-header">
-    <h1>{{ tournamentTitle || 'Таблиця лідерів' }}</h1>
+    <div>
+      <span class="eyebrow">Лідерборд</span>
+      <h1>{{ tournamentTitle || 'Таблиця лідерів' }}</h1>
+      <p>Рейтинг оновлюється після нових подач і оцінок журі.</p>
+    </div>
+
     <span class="tournament-status" [class.status-final]="isFinal" [class.status-live]="!isFinal">
       {{ isFinal ? 'Турнір завершено' : 'Живе оновлення' }}
     </span>
-    <p>Таблиця оновлюється після нових оцінок журі.</p>
   </header>
 
   <div *ngIf="loading" class="empty-leaderboard">Завантаження...</div>
   <div *ngIf="error" class="error-state">{{ error }}</div>
 
-  <table class="leaderboard-table" *ngIf="!loading && leaderboard.length > 0">
-    <thead>
-      <tr>
-        <th>Місце</th>
-        <th>Команда</th>
-        <th>Середній бал</th>
-        <th>Загальний результат</th>
-        <th>Критерії оцінювання</th>
-        <th>Статистика</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let entry of leaderboard">
-        <td class="rank-cell">
-          <span *ngIf="entry.rank <= 3" class="medal">{{ entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : '🥉' }}</span>
-          <span *ngIf="entry.rank > 3">{{ entry.rank }}</span>
-        </td>
-        <td class="team-name">{{ entry.team_name }}</td>
-        <td class="score-cell">
-          <span [class]="scoreClass(entry.average_score)">{{ entry.average_score }}%</span>
-        </td>
-        <td class="score-cell">
-          <strong>{{ entry.total_raw_score }}</strong>
-          <small> / {{ entry.rounds_scored }} раунд(и)</small>
-        </td>
-        <td>
-          <div class="criteria-breakdown" *ngIf="entry.criteria_summary?.length; else noCriteria">
-            <span class="criterion-badge" *ngFor="let criterion of entry.criteria_summary">
-              <strong>{{ criterion.name }}</strong>
-              <small>Сер.: {{ criterion.average }}/100</small>
-            </span>
-          </div>
-          <ng-template #noCriteria><span class="muted">Немає оцінок</span></ng-template>
-        </td>
-        <td class="stats-cell">
-          {{ entry.submissions_count }} роб. | {{ entry.evaluations_count }} оцін.
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <section class="leaderboard-card" *ngIf="!loading && leaderboard.length > 0">
+    <div class="leaderboard-tools">
+      <span>Сортувати за</span>
+      <button
+        type="button"
+        *ngFor="let option of sortOptions"
+        [class.active]="sortKey === option.key"
+        (click)="setSort(option.key)"
+      >
+        {{ option.label }} <b>{{ sortIndicator(option.key) }}</b>
+      </button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th>
+              <button type="button" class="sort-header" (click)="setSort('rank')">
+                Місце <span>{{ sortIndicator('rank') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="sort-header" (click)="setSort('team')">
+                Команда <span>{{ sortIndicator('team') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="sort-header" (click)="setSort('average')">
+                Середній бал <span>{{ sortIndicator('average') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="sort-header" (click)="setSort('total')">
+                Загальний результат <span>{{ sortIndicator('total') }}</span>
+              </button>
+            </th>
+            <th>Критерії оцінювання</th>
+            <th>
+              <button type="button" class="sort-header" (click)="setSort('evaluations')">
+                Статистика <span>{{ sortIndicator('evaluations') }}</span>
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of sortedLeaderboard">
+            <td class="rank-cell">
+              <span class="rank-pill" [class.top-rank]="entry.rank <= 3">
+                {{ entry.rank }}
+              </span>
+            </td>
+            <td>
+              <strong class="team-name">{{ entry.team_name }}</strong>
+            </td>
+            <td class="score-cell">
+              <span class="score-badge" [ngClass]="scoreClass(entry.average_score)">
+                {{ entry.average_score }}%
+              </span>
+            </td>
+            <td class="score-cell">
+              <strong>{{ entry.total_raw_score }}</strong>
+              <small>{{ entry.rounds_scored }} раунд(и)</small>
+            </td>
+            <td>
+              <div class="criteria-breakdown" *ngIf="entry.criteria_summary?.length; else noCriteria">
+                <span class="criterion-badge" *ngFor="let criterion of entry.criteria_summary">
+                  <strong>{{ criterion.name }}</strong>
+                  <small>{{ criterion.average }}/100</small>
+                </span>
+              </div>
+              <ng-template #noCriteria><span class="muted">Немає оцінок</span></ng-template>
+            </td>
+            <td class="stats-cell">
+              <span>{{ entry.submissions_count }} робіт</span>
+              <span>{{ entry.evaluations_count }} оцінок</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
   <div class="empty-leaderboard" *ngIf="!loading && !error && leaderboard.length === 0">
     <h3>Таблиця лідерів ще порожня</h3>
@@ -60,6 +106,6 @@
 
   <section class="rating-note">
     <h4>Як розраховується рейтинг</h4>
-    <p>Сортування іде за середнім балом, першим критерієм, кількістю оцінених раундів і кількістю поданих робіт.</p>
+    <p>Базове сортування йде за місцем. Додатково можна відсортувати команди за середнім балом, сумою балів, кількістю раундів, подач або оцінок.</p>
   </section>
 </div>

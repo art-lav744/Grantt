@@ -6,7 +6,6 @@
     </h2>
     <div class="header-actions">
       <a routerLink="/tournaments/create" class="btn btn-primary">Створити турнір</a>
-      <a routerLink="/dashboard" class="btn btn-outline-secondary">Назад до Dashboard</a>
     </div>
   </div>
 
@@ -83,6 +82,33 @@
       </div>
     </section>
   </div>
+
+  <section class="card staff-card">
+    <div class="card-header">
+      <h5>Призначення ролей</h5>
+    </div>
+    <div class="card-body role-form">
+      <label>
+        Користувач
+        <select class="form-select" name="selectedStaffUserId" [(ngModel)]="selectedStaffUserId">
+          <option [ngValue]="null">Оберіть користувача</option>
+          <option *ngFor="let user of assignableUsers" [ngValue]="user.id">
+            {{ user.email }} - {{ user.role }}
+          </option>
+        </select>
+      </label>
+
+      <label>
+        Роль
+        <select class="form-select" name="staffRole" [(ngModel)]="staffRole">
+          <option value="jury">Журі</option>
+          <option value="admin">Адмін</option>
+        </select>
+      </label>
+
+      <button class="btn btn-primary" type="button" (click)="assignStaffRole()" [disabled]="!selectedStaffUserId">Призначити</button>
+    </div>
+  </section>
 
   <section class="card jury-card">
     <div class="card-header">

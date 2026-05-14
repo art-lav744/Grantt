@@ -231,6 +231,8 @@ class AddMemberForm(forms.Form):
         user_to_add = User.objects.filter(email__iexact=email).first()
         if not user_to_add:
             raise ValidationError("Користувача з таким email не знайдено.")
+        if user_to_add.role != UserRole.PARTICIPANT:
+            raise ValidationError("Адміністратора, організатора або журі не можна додавати до команди.")
         self.user_instance = user_to_add
 
         # 2. Перевірка: чи цей користувач вже є в ЯКІЙСЬ команді ЦЬОГО турніру?

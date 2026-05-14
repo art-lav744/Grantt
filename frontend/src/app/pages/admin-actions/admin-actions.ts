@@ -14,12 +14,15 @@ import { ApiService } from '../../services/api';
 export class AdminActions implements OnInit {
   tournaments: any[] = [];
   pendingJuryRegistrations: any[] = [];
+  assignableUsers: any[] = [];
   rounds: any[] = [];
   teams: any[] = [];
   selectedTournamentId: number | null = null;
   selectedStatus = 'registration';
   selectedRoundId: number | null = null;
   selectedTeamIdToDelete: number | null = null;
+  selectedStaffUserId: number | null = null;
+  staffRole: 'admin' | 'jury' = 'jury';
   message = '';
   error = '';
 
@@ -28,6 +31,7 @@ export class AdminActions implements OnInit {
   ngOnInit(): void {
     this.loadTournaments();
     this.loadPendingJuryRegistrations();
+    this.loadAssignableUsers();
   }
 
   loadTournaments(): void {
@@ -41,6 +45,19 @@ export class AdminActions implements OnInit {
     this.api.getPendingJuryRegistrations().subscribe({
       next: (items: any) => { this.pendingJuryRegistrations = items; this.cdr.detectChanges(); },
       error: () => this.pendingJuryRegistrations = []
+    });
+  }
+
+  loadAssignableUsers(): void {
+    this.api.getAssignableUsers().subscribe({
+      next: (items: any) => {
+        this.assignableUsers = Array.isArray(items) ? items : [];
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.assignableUsers = [];
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -139,5 +156,37 @@ export class AdminActions implements OnInit {
       },
       error: () => this.error = 'Не вдалося обробити заявку журі.'
     });
+  }
+
+  assignStaffRole(): void {
+    const user = this.assignableUsers.find(item => item.id === this.selectedStaffUserId);
+    const email = user?.email || '';
+    if (!email) {
+      this.error = 'Оберіть користувача.';
+      return;
+    }
+
+    this.api.assignStaffRole({ email, role: this.staffRole }).subscribe({
+      next: () => {
+        this.message = '';
+        this.error = '';
+        this.selectedStaffUserId = null;
+        this.loadAssignableUsers();
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        this.error = this.extractError(err) || 'Не вдалося змінити роль користувача.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  private extractError(err: any): string {
+    const payload = err?.error;
+    if (!payload) return '';
+    if (typeof payload === 'string') return payload;
+    if (payload.detail || payload.message) return String(payload.detail || payload.message);
+    const firstValue = Object.values(payload)[0];
+    return Array.isArray(firstValue) ? String(firstValue[0]) : String(firstValue || '');
   }
 }
