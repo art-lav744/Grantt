@@ -62,10 +62,6 @@ export class TournamentDetail implements OnInit {
     return this.role === 'admin' || this.role === 'organizer';
   }
 
-  get isJury(): boolean {
-    return this.role === 'jury';
-  }
-
   get canUploadFiles(): boolean {
     return this.canManageRounds;
   }
@@ -301,18 +297,18 @@ export class TournamentDetail implements OnInit {
     });
   }
 
-  applyAsJury(): void {
-    if (!this.tournament?.id) return;
+  deleteFile(file: any): void {
+    if (!this.canUploadFiles || !this.tournament?.id || !file?.id) return;
+
     this.error = '';
     this.message = '';
-    this.api.applyAsJury(this.tournament.id).subscribe({
-      next: (registration: any) => {
-        const status = registration?.status === 'approved' ? 'підтверджена' : 'очікує підтвердження';
-        this.message = `Заявка журі ${status}.`;
-        this.cdr.detectChanges();
+    this.api.deleteTournamentFile(this.tournament.id, file.id).subscribe({
+      next: () => {
+        this.message = 'Файл видалено.';
+        this.loadFiles(this.tournament.id);
       },
       error: (err: any) => {
-        this.error = this.extractError(err) || 'Не вдалося подати заявку журі.';
+        this.error = this.extractError(err) || 'Не вдалося видалити файл.';
         this.cdr.detectChanges();
       }
     });

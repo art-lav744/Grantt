@@ -78,7 +78,6 @@
         <button class="btn btn-secondary" [routerLink]="['/tournaments', tournament.id, 'leaderboard']">Лідерборд</button>
         <button class="btn" *ngIf="canManageRounds" [routerLink]="['/rounds/create', tournament.id]">Додати раунд</button>
         <button class="btn" *ngIf="canRegisterTeam" [routerLink]="['/tournaments', tournament.id, 'create-team']">Брати участь</button>
-        <button class="btn btn-secondary" *ngIf="isJury && !canManageRounds" type="button" (click)="applyAsJury()">Подати заявку журі</button>
       </div>
     </div>
   </div>
@@ -110,6 +109,53 @@
         </tbody>
       </table>
       <ng-template #noTeams><p class="empty-msg">Команд ще не зареєстровано.</p></ng-template>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Раунди турніру</h2>
+    <div class="table-responsive">
+      <table *ngIf="rounds.length > 0; else noRounds">
+        <thead>
+          <tr>
+            <th>Назва</th>
+            <th>Статус</th>
+            <th>Початок</th>
+            <th>Кінець</th>
+            <th class="actions-cell" *ngIf="canManageRounds"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let round of rounds">
+            <tr>
+              <td class="team-name">{{ round.title }}</td>
+              <td><span class="status-tag">{{ round.status }}</span></td>
+              <td class="text-muted">{{ round.start }}</td>
+              <td class="text-muted">{{ round.end }}</td>
+              <td class="actions-cell" *ngIf="canManageRounds">
+                <button class="btn-icon" [routerLink]="['/rounds/edit', round.id]" title="Редагувати раунд">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
+              </td>
+            </tr>
+            <tr class="round-task-row">
+              <td [attr.colspan]="canManageRounds ? 5 : 4">
+                <div class="round-task">
+                  <div>
+                    <strong>Опис завдання</strong>
+                    <p>{{ round.description || 'Опис завдання ще не додано.' }}</p>
+                  </div>
+                  <div>
+                    <strong>Вимоги</strong>
+                    <p>{{ round.requirements || 'Вимоги до завдання ще не додано.' }}</p>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+      <ng-template #noRounds><p class="empty-msg">Раундів поки немає.</p></ng-template>
     </div>
   </div>
 
@@ -179,6 +225,14 @@
                       title="Завантажити"
                       *ngIf="fileUrl(file)">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+              </button>
+
+              <button class="btn-icon btn-delete"
+                      type="button"
+                      (click)="deleteFile(file)"
+                      title="Видалити файл"
+                      *ngIf="canUploadFiles">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM8 9h8v10H8V9zm7.5-5-1-1h-5l-1 1H5v2h14V4z"/></svg>
               </button>
             </td>
           </tr>

@@ -73,6 +73,10 @@ export class ApiService {
     return this.http.post<any>(`${this.apiUrl}/tournaments/${tournamentId}/files/`, body, this.authHeaders());
   }
 
+  deleteTournamentFile(tournamentId: number, fileId: number) {
+    return this.http.delete<any>(`${this.apiUrl}/tournaments/${tournamentId}/files/${fileId}/`, this.authHeaders());
+  }
+
   uploadTournamentImage(tournamentId: number, file: File) {
     const body = new FormData();
     body.append('file', file);
@@ -149,10 +153,6 @@ export class ApiService {
 
   reviewJuryRegistration(registrationId: number, status: string) {
     return this.http.patch<any>(`${this.apiUrl}/jury/registrations/${registrationId}/review/`, { status }, this.authHeaders());
-  }
-
-  applyAsJury(tournamentId: number) {
-    return this.http.post<any>(`${this.apiUrl}/jury/registrations/`, { tournament_id: tournamentId }, this.authHeaders());
   }
 
   assignStaffRole(data: { email: string; role: 'admin' | 'jury' }) {

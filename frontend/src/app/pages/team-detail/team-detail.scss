@@ -45,6 +45,36 @@ $border: rgba(58, 184, 200, 0.16);
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.round-submit-select {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+
+  span {
+    color: $muted;
+    font-size: 0.78rem;
+  }
+
+  select {
+    min-height: 44px;
+    border: 1px solid rgba($accent, 0.32);
+    border-radius: 10px;
+    background: $dark-bg;
+    color: $text;
+    padding: 0 12px;
+
+    &:focus {
+      border-color: rgba($accent, 0.85);
+    }
+  }
+}
+
+.no-submit-round {
+  margin: 0;
+  color: #fde68a;
 }
 
 .action-btn {
@@ -143,6 +173,12 @@ $border: rgba(58, 184, 200, 0.16);
 .person-card.compact {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+
+  small {
+    display: block;
+    margin-top: 4px;
+    overflow-wrap: anywhere;
+  }
 }
 
 .member-form {

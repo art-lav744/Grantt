@@ -100,15 +100,40 @@ h2 {
   }
 }
 
-.password-hint {
+.password-criteria {
+  display: grid;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.password-criterion {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 7px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  
-  &.valid { color: $main3; }
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.25;
+
+  &.valid {
+    color: $main3;
+  }
+}
+
+.criterion-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+  border: 1px solid rgba(58, 184, 200, 0.65);
+  border-radius: 3px;
+  color: $main3;
+
+  .password-criterion.valid & {
+    border-color: $main3;
+    background: rgba(58, 184, 200, 0.12);
+  }
 }
 
 .error-text small {

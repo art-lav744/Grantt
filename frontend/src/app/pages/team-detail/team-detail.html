@@ -6,11 +6,21 @@
     </div>
 
     <div class="team-actions" *ngIf="isCaptain">
+      <label class="round-submit-select" *ngIf="submissionRounds.length > 0">
+        <span>Раунд для подачі</span>
+        <select name="selectedRoundId" [(ngModel)]="selectedRoundId">
+          <option *ngFor="let round of submissionRounds" [ngValue]="round.id">{{ round.title }}</option>
+        </select>
+      </label>
+
       <button class="action-btn primary" type="button" (click)="goToSubmit()" [disabled]="!canSubmitWork">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m14-7-5-5-5 5m5-5v12"/></svg>
         Подати роботу
       </button>
 
+      <p class="no-submit-round" *ngIf="submissionRounds.length === 0">
+        Немає активного раунду для подачі.
+      </p>
     </div>
   </section>
 
@@ -40,6 +50,7 @@
           <div class="person-card compact" *ngFor="let member of team.members">
             <div>
               <strong>{{ member.full_name || member.email }}</strong>
+              <small *ngIf="member.full_name && member.full_name !== member.email">{{ member.email }}</small>
             </div>
             <button class="remove-member" type="button" *ngIf="isCaptain" (click)="removeMember(member)" [disabled]="!canManageMembers">Прибрати</button>
           </div>

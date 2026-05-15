@@ -72,19 +72,28 @@ class CompletedRoundsAPITests(APITestCase):
             end_time=now + timedelta(hours=1),
             status=RoundStatus.ACTIVE,
         )
+        self.future_round = Round.objects.create(
+            tournament=self.tournament,
+            title='Future round',
+            description='Desc',
+            requirements='Req',
+            start_time=now + timedelta(hours=1),
+            end_time=now + timedelta(hours=2),
+            status=RoundStatus.DRAFT,
+        )
 
-    def test_public_rounds_endpoint_shows_only_completed_rounds(self):
+    def test_public_rounds_endpoint_shows_started_rounds(self):
         response = self.client.get('/api/rounds/', {'tournament_id': self.tournament.id})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual([item['id'] for item in response.data], [self.completed_round.id])
+        self.assertEqual([item['id'] for item in response.data], [self.completed_round.id, self.active_round.id])
 
     def test_admin_rounds_endpoint_shows_all_rounds_and_can_edit_existing_round(self):
         self.client.force_authenticate(user=self.admin)
 
         list_response = self.client.get('/api/rounds/', {'tournament_id': self.tournament.id})
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
-        self.assertEqual({item['id'] for item in list_response.data}, {self.completed_round.id, self.active_round.id})
+        self.assertEqual({item['id'] for item in list_response.data}, {self.completed_round.id, self.active_round.id, self.future_round.id})
 
         patch_response = self.client.patch(
             f'/api/rounds/{self.active_round.id}/',
@@ -170,6 +179,8 @@ class JuryEvaluationStatusAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['status'], SubmissionStatus.PENDING)
+        self.assertEqual(response.data[0]['round_description'], 'Desc')
+        self.assertEqual(response.data[0]['round_requirements'], 'Req')
 
         score = EvaluationCriterionScore.objects.get(evaluation=self.evaluation)
         score.score = 75

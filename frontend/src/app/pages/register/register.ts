@@ -13,6 +13,13 @@ import { ApiService } from '../../services/api';
 })
 export class Register {
   private readonly allowedEmailDomains = ['gmail.com', 'outlook.com', 'hotmail.com', 'live.com', 'yahoo.com', 'icloud.com', 'ukr.net'];
+  readonly passwordCriteria = [
+    { key: 'minLength', label: 'Мінімум 8 символів' },
+    { key: 'lowercase', label: 'Мала літера' },
+    { key: 'uppercase', label: 'Велика літера' },
+    { key: 'number', label: 'Цифра' },
+    { key: 'special', label: 'Спецсимвол (!@#$%^&*)' }
+  ];
   registerForm: FormGroup;
   visiblePasswords: { [key: string]: boolean } = {
     password: false,
@@ -28,7 +35,7 @@ export class Register {
     this.registerForm = this.fb.group({
       username: ['', Validators.required],
       email: ['', [Validators.required, Validators.email, this.emailLikeDjangoValidator.bind(this)]],
-      password: ['', [Validators.required, Validators.minLength(8)]],
+      password: ['', [Validators.required, this.passwordCriteriaValidator.bind(this)]],
       confirmPassword: ['', Validators.required],
       termsAccepted: [false, Validators.requiredTrue]
     }, { validators: this.passwordMatchValidator });
@@ -60,6 +67,35 @@ export class Register {
     return null;
   }
 
+  passwordCriteriaValidator(control: AbstractControl): ValidationErrors | null {
+    const password = String(control.value || '');
+    const isValid = this.passwordCriteria.every((criterion) => this.testPasswordCriterion(criterion.key, password));
+
+    return isValid ? null : { passwordCriteria: true };
+  }
+
+  isPasswordCriterionMet(key: string): boolean {
+    const password = String(this.registerForm?.get('password')?.value || '');
+    return this.testPasswordCriterion(key, password);
+  }
+
+  private testPasswordCriterion(key: string, password: string): boolean {
+    switch (key) {
+      case 'minLength':
+        return password.length >= 8;
+      case 'lowercase':
+        return /[a-z]/.test(password);
+      case 'uppercase':
+        return /[A-Z]/.test(password);
+      case 'number':
+        return /\d/.test(password);
+      case 'special':
+        return /[!@#$%^&*(),.?":{}|<>]/.test(password);
+      default:
+        return false;
+    }
+  }
+
   getLabel(name: string): string {
     const labels: { [key: string]: string } = {
       username: 'Нікнейм',
@@ -72,6 +108,10 @@ export class Register {
 
   togglePass(field: string): void {
     this.visiblePasswords[field] = !this.visiblePasswords[field];
+  }
+
+  isPasswordField(field: string): boolean {
+    return field.toLowerCase().includes('password');
   }
 
   isPasswordVisible(field: string): boolean {

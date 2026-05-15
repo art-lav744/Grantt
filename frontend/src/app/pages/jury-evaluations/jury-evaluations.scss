@@ -268,6 +268,14 @@ $text-muted: rgba(255, 255, 255, 0.6);
   white-space: nowrap;
 }
 
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .action-btn {
   display: flex;
   align-items: center;
@@ -290,6 +298,85 @@ $text-muted: rgba(255, 255, 255, 0.6);
       transform: translateY(-2px);
       animation: pulse-soft 1.5s infinite;
     }
+  }
+
+  &.task {
+    background: rgba(255, 255, 255, 0.08);
+    color: $text-main;
+    border: 1px solid rgba($accent-teal, 0.28);
+
+    &:hover {
+      background: rgba($accent-teal, 0.14);
+      transform: translateY(-2px);
+    }
+  }
+}
+
+.task-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 8, 23, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.task-dialog {
+  position: relative;
+  width: min(640px, 100%);
+  max-height: min(760px, 90vh);
+  overflow: auto;
+  border: 1px solid rgba($accent-teal, 0.22);
+  border-radius: 18px;
+  background: $card-bg;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  padding: 28px;
+
+  h3 {
+    margin: 6px 40px 20px 0;
+    font-size: 1.45rem;
+    color: $text-main;
+  }
+}
+
+.task-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: $text-main;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.task-eyebrow {
+  color: $accent-teal;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.task-block {
+  padding: 16px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  h4 {
+    margin: 0 0 8px;
+    color: $text-main;
+    font-size: 0.95rem;
+  }
+
+  p {
+    margin: 0;
+    color: $text-muted;
+    line-height: 1.55;
+    white-space: pre-line;
   }
 }
 

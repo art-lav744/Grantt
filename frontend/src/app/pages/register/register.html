@@ -15,16 +15,16 @@
       <div *ngFor="let controlName of ['username', 'email', 'password', 'confirmPassword']" class="form-group">
         <label [for]="controlName" class="visually-hidden">{{ getLabel(controlName) }}</label>
         
-        <div [class.password-wrapper]="controlName.includes('password')">
+        <div [class.password-wrapper]="isPasswordField(controlName)">
           <input 
-            [type]="isPasswordVisible(controlName) ? 'text' : (controlName.includes('password') ? 'password' : 'text')" 
+            [type]="isPasswordVisible(controlName) ? 'text' : (isPasswordField(controlName) ? 'password' : 'text')" 
             [id]="controlName" 
             [formControlName]="controlName" 
             class="form-control"
             [placeholder]="getLabel(controlName)"
           >
           <span 
-            *ngIf="controlName.includes('password')" 
+            *ngIf="isPasswordField(controlName)" 
             class="toggle-password" 
             (click)="togglePass(controlName)"
           >
@@ -40,11 +40,19 @@
           </span>
         </div>
 
-        <div *ngIf="controlName === 'password'" class="password-hint" [class.valid]="registerForm.get('password')?.valid">
-          <span>Мінімум 8 символів</span>
-          <svg *ngIf="registerForm.get('password')?.valid" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#3ab8c8" stroke-width="3">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
+        <div *ngIf="controlName === 'password'" class="password-criteria">
+          <div
+            *ngFor="let criterion of passwordCriteria"
+            class="password-criterion"
+            [class.valid]="isPasswordCriterionMet(criterion.key)"
+          >
+            <span class="criterion-check" aria-hidden="true">
+              <svg *ngIf="isPasswordCriterionMet(criterion.key)" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span>{{ criterion.label }}</span>
+          </div>
         </div>
 
         <div *ngIf="registerForm.get(controlName)?.touched && registerForm.get(controlName)?.errors" class="error-text">
@@ -52,7 +60,7 @@
           <small *ngIf="registerForm.get(controlName)?.errors?.['email']">Некоректний email</small>
           <small *ngIf="registerForm.get(controlName)?.errors?.['cyrillicEmail']">Email не повинен містити кирилицю</small>
           <small *ngIf="registerForm.get(controlName)?.errors?.['unsupportedDomain']">Дозволені лише gmail.com, outlook.com, hotmail.com, live.com, yahoo.com, icloud.com, ukr.net</small>
-          <small *ngIf="controlName === 'confirmPassword' && registerForm.errors?.['mismatch']">Паролі не збігаються</small>
+          <small *ngIf="controlName === 'confirmPassword' && !registerForm.get(controlName)?.errors?.['required'] && registerForm.errors?.['mismatch']">Паролі не збігаються</small>
         </div>
       </div>
 

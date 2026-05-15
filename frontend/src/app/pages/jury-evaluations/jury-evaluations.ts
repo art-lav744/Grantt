@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api';
 
+type EvaluationSort = 'status' | 'team' | 'round';
+type SortDirection = 'asc' | 'desc';
+
 @Component({
   selector: 'app-jury-evaluations',
   standalone: true,
@@ -14,19 +17,21 @@ export class JuryEvaluations implements OnInit {
   evaluations: any[] = [];
   filteredEvaluations: any[] = [];
   activeFilter: 'all' | 'pending' | 'evaluated' = 'all';
-  activeSort: 'status' | 'team' | 'round' = 'status';
+  activeSort: EvaluationSort = 'status';
+  sortDirection: SortDirection = 'asc';
   readonly statusFilters: Array<{ value: 'all' | 'pending' | 'evaluated'; label: string }> = [
     { value: 'all', label: 'Усі' },
     { value: 'pending', label: 'Очікують' },
     { value: 'evaluated', label: 'Оцінені' }
   ];
-  readonly sortOptions: Array<{ value: 'status' | 'team' | 'round'; label: string }> = [
+  readonly sortOptions: Array<{ value: EvaluationSort; label: string }> = [
     { value: 'status', label: 'За статусом' },
     { value: 'team', label: 'За командою' },
     { value: 'round', label: 'За раундом' }
   ];
   loading = true;
   error = '';
+  selectedTaskEvaluation: any = null;
 
   get doneCount(): number {
     return this.evaluations.filter(item => this.isEvaluationDone(item)).length;
@@ -59,9 +64,27 @@ export class JuryEvaluations implements OnInit {
     this.applyView();
   }
 
-  setSort(sort: 'status' | 'team' | 'round'): void {
-    this.activeSort = sort;
+  setSort(sort: EvaluationSort): void {
+    if (this.activeSort === sort) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.activeSort = sort;
+      this.sortDirection = 'asc';
+    }
     this.applyView();
+  }
+
+  sortIndicator(sort: EvaluationSort): string {
+    if (this.activeSort !== sort) return '';
+    return this.sortDirection === 'asc' ? '↑' : '↓';
+  }
+
+  openTask(evaluation: any): void {
+    this.selectedTaskEvaluation = evaluation;
+  }
+
+  closeTask(): void {
+    this.selectedTaskEvaluation = null;
   }
 
   filterCount(filter: 'all' | 'pending' | 'evaluated'): number {
@@ -89,16 +112,21 @@ export class JuryEvaluations implements OnInit {
   }
 
   private compareEvaluations(a: any, b: any): number {
+    const direction = this.sortDirection === 'asc' ? 1 : -1;
+    let result = 0;
+
     if (this.activeSort === 'team') {
-      return this.compareText(a?.team_name, b?.team_name);
+      result = this.compareText(a?.team_name, b?.team_name);
+      return result * direction;
     }
 
     if (this.activeSort === 'round') {
-      return this.compareText(a?.round_title, b?.round_title) || this.compareText(a?.team_name, b?.team_name);
+      result = this.compareText(a?.round_title, b?.round_title) || this.compareText(a?.team_name, b?.team_name);
+      return result * direction;
     }
 
-    const statusDiff = Number(this.isEvaluationDone(a)) - Number(this.isEvaluationDone(b));
-    return statusDiff || this.compareText(a?.team_name, b?.team_name);
+    result = Number(this.isEvaluationDone(a)) - Number(this.isEvaluationDone(b)) || this.compareText(a?.team_name, b?.team_name);
+    return result * direction;
   }
 
   private compareText(a: any, b: any): number {

@@ -2,9 +2,11 @@ from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from rest_framework.test import APIRequestFactory, force_authenticate
 
 from tournaments.models import Tournament, Team, TeamMember, TournamentStatus
-from tournaments.serializers import TeamCreateSerializer
+from tournaments.serializers import TeamCreateSerializer, TeamMemberOutSerializer
+from tournaments.views import TeamMemberListCreateView
 
 User = get_user_model()
 
@@ -27,12 +29,14 @@ class TeamCreateSerializerTest(TestCase):
             email='member1@gmail.com',
             password='Test1234!',
             nickname='member1',
+            full_name='Member One',
             is_verified=True,
         )
         self.member2 = User.objects.create_user(
             email='member2@gmail.com',
             password='Test1234!',
             nickname='member2',
+            full_name='Member Two',
             is_verified=True,
         )
         # Створюємо турнір зі статусом REGISTRATION
@@ -474,3 +478,43 @@ class TeamCreateSerializerTest(TestCase):
         # Перевіряємо що команда й члени успішно створені
         self.assertTrue(Team.objects.filter(id=team.id).exists())
         self.assertEqual(TeamMember.objects.filter(team=team).count(), 1)
+
+    def test_member_serializer_uses_linked_user_name_when_stored_name_is_email(self):
+        team = Team.objects.create(
+            name='Display Team',
+            tournament=self.tournament,
+            captain=self.captain,
+            captain_email=self.captain.email,
+            captain_name='Captain',
+        )
+        member = TeamMember.objects.create(
+            team=team,
+            user=self.member1,
+            email=self.member1.email,
+            full_name=self.member1.email,
+        )
+
+        data = TeamMemberOutSerializer(member).data
+
+        self.assertEqual(data['full_name'], 'Member One')
+
+    def test_add_member_endpoint_uses_existing_user_name(self):
+        team = Team.objects.create(
+            name='API Team',
+            tournament=self.tournament,
+            captain=self.captain,
+            captain_email=self.captain.email,
+            captain_name='Captain',
+        )
+        request = APIRequestFactory().post(
+            f'/api/teams/{team.id}/members/',
+            {'email': self.member2.email},
+            format='json',
+        )
+        force_authenticate(request, user=self.captain)
+
+        response = TeamMemberListCreateView.as_view()(request, team_id=team.id)
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['full_name'], 'Member Two')
+        self.assertEqual(TeamMember.objects.get(team=team, email=self.member2.email).full_name, 'Member Two')

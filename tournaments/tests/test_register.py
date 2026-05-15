@@ -1,6 +1,7 @@
 from django.core import mail
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from unittest.mock import patch
 
 from tournaments.models import User, UserRole
 
@@ -20,6 +21,22 @@ class RegisterTest(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ['newuser@gmail.com'])
         self.assertEqual(User.objects.get(email='newuser@gmail.com').role, UserRole.PARTICIPANT)
+
+    @patch('tournaments.serializers.validate_email')
+    def test_api_register_sends_verification_email(self, mocked_validate_email):
+        response = self.client.post(reverse('api_register'), {
+            'email': 'apiuser@gmail.com',
+            'nickname': 'apiuser',
+            'password': 'Test1234!',
+        }, content_type='application/json')
+
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(email='apiuser@gmail.com')
+        self.assertFalse(user.is_verified)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['apiuser@gmail.com'])
+        self.assertIn('/verify/', mail.outbox[0].body)
+        mocked_validate_email.assert_called_once()
 
     def test_register_invalid_domain(self):
         response = self.client.post(reverse('register'), {

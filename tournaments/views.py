@@ -283,7 +283,7 @@ def tournament_detail(request, tournament_id):
         teams = Team.objects.none()
     rounds = tournament.rounds.order_by('start_time')
     if not (getattr(request.user, 'is_authenticated', False) and (request.user.is_superuser or getattr(request.user, 'is_admin_like', False))):
-        rounds = rounds.filter(end_time__lte=timezone.now())
+        rounds = rounds.filter(start_time__lte=timezone.now())
     for round_obj in rounds:
         round_obj.scoring_criteria = round_obj.get_or_create_scoring_criteria()
     user_team = _get_user_tournament_team(request.user, tournament)
@@ -722,6 +722,21 @@ class TournamentFileListCreateView(APIView):
         return Response(TournamentFileOutSerializer(tournament_file, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
 
+class TournamentFileDetailView(APIView):
+    permission_classes = [IsOrganizerOrAdmin]
+
+    def delete(self, request, tournament_id, file_id):
+        tournament_file = get_object_or_404(
+            TournamentFile.objects.select_related('tournament'),
+            pk=file_id,
+            tournament_id=tournament_id,
+        )
+        if tournament_file.file:
+            tournament_file.file.delete(save=False)
+        tournament_file.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 @login_required
 def create_staff(request):
     if request.user.role not in [UserRole.ORGANIZER, UserRole.ADMIN]:
@@ -966,7 +981,7 @@ class TeamDetailAPIView(APIView):
         team = get_object_or_404(
             Team.objects.select_related('captain', 'tournament')
             .annotate(members_count=Count('memberships'))
-            .prefetch_related('memberships'),
+            .prefetch_related('memberships__user'),
             pk=team_id,
         )
         team_payload = TeamOutSerializer(team).data
@@ -979,6 +994,9 @@ class TeamDetailAPIView(APIView):
         team_payload['status'] = 'completed' if team.tournament.end_time <= timezone.now() else 'in-progress'
 
         rounds = Round.objects.filter(tournament=team.tournament).order_by('start_time', 'id')
+        can_manage_rounds = bool(request.user.is_superuser or getattr(request.user, 'is_admin_like', False))
+        if not can_manage_rounds:
+            rounds = rounds.filter(start_time__lte=timezone.now())
         active_round = rounds.filter(start_time__lte=timezone.now(), end_time__gte=timezone.now()).first()
         team_payload['current_round_id'] = active_round.id if active_round else (rounds.first().id if rounds.exists() else None)
         team_payload['rounds'] = RoundCreateSerializer(rounds, many=True).data
@@ -1029,10 +1047,14 @@ class TeamMemberListCreateView(APIView):
         if linked_user and linked_user.role != UserRole.PARTICIPANT:
             return Response({'detail': 'Users with admin, organizer, or jury roles cannot be added to a team'}, status=status.HTTP_400_BAD_REQUEST)
 
+        full_name = (request.data.get('full_name') or '').strip()
+        if not full_name and linked_user:
+            full_name = (linked_user.full_name or linked_user.nickname or '').strip()
+
         member = TeamMember.objects.create(
             team=team,
             email=email,
-            full_name=request.data.get('full_name') or email,
+            full_name=full_name or email,
             user=linked_user,
         )
         return Response({'id': member.id, 'full_name': member.full_name, 'email': member.email, 'user_id': member.user_id}, status=status.HTTP_201_CREATED)
@@ -1399,7 +1421,7 @@ class RoundCreateView(APIView):
         user = request.user
         can_manage = bool(getattr(user, 'is_authenticated', False) and (user.is_superuser or getattr(user, 'is_admin_like', False)))
         if not can_manage:
-            rounds = rounds.filter(end_time__lte=timezone.now())
+            rounds = rounds.filter(start_time__lte=timezone.now())
 
         return Response(RoundCreateSerializer(rounds, many=True).data)
 

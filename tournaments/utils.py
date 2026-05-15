@@ -14,6 +14,8 @@ from rest_framework import exceptions
 ALLOWED_CONTENT_TYPES = {'image/jpeg', 'image/png', 'image/gif', 'image/webp'}
 MAX_FILE_SIZE_MB = 5
 PASSWORD_MIN_LENGTH = 8
+PASSWORD_REQUIRE_LOWERCASE = True
+PASSWORD_REQUIRE_UPPERCASE = True
 PASSWORD_REQUIRE_NUMBER = True
 PASSWORD_REQUIRE_SPECIAL = True
 
@@ -57,6 +59,10 @@ def validate_password_complexity(value: str) -> str:
 
     if len(value) < PASSWORD_MIN_LENGTH:
         error_list.append(f'Пароль має бути не менше {PASSWORD_MIN_LENGTH} символів')
+    if PASSWORD_REQUIRE_LOWERCASE and not re.search(r'[a-z]', value):
+        error_list.append('Пароль має містити хоча б одну малу літеру')
+    if PASSWORD_REQUIRE_UPPERCASE and not re.search(r'[A-Z]', value):
+        error_list.append('Пароль має містити хоча б одну велику літеру')
     if PASSWORD_REQUIRE_NUMBER and not any(ch.isdigit() for ch in value):
         error_list.append('Пароль має містити хоча б одну цифру')
     if PASSWORD_REQUIRE_SPECIAL and not re.search(r'[!@#$%^&*(),.?":{}|<>]', value):

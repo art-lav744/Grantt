@@ -22,11 +22,11 @@ Frontend: Angular 17+ (Standalone Components, RxJS)
 python -m venv venv
 venv\Scripts\activate (для Windows)
 pip install -r requirements.txt
-python manage.py migrate
-python manage.py create_admin
-python manage.py setup_admin
-python manage.py seed_data
-python manage.py runserver
+py manage.py migrate
+py manage.py create_admin
+py manage.py setup_admin
+py manage.py seed_data
+py manage.py runserver
 API буде доступне за адресою: http://127.0.0.1:8000
 
 3. Запуск Frontend (Angular)

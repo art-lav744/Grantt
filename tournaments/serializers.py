@@ -160,7 +160,7 @@ class TournamentOutSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Tournament
-        fields = ('id', 'title', 'description', 'status', 'logical_status', 'creator_id', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'max_rounds', 'max_team_members', 'min_team_members', 'hide_teams_until_registration_end', 'cover_image_path', 'teams_count')
+        fields = ('id', 'title', 'description', 'status', 'logical_status', 'creator_id', 'reg_start', 'reg_end', 'start_time', 'end_time', 'max_teams', 'max_rounds', 'max_team_members', 'min_team_members', 'hide_teams_until_registration_end', 'is_private', 'cover_image_path', 'teams_count')
 
     def get_cover_image_path(self, obj):
         return obj.cover_image.url if obj.cover_image else None
@@ -171,9 +171,22 @@ class TeamMemberCreateSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
 class TeamMemberOutSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+
     class Meta:
         model = TeamMember
         fields = ('id', 'full_name', 'email', 'user_id')
+
+    def get_full_name(self, obj):
+        stored_name = (obj.full_name or '').strip()
+        email = (obj.email or '').strip()
+        linked_user = getattr(obj, 'user', None)
+        linked_name = ''
+        if linked_user:
+            linked_name = (linked_user.full_name or linked_user.nickname or '').strip()
+        if linked_name and (not stored_name or stored_name.lower() == email.lower()):
+            return linked_name
+        return stored_name or linked_name or email
 
 
 class TeamOutSerializer(serializers.ModelSerializer):
@@ -382,11 +395,16 @@ class EvaluationOutSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     team_name = serializers.CharField(source='submission.team.name', read_only=True)
     round_title = serializers.CharField(source='submission.round.title', read_only=True)
+    round_description = serializers.CharField(source='submission.round.description', read_only=True)
+    round_requirements = serializers.CharField(source='submission.round.requirements', read_only=True)
+    description = serializers.CharField(source='submission.description', read_only=True)
+    github_link = serializers.URLField(source='submission.github_link', read_only=True)
+    video_link = serializers.URLField(source='submission.video_link', read_only=True)
     tournament_id = serializers.IntegerField(source='submission.round.tournament_id', read_only=True)
 
     class Meta:
         model = Evaluation
-        fields = ('id', 'submission_id', 'jury_id', 'team_name', 'round_title', 'tournament_id', 'status', 'criteria_scores', 'total_score', 'total_percentage', 'comment', 'created_at')
+        fields = ('id', 'submission_id', 'jury_id', 'team_name', 'round_title', 'round_description', 'round_requirements', 'description', 'github_link', 'video_link', 'tournament_id', 'status', 'criteria_scores', 'total_score', 'total_percentage', 'comment', 'created_at')
 
     def get_status(self, obj):
         return SubmissionStatus.EVALUATED if obj.is_scored() else SubmissionStatus.PENDING

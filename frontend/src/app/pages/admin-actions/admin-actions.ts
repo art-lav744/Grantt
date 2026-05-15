@@ -22,6 +22,7 @@ export class AdminActions implements OnInit {
   selectedRoundId: number | null = null;
   selectedTeamIdToDelete: number | null = null;
   selectedStaffUserId: number | null = null;
+  staffEmail = '';
   staffRole: 'admin' | 'jury' = 'jury';
   message = '';
   error = '';
@@ -159,18 +160,18 @@ export class AdminActions implements OnInit {
   }
 
   assignStaffRole(): void {
-    const user = this.assignableUsers.find(item => item.id === this.selectedStaffUserId);
-    const email = user?.email || '';
+    const email = this.staffEmail.trim().toLowerCase();
     if (!email) {
-      this.error = 'Оберіть користувача.';
+      this.error = 'Введіть email користувача.';
       return;
     }
 
     this.api.assignStaffRole({ email, role: this.staffRole }).subscribe({
       next: () => {
-        this.message = '';
+        this.message = `Роль для ${email} оновлено.`;
         this.error = '';
         this.selectedStaffUserId = null;
+        this.staffEmail = '';
         this.loadAssignableUsers();
         this.cdr.detectChanges();
       },

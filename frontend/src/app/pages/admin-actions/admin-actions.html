@@ -89,13 +89,8 @@
     </div>
     <div class="card-body role-form">
       <label>
-        Користувач
-        <select class="form-select" name="selectedStaffUserId" [(ngModel)]="selectedStaffUserId">
-          <option [ngValue]="null">Оберіть користувача</option>
-          <option *ngFor="let user of assignableUsers" [ngValue]="user.id">
-            {{ user.email }} - {{ user.role }}
-          </option>
-        </select>
+        Email користувача
+        <input class="form-control" type="email" name="staffEmail" [(ngModel)]="staffEmail" placeholder="user@example.com">
       </label>
 
       <label>
@@ -106,7 +101,7 @@
         </select>
       </label>
 
-      <button class="btn btn-primary" type="button" (click)="assignStaffRole()" [disabled]="!selectedStaffUserId">Призначити</button>
+      <button class="btn btn-primary" type="button" (click)="assignStaffRole()" [disabled]="!staffEmail.trim()">Призначити</button>
     </div>
   </section>
 

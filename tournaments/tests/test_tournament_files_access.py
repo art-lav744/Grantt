@@ -99,3 +99,21 @@ class TournamentFilesAccessTests(APITestCase):
             response = self.client.get(f'/api/tournaments/{self.tournament.id}/files/')
 
             self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_can_delete_tournament_file(self):
+        tournament_file = self.tournament.files.get(title='Rules')
+        self.client.force_authenticate(user=self.admin)
+
+        response = self.client.delete(f'/api/tournaments/{self.tournament.id}/files/{tournament_file.id}/')
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(TournamentFile.objects.filter(pk=tournament_file.pk).exists())
+
+    def test_participant_cannot_delete_tournament_file(self):
+        tournament_file = self.tournament.files.get(title='Rules')
+        self.client.force_authenticate(user=self.participant)
+
+        response = self.client.delete(f'/api/tournaments/{self.tournament.id}/files/{tournament_file.id}/')
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(TournamentFile.objects.filter(pk=tournament_file.pk).exists())

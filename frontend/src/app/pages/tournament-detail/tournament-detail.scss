@@ -177,6 +177,16 @@ table {
   .icon { width: 18px; height: 18px; fill: currentColor; }
 }
 
+.btn-delete {
+  color: #feb2b2;
+
+  &:hover {
+    color: #fff;
+    background: rgba(245, 101, 101, 0.18);
+    border-color: rgba(245, 101, 101, 0.55);
+  }
+}
+
 .upload-form {
   display: grid;
   gap: 16px;
@@ -262,6 +272,36 @@ table {
   font-size: 0.85rem;
 }
 .file-type { color: $accent; font-weight: bold; font-size: 0.9rem; }
+.empty-msg { color: $text-muted; margin: 0; }
+
+.round-task-row td {
+  padding-top: 0;
+}
+
+.round-task {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba($accent, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+
+  strong {
+    display: block;
+    margin-bottom: 6px;
+    color: $accent;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+  }
+
+  p {
+    margin: 0;
+    color: $text-muted;
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+}
 
 /* ====================== КРОПЕР ====================== */
 .cropper-modal {
@@ -325,6 +365,10 @@ table {
 }
 @media (max-width: 760px) {
   .upload-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .round-task {
     grid-template-columns: 1fr;
   }
 }

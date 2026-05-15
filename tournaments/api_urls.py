@@ -21,6 +21,7 @@ urlpatterns = [
     path('tournaments/<int:tournament_id>/image/', views.TournamentImageUploadView.as_view(), name='api_tournament_image'),
     path('tournaments/<int:tournament_id>/leaderboard/', views.TournamentLeaderboardView.as_view(), name='api_tournament_leaderboard'),
     path('tournaments/<int:tournament_id>/files/', views.TournamentFileListCreateView.as_view(), name='api_tournament_files'),
+    path('tournaments/<int:tournament_id>/files/<int:file_id>/', views.TournamentFileDetailView.as_view(), name='api_tournament_file_detail'),
     path('tournaments/<int:tournament_id>/teams/', views.TournamentTeamsView.as_view(), name='api_tournament_teams'),
     path('teams/', views.TeamCreateView.as_view(), name='api_team_create'),
     path('teams/<int:team_id>/', views.TeamDetailAPIView.as_view(), name='api_team_detail'),

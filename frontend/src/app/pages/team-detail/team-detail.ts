@@ -21,6 +21,7 @@ export class TeamDetail implements OnInit {
   memberSaving = false;
   memberMessage = '';
   memberError = '';
+  selectedRoundId: number | string | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -40,6 +41,7 @@ export class TeamDetail implements OnInit {
         this.team = team;
         this.submissions = team?.submissions || [];
         this.isCaptain = !!team?.is_captain;
+        this.selectDefaultSubmissionRound();
         this.loading = false;
         this.cdr.detectChanges();
       },
@@ -65,13 +67,23 @@ export class TeamDetail implements OnInit {
   }
 
   get canSubmitWork(): boolean {
-    return this.isCaptain && Boolean(this.team?.current_round_id);
+    return this.isCaptain && Boolean(this.selectedRoundId);
+  }
+
+  get submissionRounds(): any[] {
+    const now = Date.now();
+    return (this.team?.rounds || []).filter((round: any) => {
+      const start = round?.start_time ? new Date(round.start_time).getTime() : NaN;
+      const end = round?.end_time ? new Date(round.end_time).getTime() : NaN;
+      const startsBeforeNow = Number.isNaN(start) || start <= now;
+      const endsAfterNow = Number.isNaN(end) || end >= now;
+      return startsBeforeNow && endsAfterNow;
+    });
   }
 
   goToSubmit(): void {
-    const firstRoundId = this.team?.current_round_id || this.team?.rounds?.[0]?.id;
-    if (this.team?.id && firstRoundId) {
-      this.router.navigate(['/teams', this.team.id, 'rounds', firstRoundId, 'submit']);
+    if (this.team?.id && this.selectedRoundId) {
+      this.router.navigate(['/teams', this.team.id, 'rounds', this.selectedRoundId, 'submit']);
     }
   }
 
@@ -122,5 +134,12 @@ export class TeamDetail implements OnInit {
     if (payload.detail || payload.message) return String(payload.detail || payload.message);
     const firstValue = Object.values(payload)[0];
     return Array.isArray(firstValue) ? String(firstValue[0]) : String(firstValue || '');
+  }
+
+  private selectDefaultSubmissionRound(): void {
+    const rounds = this.submissionRounds;
+    const currentRound = rounds.find((round: any) => Number(round.id) === Number(this.team?.current_round_id));
+    const selected = currentRound || rounds[0];
+    this.selectedRoundId = selected?.id || null;
   }
 }

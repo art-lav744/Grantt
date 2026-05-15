@@ -113,6 +113,7 @@ class Tournament(models.Model):
     max_team_members = models.PositiveIntegerField(default=5)
     min_team_members = models.PositiveIntegerField(default=2)
     hide_teams_until_registration_end = models.BooleanField(default=False)
+    is_private = models.BooleanField(default=False)
     cover_image = models.ImageField(upload_to='tournaments/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

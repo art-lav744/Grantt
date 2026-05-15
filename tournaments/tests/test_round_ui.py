@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from tournaments.models import Round, RoundStatus, Tournament, TournamentStatus, User, UserRole
 
@@ -27,6 +28,11 @@ class RoundUiTests(TestCase):
             tournament=self.tournament, title='Round 1', description='Old description',
             requirements='Old requirements', start_time=now,
             end_time=now + timezone.timedelta(days=2), status=RoundStatus.ACTIVE,
+        )
+        self.future_round = Round.objects.create(
+            tournament=self.tournament, title='Future Round', description='Future description',
+            requirements='Future requirements', start_time=now + timezone.timedelta(days=2),
+            end_time=now + timezone.timedelta(days=4), status=RoundStatus.DRAFT,
         )
 
     def test_admin_sees_round_edit_link_on_tournament_detail(self):
@@ -63,3 +69,21 @@ class RoundUiTests(TestCase):
         response = self.client.get(reverse('round_edit', args=[self.round.id]))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse('home'))
+
+    def test_api_rounds_visible_after_start_for_regular_users(self):
+        client = APIClient()
+        client.force_authenticate(user=self.participant)
+
+        response = client.get('/api/rounds/', {'tournament_id': self.tournament.id})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item['title'] for item in response.data], ['Round 1'])
+
+    def test_api_rounds_always_visible_for_admin(self):
+        client = APIClient()
+        client.force_authenticate(user=self.admin)
+
+        response = client.get('/api/rounds/', {'tournament_id': self.tournament.id})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([item['title'] for item in response.data], ['Round 1', 'Future Round'])
