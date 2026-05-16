@@ -68,6 +68,7 @@ py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+py manage.py makemigrations
 py manage.py migrate
 py manage.py seed_data
 py manage.py runserver
